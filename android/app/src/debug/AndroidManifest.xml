@@ -9,6 +9,7 @@
         <receiver android:name=".DebugReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="com.lan.scrolldebt.DEBUG_WALK"/>
+                <action android:name="com.lan.scrolldebt.DEBUG_SCROLL"/>
                 <action android:name="com.lan.scrolldebt.DEBUG_DUMP"/>
                 <action android:name="com.lan.scrolldebt.DEBUG_RESET"/>
             </intent-filter>

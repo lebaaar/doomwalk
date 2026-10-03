@@ -58,6 +58,7 @@ persistence, and checks the release APK for INTERNET. The results go to `docs/de
 
 Debug-only adb hooks (absent from release builds):
 ```bash
+adb shell am broadcast -n com.lan.scrolldebt/.DebugReceiver -a com.lan.scrolldebt.DEBUG_SCROLL --es pkg com.instagram.android --ef metres 10
 adb shell am broadcast -n com.lan.scrolldebt/.DebugReceiver -a com.lan.scrolldebt.DEBUG_WALK --ef metres 25
 adb shell am broadcast -n com.lan.scrolldebt/.DebugReceiver -a com.lan.scrolldebt.DEBUG_DUMP
 adb logcat -s flutter | grep 'SD '

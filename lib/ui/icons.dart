@@ -18,4 +18,5 @@ abstract final class Ph {
   static const checkCircle = IconData(0xe184, fontFamily: _f);
   static const circle = IconData(0xe18a, fontFamily: _f);
   static const export = IconData(0xeaf0, fontFamily: _f);
+  static const caretDown = IconData(0xe136, fontFamily: _f);
 }

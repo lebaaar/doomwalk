@@ -112,6 +112,22 @@ void main() {
     c.dispose();
   });
 
+  test('debug scroll injection is priced like real scrolling', () async {
+    final c = await ScrollDebtController.start();
+    await c.updateConfig(const DebtConfig(allowanceM: 5));
+    c.debugInjectScroll('com.instagram.android', 10); // 5 free, 5 * 2x * ratio 2
+    expect(c.debtM, closeTo(20, 1e-9));
+    expect(c.todayApps['com.instagram.android']!.rawM, closeTo(10, 1e-9));
+    c.debugInjectScroll('com.android.chrome', 10); // 1x
+    expect(c.debtM, closeTo(40, 1e-9));
+    c.debugInjectScroll('com.google.android.apps.maps', 10); // free app
+    c.debugInjectScroll('com.android.settings', 10); // exempt
+    expect(c.state.scrolledTodayM, closeTo(20, 1e-9));
+    await sendNative('debugInjectScroll', {'pkg': 'com.reddit.frontpage', 'metres': 1.0});
+    expect(c.todayApps['com.reddit.frontpage']!.rawM, closeTo(1, 1e-9));
+    c.dispose();
+  });
+
   test('widget data is pushed with metres only', () async {
     final c = await ScrollDebtController.start();
     await c.flush();

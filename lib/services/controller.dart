@@ -186,6 +186,11 @@ class ScrollDebtController extends ChangeNotifier {
           final m = ((args as Map<Object?, Object?>)['metres'] as num).toDouble();
           _applyWalk(m, source: 'debug');
         }
+      case 'debugInjectScroll':
+        if (kDebugMode) {
+          final a = args as Map<Object?, Object?>;
+          debugInjectScroll(a['pkg'] as String, (a['metres'] as num).toDouble());
+        }
       case 'debugDump':
         if (kDebugMode) {
           _log('dump ${jsonEncode(state.toJson())} frost=${frostLevel.toStringAsFixed(3)} '
@@ -205,19 +210,23 @@ class ScrollDebtController extends ChangeNotifier {
     }
     _setForeground(e.pkg);
     if (s.metres <= 0) return;
-    final rate = catalog.rateFor(e.pkg);
-    if (rate <= 0) return;
-    final now = DateTime.fromMillisecondsSinceEpoch(e.timeMs);
-    final rolled = _engine.state.dayKey != dayKeyOf(now);
     final weight = _flick.weigh(e.pkg, s.metres, e.timeMs);
-    final charge = _engine.applyScroll(metres: s.metres, appRate: rate, at: now, velocityWeight: weight);
+    _chargeScroll(e.pkg, s.metres, DateTime.fromMillisecondsSinceEpoch(e.timeMs),
+        weight: weight, source: '${s.source.name} px=${s.pixels.toStringAsFixed(0)}');
+  }
+
+  /// The single charging path for scrolled distance (real or injected).
+  void _chargeScroll(String pkg, double metres, DateTime at, {double weight = 1, required String source}) {
+    final rate = catalog.rateFor(pkg);
+    if (rate <= 0 || metres <= 0) return;
+    final rolled = _engine.state.dayKey != dayKeyOf(at);
+    final charge = _engine.applyScroll(metres: metres, appRate: rate, at: at, velocityWeight: weight);
     if (rolled) _onRolledOver();
-    _addAppDelta(e.pkg, charge.rawM, charge.costM);
-    _ensureMeta(e.pkg);
-    _log('scroll pkg=${e.pkg} src=${s.source.name} px=${s.pixels.toStringAsFixed(0)} '
-        'm=${s.metres.toStringAsFixed(3)} w=${weight.toStringAsFixed(2)} '
+    _addAppDelta(pkg, charge.rawM, charge.costM);
+    _ensureMeta(pkg);
+    _log('scroll pkg=$pkg src=$source m=${metres.toStringAsFixed(3)} w=${weight.toStringAsFixed(2)} '
         'cost=${charge.costM.toStringAsFixed(3)} debt=${debtM.toStringAsFixed(2)} '
-        'today=${todayApps[e.pkg]!.rawM.toStringAsFixed(2)}');
+        'today=${todayApps[pkg]!.rawM.toStringAsFixed(2)}');
     _changed();
   }
 
@@ -298,6 +307,18 @@ class ScrollDebtController extends ChangeNotifier {
   /// Debug builds only: simulate walking (the real path is the pedometer).
   void debugInjectWalk(double metres) {
     if (kDebugMode) _applyWalk(metres, source: 'debug');
+  }
+
+  /// Debug builds only: add [metres] of scrolling to [pkg], priced exactly
+  /// like real scrolling (allowance, app rate, ratio, pass penalty) at weight 1.
+  /// Exempt and free (0x) apps are ignored, as they would be for real.
+  void debugInjectScroll(String pkg, double metres) {
+    if (!kDebugMode) return;
+    if (catalog.isExempt(pkg)) {
+      _log('debug scroll ignored: $pkg is exempt');
+      return;
+    }
+    _chargeScroll(pkg, metres, DateTime.now(), source: 'debug');
   }
 
   // -------------------------------------------------------------- override

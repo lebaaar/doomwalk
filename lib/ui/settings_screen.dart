@@ -311,6 +311,7 @@ class _RatesEditorState extends State<_RatesEditor> {
                   DropdownButton<double>(
                     value: _closest(c.catalog.rateFor(a.pkg)),
                     underline: const SizedBox.shrink(),
+                    icon: const Icon(Ph.caretDown, size: 14, color: Palette.muted),
                     borderRadius: BorderRadius.circular(Radii.small),
                     dropdownColor: Palette.raised2,
                     style: numeric.copyWith(fontSize: 14, color: Palette.text),

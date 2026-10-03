@@ -8,6 +8,7 @@ import '../core/app_catalog.dart';
 import '../core/landmarks.dart';
 import '../core/units.dart';
 import '../services/controller.dart';
+import '../services/native_bridge.dart';
 import '../services/store.dart';
 import 'altitude_gauge.dart';
 import 'icons.dart';
@@ -480,14 +481,75 @@ class _Ledger extends StatelessWidget {
       '${t.day}.${t.month}. ${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
 }
 
-class _DebugTools extends StatelessWidget {
+class _DebugTools extends StatefulWidget {
   const _DebugTools({required this.c});
   final ScrollDebtController c;
 
   @override
-  Widget build(BuildContext context) => Wrap(spacing: 8, runSpacing: 8, children: [
-        for (final m in [5.0, 25.0, 100.0])
-          OutlinedButton(onPressed: () => c.debugInjectWalk(m), child: Text('Walk ${m.toStringAsFixed(0)} m')),
-        OutlinedButton(onPressed: c.resetAll, child: const Text('Reset')),
-      ]);
+  State<_DebugTools> createState() => _DebugToolsState();
+}
+
+/// Debug builds only: fake scrolling in any app and fake walking, both
+/// through the same pricing path as the real sensors.
+class _DebugToolsState extends State<_DebugTools> {
+  late final Future<List<AppMeta>> _apps;
+  String? _pkg;
+
+  @override
+  void initState() {
+    super.initState();
+    _apps = widget.c.launchableApps().catchError((Object _) => <AppMeta>[]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = widget.c;
+    final t = Theme.of(context).textTheme;
+    return FutureBuilder<List<AppMeta>>(
+      future: _apps,
+      builder: (context, snap) {
+        final apps = (snap.data ?? const <AppMeta>[]).where((a) => !c.catalog.isExempt(a.pkg)).toList()
+          ..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+        final pkg = _pkg ?? (apps.isNotEmpty ? apps.first.pkg : null);
+        return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('Add scrolling to an app', style: t.bodyMedium),
+          const SizedBox(height: 8),
+          if (apps.isEmpty)
+            Text('Loading apps…', style: t.bodySmall)
+          else
+            DropdownButtonFormField<String>(
+              initialValue: pkg,
+              isExpanded: true,
+              icon: const Icon(Ph.caretDown, size: 16, color: Palette.muted),
+              dropdownColor: Palette.raised2,
+              borderRadius: BorderRadius.circular(Radii.small),
+              items: [
+                for (final a in apps)
+                  DropdownMenuItem(
+                    value: a.pkg,
+                    child: Text('${a.label}  ${rateLabel(c.catalog.rateFor(a.pkg))}', overflow: TextOverflow.ellipsis),
+                  ),
+              ],
+              onChanged: (v) => setState(() => _pkg = v),
+            ),
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final m in [1.0, 10.0, 50.0])
+              OutlinedButton(
+                onPressed: pkg == null ? null : () => c.debugInjectScroll(pkg, m),
+                child: Text('Scroll ${m.toStringAsFixed(0)} m'),
+              ),
+          ]),
+          const SizedBox(height: 20),
+          Text('Pay it back', style: t.bodyMedium),
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final m in [5.0, 25.0, 100.0])
+              OutlinedButton(onPressed: () => c.debugInjectWalk(m), child: Text('Walk ${m.toStringAsFixed(0)} m')),
+            OutlinedButton(onPressed: c.resetAll, child: const Text('Reset')),
+          ]),
+        ]);
+      },
+    );
+  }
 }
