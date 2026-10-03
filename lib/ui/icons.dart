@@ -19,4 +19,10 @@ abstract final class Ph {
   static const circle = IconData(0xe18a, fontFamily: _f);
   static const export = IconData(0xeaf0, fontFamily: _f);
   static const caretDown = IconData(0xe136, fontFamily: _f);
+  static const sun = IconData(0xe472, fontFamily: _f);
+  static const moon = IconData(0xe330, fontFamily: _f);
+  static const fire = IconData(0xe242, fontFamily: _f);
+  static const walk = IconData(0xe73a, fontFamily: _f);
+  static const target = IconData(0xe47c, fontFamily: _f);
+  static const lightning = IconData(0xe2de, fontFamily: _f);
 }

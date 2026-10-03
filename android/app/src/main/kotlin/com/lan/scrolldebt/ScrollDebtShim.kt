@@ -43,11 +43,13 @@ import android.provider.Settings
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
 import android.view.accessibility.AccessibilityEvent
 import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.TextView
 import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
@@ -139,7 +141,8 @@ object Shim {
                     val level = (call.argument<Double>("level") ?: 0.0).toFloat()
                     val label = call.argument<String>("label")
                     val ms = (call.argument<Int>("animateMs") ?: 600).toLong()
-                    accessibility?.frost?.animateTo(level, label, ms)
+                    val passes = call.argument<Int>("overridesLeft") ?: 0
+                    accessibility?.frost?.animateTo(level, label, ms, passes)
                     result.success(accessibility != null)
                 }
                 "updateNotification" -> {
@@ -335,7 +338,8 @@ class ScrollAccessibilityService : AccessibilityService() {
 }
 
 /**
- * Full-screen, non-touchable TYPE_ACCESSIBILITY_OVERLAY. Accessibility
+ * Full-screen, non-touchable TYPE_ACCESSIBILITY_OVERLAY, plus a small
+ * touchable action bar ("Use pass", "Leave app") once the frost is heavy. Accessibility
  * overlays are trusted windows, so with FLAG_NOT_TOUCHABLE every touch goes
  * to the app below (Android 12 untrusted-touch occlusion rules don't apply).
  * Real blur via FLAG_BLUR_BEHIND when cross-window blur is enabled; otherwise
@@ -346,7 +350,6 @@ class FrostOverlay(private val service: AccessibilityService) {
     private val density = service.resources.displayMetrics.density
     private val maxBlurPx = (48 * density).toInt()
     private var root: FrameLayout? = null
-    private var label: TextView? = null
     private var animator: ValueAnimator? = null
     private var level = 0f
     private var blurEnabled = wm.isCrossWindowBlurEnabled
@@ -370,16 +373,48 @@ class FrostOverlay(private val service: AccessibilityService) {
         layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
     }
 
+    // The action bar is a separate, small, touchable window at the bottom.
+    // FLAG_NOT_TOUCH_MODAL lets every touch outside it reach the app below.
+    private var bar: LinearLayout? = null
+    private var barLabel: TextView? = null
+    private var passButton: TextView? = null
+    private var overridesLeft = 0
+    private val barParams = WindowManager.LayoutParams(
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+        PixelFormat.TRANSLUCENT
+    ).apply {
+        title = "ScrollDebtFrostBar"
+        gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+        y = (72 * density).toInt()
+    }
+
+    /** Below this frost level the bar stays hidden; the app is still usable. */
+    private val barThreshold = 0.25f
+
     init {
         wm.addCrossWindowBlurEnabledListener(service.mainExecutor, blurListener)
     }
 
-    fun animateTo(target: Float, text: String?, durationMs: Long) {
+    fun animateTo(target: Float, text: String?, durationMs: Long, passesLeft: Int) {
         val t = target.coerceIn(0f, 1f)
+        overridesLeft = passesLeft
         animator?.cancel()
-        if (t <= 0.001f && root == null) return
+        if (t <= 0.001f && root == null) {
+            removeBar()
+            return
+        }
         ensureAdded()
-        if (text != null) label?.text = text
+        if (t >= barThreshold) ensureBar() else removeBar()
+        if (text != null) barLabel?.text = text
+        passButton?.let {
+            it.visibility = if (overridesLeft > 0) View.VISIBLE else View.GONE
+            it.text = "Use pass ($overridesLeft)"
+        }
         animator = ValueAnimator.ofFloat(level, t).apply {
             duration = durationMs
             interpolator = DecelerateInterpolator()
@@ -395,23 +430,8 @@ class FrostOverlay(private val service: AccessibilityService) {
 
     private fun ensureAdded() {
         if (root != null) return
-        val tv = TextView(service).apply {
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-            setShadowLayer(6f, 0f, 1f, Color.argb(160, 0, 20, 40))
-            setPadding((16 * density).toInt(), (8 * density).toInt(), (16 * density).toInt(), (8 * density).toInt())
-            background = GradientDrawable().apply {
-                cornerRadius = 20 * density
-                setColor(Color.argb(150, 11, 15, 20))
-            }
-        }
         val fl = FrameLayout(service)
-        fl.addView(tv, FrameLayout.LayoutParams(
-            FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT,
-            Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        ).apply { topMargin = (56 * density).toInt() })
         root = fl
-        label = tv
         lastRadius = -1
         try {
             wm.addView(fl, params)
@@ -419,6 +439,71 @@ class FrostOverlay(private val service: AccessibilityService) {
             Log.w(TAG, "frost addView failed: $e")
             root = null
         }
+    }
+
+    private fun dp(v: Int) = (v * density).toInt()
+
+    private fun pill(text: String, filled: Boolean, onClick: () -> Unit) = TextView(service).apply {
+        this.text = text
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
+        setTextColor(if (filled) Color.rgb(6, 19, 28) else Color.rgb(230, 237, 243))
+        setPadding(dp(16), dp(10), dp(16), dp(10))
+        background = GradientDrawable().apply {
+            cornerRadius = dp(20).toFloat()
+            if (filled) setColor(Color.rgb(124, 196, 232)) else setStroke(dp(1), Color.argb(90, 230, 237, 243))
+        }
+        isClickable = true
+        setOnClickListener { onClick() }
+    }
+
+    private fun ensureBar() {
+        if (bar != null) return
+        val label = TextView(service).apply {
+            setTextColor(Color.rgb(230, 237, 243))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+            gravity = Gravity.CENTER
+        }
+        val pass = pill("Use pass", filled = false) { Shim.send("onOverrideRequested", null) }
+        val leave = pill("Leave app", filled = true) {
+            service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
+        }
+        val buttons = LinearLayout(service).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            addView(pass)
+            addView(leave, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginStart = dp(8) })
+        }
+        val ll = LinearLayout(service).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(20), dp(14), dp(20), dp(14))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(Color.argb(235, 11, 15, 20))
+            }
+            addView(label)
+            addView(buttons, LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(10) })
+        }
+        bar = ll
+        barLabel = label
+        passButton = pass
+        try {
+            wm.addView(ll, barParams)
+        } catch (e: Exception) {
+            Log.w(TAG, "frost bar addView failed: $e")
+            bar = null
+        }
+    }
+
+    private fun removeBar() {
+        bar?.let { try { wm.removeView(it) } catch (_: Exception) {} }
+        bar = null
+        barLabel = null
+        passButton = null
     }
 
     private fun apply(v: Float) {
@@ -443,13 +528,13 @@ class FrostOverlay(private val service: AccessibilityService) {
             tintAlpha = 0.86f * v
         }
         r.setBackgroundColor(Color.argb((tintAlpha * 255).toInt(), 222, 234, 246))
-        label?.alpha = (v * 1.6f).coerceAtMost(1f)
+        bar?.alpha = ((v - barThreshold) / 0.15f).coerceIn(0f, 1f)
     }
 
     private fun detach() {
         root?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         root = null
-        label = null
+        removeBar()
         level = 0f
     }
 

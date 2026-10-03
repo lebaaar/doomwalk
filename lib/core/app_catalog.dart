@@ -49,82 +49,91 @@ const exemptPackages = <String>{
   'com.android.inputmethod.latin',
 };
 
-enum AppCategory { social, news, browser, reference, other }
+/// What kind of app a package is. Only some categories are restricted
+/// (counted and frosted); by default just social and video feeds. Banking,
+/// phone, messaging, maps and everything else land in [other] and are left
+/// alone unless the user restricts them explicitly.
+enum AppCategory { social, video, games, news, browser, other }
+
+extension AppCategoryX on AppCategory {
+  String get label => switch (this) {
+        AppCategory.social => 'Social media',
+        AppCategory.video => 'Video and short video',
+        AppCategory.games => 'Games',
+        AppCategory.news => 'News',
+        AppCategory.browser => 'Browsers',
+        AppCategory.other => 'Everything else',
+      };
+
+  /// Cost multiplier when the category is restricted.
+  double get rate => switch (this) {
+        AppCategory.social || AppCategory.video => 2,
+        _ => 1,
+      };
+}
+
+const defaultRestricted = {AppCategory.social, AppCategory.video};
 
 /// Android ApplicationInfo.category values passed from native.
 AppCategory categoryFromAndroid(int c) => switch (c) {
+      0 => AppCategory.games, // CATEGORY_GAME
+      2 => AppCategory.video, // CATEGORY_VIDEO
       4 => AppCategory.social, // CATEGORY_SOCIAL
-      2 => AppCategory.social, // CATEGORY_VIDEO (short-video feeds)
       5 => AppCategory.news, // CATEGORY_NEWS
-      6 => AppCategory.reference, // CATEGORY_MAPS
-      7 => AppCategory.reference, // CATEGORY_PRODUCTIVITY
-      _ => AppCategory.other,
+      _ => AppCategory.other, // incl. undeclared (-1), maps, productivity, finance
     };
 
-const knownRates = <String, double>{
-  // Social / short video: 2x.
-  'com.instagram.android': 2,
-  'com.instagram.barcelona': 2,
-  'com.zhiliaoapp.musically': 2,
-  'com.ss.android.ugc.trill': 2,
-  'com.facebook.katana': 2,
-  'com.facebook.lite': 2,
-  'com.twitter.android': 2,
-  'com.snapchat.android': 2,
-  'com.reddit.frontpage': 2,
-  'com.google.android.youtube': 2,
-  'com.pinterest': 2,
-  'com.tumblr': 2,
-  'tv.twitch.android.app': 2,
-  'com.linkedin.android': 2,
-  'org.joinmastodon.android': 2,
-  'xyz.blueskyweb.app': 2,
-  'com.bereal.ft': 2,
-  // News / browsers: 1x.
-  'com.android.chrome': 1,
-  'org.mozilla.firefox': 1,
-  'com.brave.browser': 1,
-  'com.sec.android.app.sbrowser': 1,
-  'com.microsoft.emmx': 1,
-  'com.opera.browser': 1,
-  'com.duckduckgo.mobile.android': 1,
-  'com.google.android.apps.magazines': 1,
-  'com.google.android.googlequicksearchbox': 1,
-  'flipboard.app': 1,
-  // Reference / tools: 0x (whitelisted).
-  'com.google.android.apps.maps': 0,
-  'com.waze': 0,
-  'com.amazon.kindle': 0,
-  'com.google.android.apps.books': 0,
-  'com.google.android.apps.docs': 0,
-  'com.google.android.apps.docs.editors.docs': 0,
-  'com.google.android.apps.docs.editors.sheets': 0,
-  'com.google.android.apps.docs.editors.slides': 0,
-  'com.microsoft.office.word': 0,
-  'com.adobe.reader': 0,
-  'org.wikipedia': 0,
+/// Many apps don't declare a manifest category, so the big feeds are known
+/// by package name.
+const knownCategories = <String, AppCategory>{
+  'com.instagram.android': AppCategory.social,
+  'com.instagram.barcelona': AppCategory.social,
+  'com.facebook.katana': AppCategory.social,
+  'com.facebook.lite': AppCategory.social,
+  'com.twitter.android': AppCategory.social,
+  'com.snapchat.android': AppCategory.social,
+  'com.reddit.frontpage': AppCategory.social,
+  'com.pinterest': AppCategory.social,
+  'com.tumblr': AppCategory.social,
+  'com.linkedin.android': AppCategory.social,
+  'org.joinmastodon.android': AppCategory.social,
+  'xyz.blueskyweb.app': AppCategory.social,
+  'com.bereal.ft': AppCategory.social,
+  'com.zhiliaoapp.musically': AppCategory.video,
+  'com.ss.android.ugc.trill': AppCategory.video,
+  'com.google.android.youtube': AppCategory.video,
+  'tv.twitch.android.app': AppCategory.video,
+  'com.android.chrome': AppCategory.browser,
+  'org.mozilla.firefox': AppCategory.browser,
+  'com.brave.browser': AppCategory.browser,
+  'com.sec.android.app.sbrowser': AppCategory.browser,
+  'com.microsoft.emmx': AppCategory.browser,
+  'com.opera.browser': AppCategory.browser,
+  'com.duckduckgo.mobile.android': AppCategory.browser,
+  'com.google.android.apps.magazines': AppCategory.news,
+  'flipboard.app': AppCategory.news,
 };
-
-double defaultRateFor(String pkg, {AppCategory? category}) {
-  final known = knownRates[pkg];
-  if (known != null) return known;
-  return switch (category) {
-    AppCategory.social => 2,
-    AppCategory.news || AppCategory.browser => 1,
-    AppCategory.reference => 0,
-    _ => 1,
-  };
-}
 
 String rateLabel(double r) => r == 0 ? 'free' : '${r % 1 == 0 ? r.toInt() : r}×';
 
 class AppCatalog {
-  AppCatalog({Set<String> extraExempt = const {}, Map<String, double> overrides = const {}})
-      : _extraExempt = {...extraExempt},
-        overrides = {...overrides};
+  AppCatalog({
+    Set<String> extraExempt = const {},
+    Map<String, double> overrides = const {},
+    Set<AppCategory> restricted = defaultRestricted,
+  })  : _extraExempt = {...extraExempt},
+        overrides = {...overrides},
+        restricted = {...restricted};
 
   final Set<String> _extraExempt;
+
+  /// Per-app choice: 0 = never restrict, >0 = restrict at that rate.
   final Map<String, double> overrides;
+
+  /// Categories that are counted and frosted.
+  final Set<AppCategory> restricted;
+
+  /// Categories reported by Android for installed apps.
   final Map<String, AppCategory> categories = {};
 
   void addExempt(Iterable<String> pkgs) => _extraExempt.addAll(pkgs);
@@ -132,8 +141,18 @@ class AppCatalog {
   bool isExempt(String pkg) =>
       pkg.isEmpty || exemptPackages.contains(pkg) || _extraExempt.contains(pkg);
 
+  AppCategory categoryOf(String pkg) => knownCategories[pkg] ?? categories[pkg] ?? AppCategory.other;
+
+  /// Rate from the category rules alone, ignoring per-app overrides.
+  double defaultRateFor(String pkg) {
+    final cat = categoryOf(pkg);
+    return restricted.contains(cat) ? cat.rate : 0;
+  }
+
   double rateFor(String pkg) {
     if (isExempt(pkg)) return 0;
-    return overrides[pkg] ?? defaultRateFor(pkg, category: categories[pkg]);
+    return overrides[pkg] ?? defaultRateFor(pkg);
   }
+
+  bool isRestricted(String pkg) => rateFor(pkg) > 0;
 }

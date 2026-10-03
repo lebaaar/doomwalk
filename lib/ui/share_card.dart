@@ -95,7 +95,7 @@ class ShareCard extends StatelessWidget {
       aspectRatio: 4 / 5,
       child: Container(
         decoration: BoxDecoration(
-          color: Palette.raised,
+          color: context.colors.raised,
           borderRadius: BorderRadius.circular(Radii.surface),
         ),
         clipBehavior: Clip.antiAlias,
@@ -127,13 +127,13 @@ class ShareCard extends StatelessWidget {
               const Spacer(),
               Text(
                 count,
-                style: t.displayLarge?.copyWith(fontSize: 88, color: Palette.accent, fontFeatures: tabular),
+                style: t.displayLarge?.copyWith(fontSize: 88, color: context.colors.accent, fontFeatures: tabular),
               ),
               Text(count == '1.0' ? lm.name : lm.plural, style: t.headlineMedium),
               const SizedBox(height: 8),
               Text(
                 'scrolled this week. ${formatMetres(week)} of thumb travel.',
-                style: t.bodyMedium?.copyWith(color: Palette.muted),
+                style: t.bodyMedium?.copyWith(color: context.colors.muted),
               ),
               const SizedBox(height: 180),
             ]),

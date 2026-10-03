@@ -40,6 +40,8 @@ class DebtConfig {
     this.overrideMinutes = 5,
     this.strideM = 0.75,
     this.demoMode = false,
+    this.weightKg = 70,
+    this.walkGoalM = 5000,
   });
 
   /// Free scroll distance per local day.
@@ -65,6 +67,12 @@ class DebtConfig {
   /// Stage demo: tiny allowance, cheap ratio, frost after a few metres.
   final bool demoMode;
 
+  /// Body weight for calorie estimates.
+  final double weightKg;
+
+  /// Daily walking goal, independent of debt.
+  final double walkGoalM;
+
   static const demo = DebtConfig(allowanceM: 2, ratio: 1, frostMaxDebtM: 15);
 
   /// The values the engine actually uses (demo mode overrides the economy).
@@ -86,6 +94,8 @@ class DebtConfig {
     int? overrideMinutes,
     double? strideM,
     bool? demoMode,
+    double? weightKg,
+    double? walkGoalM,
   }) =>
       DebtConfig(
         allowanceM: allowanceM ?? this.allowanceM,
@@ -97,6 +107,8 @@ class DebtConfig {
         overrideMinutes: overrideMinutes ?? this.overrideMinutes,
         strideM: strideM ?? this.strideM,
         demoMode: demoMode ?? this.demoMode,
+        weightKg: weightKg ?? this.weightKg,
+        walkGoalM: walkGoalM ?? this.walkGoalM,
       );
 
   Map<String, Object?> toJson() => {
@@ -109,6 +121,8 @@ class DebtConfig {
         'overrideMinutes': overrideMinutes,
         'strideM': strideM,
         'demoMode': demoMode,
+        'weightKg': weightKg,
+        'walkGoalM': walkGoalM,
       };
 
   factory DebtConfig.fromJson(Map<String, Object?> j) {
@@ -125,6 +139,8 @@ class DebtConfig {
       overrideMinutes: i('overrideMinutes', d.overrideMinutes),
       strideM: n('strideM', d.strideM),
       demoMode: j['demoMode'] as bool? ?? d.demoMode,
+      weightKg: n('weightKg', d.weightKg),
+      walkGoalM: n('walkGoalM', d.walkGoalM),
     );
   }
 }

@@ -76,15 +76,19 @@ void main() {
     });
 
     final screen = ValueNotifier<Widget>(const SizedBox());
+    final brightness = ValueNotifier<Brightness>(Brightness.dark);
     final key = GlobalKey();
     await tester.pumpWidget(ProviderScope(
       overrides: [controllerProvider.overrideWith((ref) => c)],
       child: RepaintBoundary(
         key: key,
-        child: MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: buildTheme(),
-          home: ValueListenableBuilder<Widget>(valueListenable: screen, builder: (_, w, _) => w),
+        child: ValueListenableBuilder<Brightness>(
+          valueListenable: brightness,
+          builder: (_, b, _) => MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: buildTheme(b),
+            home: ValueListenableBuilder<Widget>(valueListenable: screen, builder: (_, w, _) => w),
+          ),
         ),
       ),
     ));
@@ -105,7 +109,7 @@ void main() {
     }
 
     await shot('home', const HomeScreen());
-    tester.view.physicalSize = const Size(1080, 5600);
+    tester.view.physicalSize = const Size(1080, 7000);
     await shot('home_full', const HomeScreen());
     tester.view.physicalSize = const Size(1080, 2400);
     await shot('onboarding', const OnboardingScreen());
@@ -113,6 +117,13 @@ void main() {
     await shot('share_card', Scaffold(
       body: Center(child: Padding(padding: const EdgeInsets.all(20), child: ShareCard(c: c, pkg: 'com.instagram.android'))),
     ));
+
+    brightness.value = Brightness.light;
+    await shot('home_light', const HomeScreen());
+    tester.view.physicalSize = const Size(1080, 7000);
+    await shot('home_full_light', const HomeScreen());
+    await shot('settings_full', const SettingsScreen());
+    tester.view.physicalSize = const Size(1080, 2400);
 
     // Unmounting the scope disposes the controller (and closes the DB).
     await tester.pumpWidget(const SizedBox());

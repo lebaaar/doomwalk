@@ -27,17 +27,24 @@ class Store {
     final dir = await getDatabasesPath();
     final db = await openDatabase(
       p.join(dir, 'scrolldebt.db'),
-      version: 1,
+      version: 2,
+      onUpgrade: (db, from, _) async {
+        if (from < 2) await _createWalkDay(db);
+      },
       onCreate: (db, _) async {
         await db.execute('CREATE TABLE kv (k TEXT PRIMARY KEY, v TEXT NOT NULL)');
         await db.execute('CREATE TABLE app_day (day TEXT NOT NULL, pkg TEXT NOT NULL, '
             'raw REAL NOT NULL DEFAULT 0, charged REAL NOT NULL DEFAULT 0, PRIMARY KEY(day, pkg))');
         await db.execute('CREATE TABLE gaps (id INTEGER PRIMARY KEY AUTOINCREMENT, '
             'start_ms INTEGER NOT NULL, end_ms INTEGER NOT NULL, reason TEXT NOT NULL, charged REAL NOT NULL)');
+        await _createWalkDay(db);
       },
     );
     return Store._(db);
   }
+
+  static Future<void> _createWalkDay(Database db) =>
+      db.execute('CREATE TABLE walk_day (day TEXT PRIMARY KEY, walked REAL NOT NULL)');
 
   Future<Map<String, String>> readKv() async {
     final rows = await _db.query('kv');
@@ -48,8 +55,13 @@ class Store {
   Future<void> flush({
     required Map<String, String> kv,
     required Map<(String, String), AppTotals> appDeltas,
+    (String, double)? walkedToday,
   }) async {
     final b = _db.batch();
+    if (walkedToday != null) {
+      b.insert('walk_day', {'day': walkedToday.$1, 'walked': walkedToday.$2},
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
     kv.forEach((k, v) => b.insert('kv', {'k': k, 'v': v},
         conflictAlgorithm: ConflictAlgorithm.replace));
     appDeltas.forEach((key, t) {
@@ -84,6 +96,13 @@ class Store {
     return [for (final r in rows) (r['r'] as num).toDouble()];
   }
 
+  /// Walked metres per day for the [days] days before [beforeDay], newest first.
+  Future<List<(String, double)>> walkHistory({required String beforeDay, int days = 30}) async {
+    final rows = await _db.query('walk_day',
+        where: 'day < ?', whereArgs: [beforeDay], orderBy: 'day DESC', limit: days);
+    return [for (final r in rows) (r['day'] as String, (r['walked'] as num).toDouble())];
+  }
+
   Future<void> addGap(GapRow g) => _db.insert('gaps', {
         'start_ms': g.start.millisecondsSinceEpoch,
         'end_ms': g.end.millisecondsSinceEpoch,
@@ -110,5 +129,6 @@ class Store {
     await _db.delete('kv');
     await _db.delete('app_day');
     await _db.delete('gaps');
+    await _db.delete('walk_day');
   }
 }

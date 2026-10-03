@@ -26,6 +26,41 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
         children: [
+          Text('Appearance', style: t.titleMedium),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 'system', label: Text('System')),
+                ButtonSegment(value: 'light', label: Text('Light')),
+                ButtonSegment(value: 'dark', label: Text('Dark')),
+              ],
+              selected: {c.themeMode},
+              onSelectionChanged: (v) => c.setThemeMode(v.first),
+            ),
+          ),
+          const SectionTitle('Health'),
+          _SliderRow(
+            label: 'Body weight, for calorie estimates',
+            value: cfg.weightKg,
+            min: 40,
+            max: 150,
+            divisions: 110,
+            format: (v) => '${v.toStringAsFixed(0)} kg',
+            onChanged: (v) => set(cfg.copyWith(weightKg: v)),
+          ),
+          _SliderRow(
+            label: 'Daily walking goal',
+            value: cfg.walkGoalM / 1000,
+            min: 1,
+            max: 15,
+            divisions: 28,
+            format: (v) => '${v.toStringAsFixed(1)} km',
+            onChanged: (v) => set(cfg.copyWith(walkGoalM: v * 1000)),
+          ),
+          const SizedBox(height: 24),
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -107,11 +142,28 @@ class SettingsScreen extends ConsumerWidget {
             format: (v) => '${v.toStringAsFixed(1)}×',
             onChanged: (v) => set(cfg.copyWith(overridePenalty: v)),
           ),
-          const SectionTitle('App rates'),
+          const SectionTitle('Restricted apps'),
           Text(
-            'What each app\'s scrolling costs. Free apps are never counted or frosted. Long-press to reset.',
+            'Only restricted apps count toward debt and get frosted. Everything else, like banking, '
+            'calls and maps, is never touched.',
             style: t.bodySmall,
           ),
+          const SizedBox(height: 8),
+          for (final cat in AppCategory.values)
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(cat.label),
+              subtitle: Text(
+                c.catalog.restricted.contains(cat) ? 'Restricted, ${rateLabel(cat.rate)} cost' : 'Not restricted',
+                style: t.bodySmall,
+              ),
+              value: c.catalog.restricted.contains(cat),
+              onChanged: (v) => c.setCategoryRestricted(cat, v),
+            ),
+          const SizedBox(height: 16),
+          Text('Per app', style: t.titleSmall),
+          const SizedBox(height: 4),
+          Text('Override the category rule for a single app.', style: t.bodySmall),
           const SizedBox(height: 12),
           _RatesEditor(c: c),
           const SectionTitle('Setup and privacy'),
@@ -125,7 +177,7 @@ class SettingsScreen extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Icon(Ph.lockSimple, size: 22, color: Palette.muted),
+              Icon(Ph.lockSimple, size: 22, color: context.colors.muted),
               const SizedBox(width: 18),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -148,7 +200,7 @@ class SettingsScreen extends ConsumerWidget {
               final ok = await showDialog<bool>(
                 context: context,
                 builder: (d) => AlertDialog(
-                  backgroundColor: Palette.raised,
+                  backgroundColor: context.colors.raised,
                   title: const Text('Erase all data?'),
                   content: const Text('Debt, history and tracking gaps are deleted. Settings are kept.'),
                   actions: [
@@ -179,10 +231,10 @@ class _LinkRow extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 14),
           child: Row(children: [
-            Icon(icon, size: 22, color: Palette.muted),
+            Icon(icon, size: 22, color: context.colors.muted),
             const SizedBox(width: 18),
             Expanded(child: Text(title, style: Theme.of(context).textTheme.bodyLarge)),
-            const Icon(Ph.caretRight, size: 16, color: Palette.faint),
+            Icon(Ph.caretRight, size: 16, color: context.colors.faint),
           ]),
         ),
       );
@@ -215,7 +267,7 @@ class _SliderRow extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Text(label, style: t.bodyMedium)),
-          Text(format(value), style: numeric.copyWith(fontSize: 14, color: Palette.text)),
+          Text(format(value), style: numeric.copyWith(fontSize: 14, color: context.colors.text)),
         ]),
         SliderTheme(
           data: SliderTheme.of(context).copyWith(
@@ -256,7 +308,10 @@ class _RatesEditorState extends State<_RatesEditor> {
     _apps = widget.c.launchableApps().catchError((Object _) => <AppMeta>[]);
   }
 
-  static const _choices = [0.0, 0.5, 1.0, 2.0, 3.0];
+  static const _choices = <double?>[null, 0, 1, 2, 3];
+
+  String _choiceLabel(double? r, String pkg) =>
+      r == null ? 'Default' : (r == 0 ? 'Off' : rateLabel(r));
 
   @override
   Widget build(BuildContext context) {
@@ -290,10 +345,6 @@ class _RatesEditorState extends State<_RatesEditor> {
           for (final a in apps.take(60))
             InkWell(
               borderRadius: BorderRadius.circular(Radii.small),
-              onLongPress: () async {
-                await c.setRate(a.pkg, null);
-                setState(() {});
-              },
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(children: [
@@ -301,21 +352,22 @@ class _RatesEditorState extends State<_RatesEditor> {
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(a.label, style: t.bodyMedium),
                       Text(
-                        c.catalog.overrides.containsKey(a.pkg)
-                            ? 'Custom'
-                            : 'Default ${rateLabel(defaultRateFor(a.pkg, category: categoryFromAndroid(a.category)))}',
+                        '${c.catalog.categoryOf(a.pkg).label}, '
+                        '${c.catalog.isRestricted(a.pkg) ? 'restricted ${rateLabel(c.catalog.rateFor(a.pkg))}' : 'not restricted'}',
                         style: t.bodySmall,
                       ),
                     ]),
                   ),
-                  DropdownButton<double>(
-                    value: _closest(c.catalog.rateFor(a.pkg)),
+                  DropdownButton<double?>(
+                    value: c.catalog.overrides[a.pkg],
                     underline: const SizedBox.shrink(),
-                    icon: const Icon(Ph.caretDown, size: 14, color: Palette.muted),
+                    icon: Icon(Ph.caretDown, size: 14, color: context.colors.muted),
                     borderRadius: BorderRadius.circular(Radii.small),
-                    dropdownColor: Palette.raised2,
-                    style: numeric.copyWith(fontSize: 14, color: Palette.text),
-                    items: [for (final r in _choices) DropdownMenuItem(value: r, child: Text(rateLabel(r)))],
+                    dropdownColor: context.colors.raised2,
+                    style: numeric.copyWith(fontSize: 14, color: context.colors.text),
+                    items: [
+                      for (final r in _choices) DropdownMenuItem(value: r, child: Text(_choiceLabel(r, a.pkg))),
+                    ],
                     onChanged: (r) async {
                       await c.setRate(a.pkg, r);
                       setState(() {});
@@ -328,8 +380,6 @@ class _RatesEditorState extends State<_RatesEditor> {
       },
     );
   }
-
-  double _closest(double v) => _choices.reduce((a, b) => (a - v).abs() <= (b - v).abs() ? a : b);
 }
 
 /// Loading placeholder shaped like the list it stands in for.
@@ -345,13 +395,13 @@ class _RatesSkeleton extends StatelessWidget {
               Container(
                 width: 90.0 + (i * 37) % 80,
                 height: 12,
-                decoration: BoxDecoration(color: Palette.raised2, borderRadius: BorderRadius.circular(4)),
+                decoration: BoxDecoration(color: context.colors.raised2, borderRadius: BorderRadius.circular(4)),
               ),
               const Spacer(),
               Container(
                 width: 28,
                 height: 12,
-                decoration: BoxDecoration(color: Palette.raised2, borderRadius: BorderRadius.circular(4)),
+                decoration: BoxDecoration(color: context.colors.raised2, borderRadius: BorderRadius.circular(4)),
               ),
             ]),
           ),

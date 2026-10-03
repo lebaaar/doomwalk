@@ -20,14 +20,15 @@ class AltitudeGauge extends StatelessWidget {
         duration: const Duration(milliseconds: 900),
         curve: Curves.easeOutCubic,
         builder: (_, v, _) => CustomPaint(
-          painter: _GaugePainter(v, frostMaxM, showScale: showScale),
+          painter: _GaugePainter(v, frostMaxM, showScale: showScale, c: context.colors),
           size: Size.infinite,
         ),
       );
 }
 
 class _GaugePainter extends CustomPainter {
-  _GaugePainter(this.f, this.frostMaxM, {required this.showScale});
+  _GaugePainter(this.f, this.frostMaxM, {required this.showScale, required this.c});
+  final Palette c;
   final double f;
   final double frostMaxM;
   final bool showScale;
@@ -43,7 +44,7 @@ class _GaugePainter extends CustomPainter {
     if (showScale) {
       canvas.drawRect(
         Offset.zero & size,
-        Paint()..shader = ui.Gradient.linear(Offset.zero, Offset(0, h), [Palette.raised2, Palette.raised]),
+        Paint()..shader = ui.Gradient.linear(Offset.zero, Offset(0, h), [c.raised2, c.raised]),
       );
     }
 
@@ -58,7 +59,7 @@ class _GaugePainter extends CustomPainter {
       ..lineTo(w, h * 0.44)
       ..lineTo(w, base)
       ..close();
-    canvas.drawPath(far, Paint()..color = Palette.hairline.withValues(alpha: 0.55));
+    canvas.drawPath(far, Paint()..color = c.hairline.withValues(alpha: 0.55));
 
     // Main ridge.
     final ridge = Path()
@@ -72,24 +73,24 @@ class _GaugePainter extends CustomPainter {
     canvas.drawPath(
       ridge,
       Paint()
-        ..shader = ui.Gradient.linear(peak, Offset(peak.dx, base), [const Color(0xFF243344), Palette.raised]),
+        ..shader = ui.Gradient.linear(peak, Offset(peak.dx, base), [c.ridge, c.raised]),
     );
 
     // Frost line at the summit.
     final frostY = peak.dy;
     final dash = Paint()
-      ..color = Palette.muted.withValues(alpha: 0.5)
+      ..color = c.muted.withValues(alpha: 0.5)
       ..strokeWidth = 1;
     for (var x = 0.0; x < w; x += 7) {
       canvas.drawLine(Offset(x, frostY), Offset(x + 3, frostY), dash);
     }
 
     if (showScale) {
-      _label(canvas, 'Full frost ${frostMaxM.toStringAsFixed(0)} m', Offset(14, frostY - 18), Palette.muted);
+      _label(canvas, 'Full frost ${frostMaxM.toStringAsFixed(0)} m', Offset(14, frostY - 18), c.muted);
       for (var i = 1; i < 4; i++) {
         final y = base - (base - frostY) * i / 4;
         canvas.drawLine(Offset(0, y), Offset(8, y), dash);
-        _label(canvas, (frostMaxM * i / 4).toStringAsFixed(0), Offset(14, y - 7), Palette.faint);
+        _label(canvas, (frostMaxM * i / 4).toStringAsFixed(0), Offset(14, y - 7), c.faint);
       }
     }
 
@@ -121,7 +122,7 @@ class _GaugePainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5
-        ..color = Palette.faint.withValues(alpha: 0.6),
+        ..color = c.faint.withValues(alpha: 0.6),
     );
     canvas.drawPath(
       metric.extractPath(0, at),
@@ -130,12 +131,12 @@ class _GaugePainter extends CustomPainter {
         ..strokeWidth = 2.5
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
-        ..color = Palette.accent,
+        ..color = c.accent,
     );
 
     final pos = metric.getTangentForOffset(at)!.position;
-    canvas.drawCircle(pos, 7, Paint()..color = Palette.ink);
-    canvas.drawCircle(pos, 5, Paint()..color = Palette.accent);
+    canvas.drawCircle(pos, 7, Paint()..color = c.ink);
+    canvas.drawCircle(pos, 5, Paint()..color = c.accent);
   }
 
   void _label(Canvas canvas, String text, Offset at, Color color) {
@@ -151,5 +152,5 @@ class _GaugePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_GaugePainter old) =>
-      old.f != f || old.frostMaxM != frostMaxM || old.showScale != showScale;
+      old.f != f || old.frostMaxM != frostMaxM || old.showScale != showScale || old.c != c;
 }

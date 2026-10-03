@@ -161,13 +161,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
           padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
           children: [
             if (!widget.standalone) ...[
-              Text('Scroll Debt', style: t.titleMedium?.copyWith(color: Palette.muted)),
+              Text('Scroll Debt', style: t.titleMedium?.copyWith(color: context.colors.muted)),
               const SizedBox(height: 20),
               Text('Every metre you scroll, you walk back.', style: t.headlineMedium?.copyWith(fontSize: 32)),
               const SizedBox(height: 12),
               Text(
-                'Scrolling past your daily allowance turns into debt. Apps frost over until you walk it off.',
-                style: t.bodyLarge?.copyWith(color: Palette.muted),
+                'Scrolling past your daily allowance turns into walking you owe. Social apps frost over until '
+                'you walk it off, and every metre counts toward your daily movement goal.',
+                style: t.bodyLarge?.copyWith(color: context.colors.muted),
               ),
               const SizedBox(height: 32),
             ],
@@ -214,14 +215,14 @@ class _ActiveStep extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 8),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Palette.raised,
+        color: context.colors.raised,
         borderRadius: BorderRadius.circular(Radii.surface),
-        border: Border.all(color: Palette.hairline),
+        border: Border.all(color: context.colors.hairline),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(step.title, style: t.titleMedium),
         const SizedBox(height: 8),
-        Text(step.why, style: t.bodyMedium?.copyWith(color: Palette.muted)),
+        Text(step.why, style: t.bodyMedium?.copyWith(color: context.colors.muted)),
         const SizedBox(height: 16),
         FilledButton(onPressed: onAct, child: Text(step.action)),
       ]),
@@ -247,11 +248,11 @@ class _StepRow extends StatelessWidget {
           Icon(
             done ? Ph.checkCircle : Ph.circle,
             size: 20,
-            color: done ? Palette.text : Palette.faint,
+            color: done ? context.colors.text : context.colors.faint,
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(step.title, style: t.bodyLarge?.copyWith(color: done ? Palette.muted : Palette.text)),
+            child: Text(step.title, style: t.bodyLarge?.copyWith(color: done ? context.colors.muted : context.colors.text)),
           ),
           if (step.optional && !done) Text('optional', style: t.bodySmall),
         ]),

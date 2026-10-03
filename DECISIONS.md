@@ -111,3 +111,26 @@ landing pages, so only its general rules were applied:
   cute lines.
 * **Onboarding** renders the steps only after the first status check, so there is no
   flash of wrong state.
+
+## Round 3: restriction by category, frost actions, light mode, health
+* **Only social and video apps are restricted by default.** `AppCategory` comes from
+  Android's `ApplicationInfo.category` (social, video, game, news) plus a list of
+  known packages, because many apps don't declare a category. Everything else
+  (banking, calls, messaging, maps, system apps) falls into "Everything else",
+  which is off. Each category can be toggled, and each app can be set to
+  Default / Off / 1× / 2× / 3×.
+* **Frost action bar:** a second, small `TYPE_ACCESSIBILITY_OVERLAY` window at the
+  bottom. It is touchable, with `FLAG_NOT_TOUCH_MODAL` so touches outside it pass
+  through. It shows the debt, **Use pass (N)** and **Leave app** (`GLOBAL_ACTION_HOME`),
+  and appears only once the frost is at 25% or more, so light frost stays out of
+  the way.
+* **Light mode:** `Palette` is now a `ThemeExtension` with dark and light variants,
+  read via `context.colors`. The light accent is deepened to `#16739E` to keep
+  4.5:1 contrast on white. There is a System / Light / Dark switch in Settings and a
+  quick toggle in the app bar.
+* **Health:** body weight and a daily walking goal (default 70 kg, 5 km).
+  Calories use 0.53 kcal per kg per km (ACSM walking estimate, labelled as an
+  estimate). The dashboard shows today vs goal, a 7-day bar strip with the goal
+  line, kcal today and for the week, and a goal streak. Debt is also shown as
+  kcal. Walked metres per day are stored in a new `walk_day` table (DB v2,
+  migrated).

@@ -82,8 +82,13 @@ class NativeBridge {
     }
   }
 
-  Future<void> setFrost(double level, {String? label, int animateMs = 600}) =>
-      _ch.invokeMethod('setFrost', {'level': level, 'label': label, 'animateMs': animateMs});
+  Future<void> setFrost(double level, {String? label, int animateMs = 600, int overridesLeft = 0}) =>
+      _ch.invokeMethod('setFrost', {
+        'level': level,
+        'label': label,
+        'animateMs': animateMs,
+        'overridesLeft': overridesLeft,
+      });
 
   Future<void> updateNotification({
     required String title,

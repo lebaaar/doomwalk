@@ -99,20 +99,36 @@ void main() {
   });
 
   group('AppCatalog', () {
-    test('defaults by package and category', () {
+    test('only social and video are restricted by default', () {
       final c = AppCatalog();
       expect(c.rateFor('com.instagram.android'), 2);
-      expect(c.rateFor('com.android.chrome'), 1);
+      expect(c.rateFor('com.zhiliaoapp.musically'), 2);
+      expect(c.rateFor('com.android.chrome'), 0); // browser: not restricted
       expect(c.rateFor('com.google.android.apps.maps'), 0);
-      expect(c.rateFor('com.example.unknown'), 1);
+      expect(c.rateFor('si.nlb.klik'), 0); // a banking app: "other"
       c.categories['com.example.social'] = categoryFromAndroid(4);
       expect(c.rateFor('com.example.social'), 2);
+      c.categories['com.example.game'] = categoryFromAndroid(0);
+      expect(c.rateFor('com.example.game'), 0);
     });
-    test('exempt packages are never charged and overrides apply', () {
-      final c = AppCatalog(overrides: {'com.android.chrome': 0.5, 'com.android.settings': 3});
+
+    test('restricting a category turns its apps on', () {
+      final c = AppCatalog(restricted: {...defaultRestricted, AppCategory.browser});
+      expect(c.rateFor('com.android.chrome'), 1);
+      c.restricted.remove(AppCategory.social);
+      expect(c.rateFor('com.instagram.android'), 0);
+    });
+
+    test('per-app overrides win, exempt apps never count', () {
+      final c = AppCatalog(overrides: {
+        'com.android.chrome': 0.5,
+        'com.instagram.android': 0,
+        'com.android.settings': 3,
+      });
+      expect(c.rateFor('com.android.chrome'), 0.5);
+      expect(c.rateFor('com.instagram.android'), 0);
       expect(c.isExempt('com.android.settings'), isTrue);
       expect(c.rateFor('com.android.settings'), 0);
-      expect(c.rateFor('com.android.chrome'), 0.5);
       c.addExempt(['com.custom.launcher']);
       expect(c.isExempt('com.custom.launcher'), isTrue);
       expect(c.isExempt(selfPackage), isTrue);

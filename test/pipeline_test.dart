@@ -5,6 +5,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:scrolldebt/core/app_catalog.dart';
 import 'package:scrolldebt/core/debt_engine.dart';
 import 'package:scrolldebt/services/controller.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -118,7 +119,10 @@ void main() {
     c.debugInjectScroll('com.instagram.android', 10); // 5 free, 5 * 2x * ratio 2
     expect(c.debtM, closeTo(20, 1e-9));
     expect(c.todayApps['com.instagram.android']!.rawM, closeTo(10, 1e-9));
-    c.debugInjectScroll('com.android.chrome', 10); // 1x
+    c.debugInjectScroll('com.android.chrome', 10); // browsers aren't restricted by default
+    expect(c.debtM, closeTo(20, 1e-9));
+    await c.setCategoryRestricted(AppCategory.browser, true);
+    c.debugInjectScroll('com.android.chrome', 10); // now 1x
     expect(c.debtM, closeTo(40, 1e-9));
     c.debugInjectScroll('com.google.android.apps.maps', 10); // free app
     c.debugInjectScroll('com.android.settings', 10); // exempt

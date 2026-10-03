@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../core/app_catalog.dart';
 import '../core/debt_engine.dart';
 import '../core/flick_weigher.dart';
+import '../core/health.dart';
 import '../core/landmarks.dart';
 import '../core/scroll_interpreter.dart';
 import '../core/tamper.dart';
@@ -51,6 +52,12 @@ class ScrollDebtController extends ChangeNotifier {
   final Set<String> _metaRequested = {};
 
   String? foreground;
+
+  /// 'system' | 'light' | 'dark'.
+  String themeMode = 'system';
+
+  /// Walked metres per previous day, newest first (today is live in state).
+  List<(String, double)> walkHistory = [];
   bool onboardingDone = false;
   bool walkAvailable = false;
   String? walkError;
@@ -103,8 +110,17 @@ class ScrollDebtController extends ChangeNotifier {
       NativeBridge(),
       DebtEngine(config: config, state: state),
       walk,
-      AppCatalog(overrides: rates),
+      AppCatalog(
+        overrides: rates,
+        restricted: kv['restricted_categories'] == null
+            ? defaultRestricted
+            : {
+                for (final n in kv['restricted_categories']!.split(','))
+                  if (AppCategory.values.any((c) => c.name == n)) AppCategory.values.byName(n),
+              },
+      ),
     );
+    c.themeMode = kv['theme_mode'] ?? 'system';
     c._openGapStartMs = int.tryParse(kv['gap.open_start'] ?? '');
     c._openGapReason = kv['gap.open_reason'];
     c.onboardingDone = kv['onboarding.done'] == 'true';
@@ -132,6 +148,15 @@ class ScrollDebtController extends ChangeNotifier {
     _log('ready ydpi=${d?.ydpi} used=$dpi screenH=${d?.screenHeightPx} '
         'launchers=${d?.launchers} keyboards=${d?.keyboards}');
 
+    // Learn every installed app's Android category up front, so apps that
+    // declare CATEGORY_SOCIAL / VIDEO are restricted from their first scroll.
+    try {
+      for (final m in await _native.launchableApps()) {
+        catalog.categories[m.pkg] = categoryFromAndroid(m.category);
+      }
+    } on Exception {
+      // No shim (tests) or package query failed: fall back to known packages.
+    }
     final rolled = _engine.rollover(now);
     if (rolled.happened) _log('rollover ${rolled.closedDays} interest=${rolled.interestM}');
     await _reloadPeriods();
@@ -161,6 +186,7 @@ class ScrollDebtController extends ChangeNotifier {
       ..addAll(await _store.appTotals(fromDay: weekStart, toDay: today));
     final prior = await _store.appTotals(fromDay: weekStart, toDay: _yesterday(today));
     _weekPriorRawM = prior.values.fold(0.0, (s, t) => s + t.rawM);
+    walkHistory = await _store.walkHistory(beforeDay: today);
   }
 
   String _yesterday(String dayKey) {
@@ -467,9 +493,11 @@ class ScrollDebtController extends ChangeNotifier {
       'gap.open_reason': _openGapReason ?? '',
       'onboarding.done': onboardingDone.toString(),
       if (_walk.baseline != null) 'walk.sensor_baseline': _walk.baseline.toString(),
+      'restricted_categories': catalog.restricted.map((c) => c.name).join(','),
+      'theme_mode': themeMode,
     };
     try {
-      await _store.flush(kv: kv, appDeltas: deltas);
+      await _store.flush(kv: kv, appDeltas: deltas, walkedToday: (state.dayKey, state.walkedTodayM));
     } catch (e) {
       // Put the deltas back so nothing is lost.
       deltas.forEach((k, v) {
@@ -519,7 +547,8 @@ class ScrollDebtController extends ChangeNotifier {
     _lastFrostSent = target;
     final label = '${formatMetres(debtM)} to walk';
     _log('frost -> ${target.toStringAsFixed(3)} fg=$foreground');
-    unawaited(_safe(() => _native.setFrost(target, label: label, animateMs: animateMs)));
+    unawaited(_safe(() => _native.setFrost(target,
+        label: label, animateMs: animateMs, overridesLeft: overrideActive ? 0 : overridesLeft)));
   }
 
   void _pushNotification() {
@@ -606,6 +635,49 @@ class ScrollDebtController extends ChangeNotifier {
     _pushNotification();
     _pushWidget(force: true);
     notifyListeners();
+  }
+
+  Future<void> setThemeMode(String mode) async {
+    themeMode = mode;
+    _dirty = true;
+    notifyListeners();
+    await flush();
+  }
+
+  Future<void> setCategoryRestricted(AppCategory cat, bool on) async {
+    on ? catalog.restricted.add(cat) : catalog.restricted.remove(cat);
+    _dirty = true;
+    await flush();
+    _pushFrost(force: true);
+    notifyListeners();
+  }
+
+  // --------------------------------------------------------------- health
+
+  double get kcalToday => kcalForWalk(state.walkedTodayM, config.weightKg);
+
+  /// Walked metres over the last 7 days, today included.
+  double get weekWalkedM =>
+      state.walkedTodayM + walkHistory.take(6).fold<double>(0, (s, d) => s + d.$2);
+
+  double get kcalWeek => kcalForWalk(weekWalkedM, config.weightKg);
+
+  /// The current debt expressed as calories to burn by walking.
+  double get debtKcal => kcalForWalk(debtM, config.weightKg);
+
+  double get goalProgress =>
+      config.walkGoalM <= 0 ? 1 : (state.walkedTodayM / config.walkGoalM).clamp(0.0, 1.0);
+
+  int get streakDays => walkStreak([state.walkedTodayM, ...walkHistory.map((d) => d.$2)], config.walkGoalM);
+
+  /// Last 7 days of walking, oldest first, for the week strip.
+  List<double> get weekWalkSeries {
+    final byDay = {for (final d in walkHistory) d.$1: d.$2};
+    final now = DateTime.now();
+    return [
+      for (var i = 6; i >= 1; i--) byDay[dayKeyOf(DateTime(now.year, now.month, now.day - i))] ?? 0,
+      state.walkedTodayM,
+    ];
   }
 
   Future<void> setRate(String pkg, double? rate) async {

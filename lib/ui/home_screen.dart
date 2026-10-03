@@ -54,12 +54,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(controllerProvider);
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Scroll Debt'),
+        actions: [
+          if (c.config.demoMode)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Center(
+                child: Text('Demo', style: Theme.of(context).textTheme.bodySmall?.copyWith(color: context.colors.accent)),
+              ),
+            ),
+          IconButton(
+            tooltip: dark ? 'Light mode' : 'Dark mode',
+            icon: Icon(dark ? Ph.sun : Ph.moon, size: 22),
+            onPressed: () => c.setThemeMode(dark ? 'light' : 'dark'),
+          ),
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Ph.slidersHorizontal, size: 22),
+            onPressed: () =>
+                Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen())),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: SafeArea(
+        top: false,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
           children: [
-            _TopBar(c: c),
             if (!c.status.accessibilityEnabled) const _TrackingOff(),
             const SizedBox(height: 20),
             _Hero(c: c),
@@ -68,6 +93,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             const SizedBox(height: 24),
             _Stats(c: c),
             _EmergencyPass(c: c),
+            const SectionTitle('Health'),
+            _Health(c: c),
             const SectionTitle('Landmarks'),
             _Landmarks(c: c),
             SectionTitle(
@@ -96,29 +123,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   }
 }
 
-class _TopBar extends StatelessWidget {
-  const _TopBar({required this.c});
-  final ScrollDebtController c;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    return Row(children: [
-      Text('Scroll Debt', style: t.titleLarge),
-      if (c.config.demoMode) ...[
-        const SizedBox(width: 10),
-        Text('Demo mode', style: t.bodySmall?.copyWith(color: Palette.accent)),
-      ],
-      const Spacer(),
-      IconButton(
-        tooltip: 'Settings',
-        icon: const Icon(Ph.slidersHorizontal, size: 22),
-        onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen())),
-      ),
-    ]);
-  }
-}
-
 class _TrackingOff extends StatelessWidget {
   const _TrackingOff();
 
@@ -128,7 +132,7 @@ class _TrackingOff extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(top: 12),
       child: Material(
-        color: Palette.raised,
+        color: context.colors.raised,
         borderRadius: BorderRadius.circular(Radii.surface),
         child: InkWell(
           borderRadius: BorderRadius.circular(Radii.surface),
@@ -137,7 +141,7 @@ class _TrackingOff extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(children: [
-              const Icon(Ph.warningCircle, color: Palette.accent),
+              Icon(Ph.warningCircle, color: context.colors.accent),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -146,7 +150,7 @@ class _TrackingOff extends StatelessWidget {
                   Text('Time without tracking is charged at your average scroll rate.', style: t.bodySmall),
                 ]),
               ),
-              const Icon(Ph.caretRight, size: 18, color: Palette.muted),
+              Icon(Ph.caretRight, size: 18, color: context.colors.muted),
             ]),
           ),
         ),
@@ -178,21 +182,21 @@ class _Hero extends StatelessWidget {
               km ? (v / 1000).toStringAsFixed(2) : v.toStringAsFixed(1),
               style: t.displayLarge?.copyWith(
                 fontSize: 76,
-                color: free ? Palette.text : Palette.accent,
+                color: free ? context.colors.text : context.colors.accent,
                 fontFeatures: tabular,
               ),
             ),
           ),
           const SizedBox(width: 8),
-          Text(km ? 'km' : 'm', style: t.headlineMedium?.copyWith(color: Palette.muted)),
+          Text(km ? 'km' : 'm', style: t.headlineMedium?.copyWith(color: context.colors.muted)),
         ],
       ),
       const SizedBox(height: 8),
       Text(
         free
             ? 'Nothing owed. ${formatMetres(c.allowanceLeftM, decimals: 0)} of free scrolling left today.'
-            : 'to walk before the frost lifts.',
-        style: t.bodyLarge?.copyWith(color: Palette.muted),
+            : 'to walk before the frost lifts. About ${c.debtKcal.round()} kcal.',
+        style: t.bodyLarge?.copyWith(color: context.colors.muted),
       ),
     ]);
   }
@@ -213,15 +217,106 @@ class _Gauge extends StatelessWidget {
       ),
       const SizedBox(height: 10),
       Row(children: [
-        const Icon(Ph.snowflake, size: 16, color: Palette.muted),
+        Icon(Ph.snowflake, size: 16, color: context.colors.muted),
         const SizedBox(width: 6),
         Text('Frost ${(c.frostLevel * 100).round()}%', style: t.bodySmall?.merge(numeric)),
         const Spacer(),
         Text(
           c.status.serviceConnected ? 'Tracking' : 'Not tracking',
-          style: t.bodySmall?.copyWith(color: c.status.serviceConnected ? Palette.muted : Palette.accent),
+          style: t.bodySmall?.copyWith(color: c.status.serviceConnected ? context.colors.muted : context.colors.accent),
         ),
       ]),
+    ]);
+  }
+}
+
+/// Walking as exercise, independent of debt: goal, calories, streak and
+/// the last seven days.
+class _Health extends StatelessWidget {
+  const _Health({required this.c});
+  final ScrollDebtController c;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final col = context.colors;
+    final goal = c.config.walkGoalM;
+    final series = c.weekWalkSeries;
+    final peak = [goal, ...series].reduce((a, b) => a > b ? a : b);
+    final days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    final today = DateTime.now().weekday; // 1 = Monday
+    Widget fact(IconData icon, String value, String label) => Expanded(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(icon, size: 18, color: col.muted),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(value, style: numeric.copyWith(fontSize: 16, color: col.text)),
+                Text(label, style: t.bodySmall),
+              ]),
+            ),
+          ]),
+        );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
+        children: [
+          Text(formatMetres(c.state.walkedTodayM), style: t.headlineMedium?.merge(numeric)),
+          const SizedBox(width: 8),
+          Text('of ${formatMetres(goal, decimals: 0)} walked today', style: t.bodyMedium?.copyWith(color: col.muted)),
+        ],
+      ),
+      const SizedBox(height: 16),
+      // Seven days, oldest left. The dashed line is the daily goal.
+      SizedBox(
+        height: 96,
+        child: LayoutBuilder(builder: (context, box) {
+          final goalY = peak <= 0 ? 0.0 : 72 * goal / peak;
+          return Stack(children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 20 + goalY,
+              child: Row(children: [
+                for (var x = 0; x < 40; x++)
+                  Expanded(child: Container(height: 1, color: x.isEven ? col.faint : Colors.transparent)),
+              ]),
+            ),
+            Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              for (var i = 0; i < 7; i++)
+                Expanded(
+                  child: Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+                    Container(
+                      height: peak <= 0 ? 2 : (72 * series[i] / peak).clamp(2.0, 72.0),
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: series[i] >= goal
+                            ? col.accent
+                            : (i == 6 ? col.text.withValues(alpha: 0.75) : col.muted.withValues(alpha: 0.45)),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(days[(today - 7 + i) % 7], style: t.bodySmall?.copyWith(fontSize: 11)),
+                  ]),
+                ),
+            ]),
+          ]);
+        }),
+      ),
+      const SizedBox(height: 16),
+      Row(children: [
+        fact(Ph.fire, '${c.kcalToday.round()} kcal', 'burned today'),
+        fact(Ph.lightning, '${c.kcalWeek.round()} kcal', 'last 7 days'),
+        fact(Ph.target, '${c.streakDays} ${c.streakDays == 1 ? 'day' : 'days'}', 'goal streak'),
+      ]),
+      const SizedBox(height: 10),
+      Text(
+        'Calories are an estimate for walking at ${c.config.weightKg.toStringAsFixed(0)} kg. '
+        'Set your weight and goal in Settings.',
+        style: t.bodySmall,
+      ),
     ]);
   }
 }
@@ -238,7 +333,7 @@ class _Stats extends StatelessWidget {
             FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(value, style: numeric.copyWith(fontSize: 20, color: Palette.text)),
+              child: Text(value, style: numeric.copyWith(fontSize: 20, color: context.colors.text)),
             ),
             const SizedBox(height: 4),
             Text(label, style: t.bodySmall),
@@ -280,7 +375,7 @@ class _EmergencyPass extends StatelessWidget {
       Padding(
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Row(children: [
-          Icon(Ph.lifebuoy, color: active ? Palette.accent : Palette.muted),
+          Icon(Ph.lifebuoy, color: active ? context.colors.accent : context.colors.muted),
           const SizedBox(width: 14),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -354,7 +449,7 @@ class _AppList extends StatelessWidget {
     if (rows.isEmpty) {
       return Text(
         'Nothing counted yet. Scrolling in other apps shows up here, per app.',
-        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Palette.muted),
+        style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.colors.muted),
       );
     }
     final max = rows.first.rawM;
@@ -392,8 +487,8 @@ class _AppRow extends StatelessWidget {
                 : Container(
                     width: 32,
                     height: 32,
-                    color: Palette.raised2,
-                    child: const Icon(Ph.squaresFour, size: 16, color: Palette.muted),
+                    color: context.colors.raised2,
+                    child: Icon(Ph.squaresFour, size: 16, color: context.colors.muted),
                   ),
           ),
           const SizedBox(width: 16),
@@ -412,7 +507,7 @@ class _AppRow extends StatelessWidget {
                 child: Container(
                   height: 3,
                   decoration: BoxDecoration(
-                    color: Palette.muted.withValues(alpha: 0.7),
+                    color: context.colors.muted.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -421,11 +516,11 @@ class _AppRow extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(formatMetres(row.rawM), style: numeric.copyWith(fontSize: 14, color: Palette.text)),
+            Text(formatMetres(row.rawM), style: numeric.copyWith(fontSize: 14, color: context.colors.text)),
             const SizedBox(height: 2),
             Text(
               row.chargedM < 0.05 ? 'free' : '+${formatMetres(row.chargedM)}',
-              style: numeric.copyWith(fontSize: 12, color: row.chargedM < 0.05 ? Palette.faint : Palette.accent),
+              style: numeric.copyWith(fontSize: 12, color: row.chargedM < 0.05 ? context.colors.faint : context.colors.accent),
             ),
           ]),
         ]),
@@ -443,18 +538,18 @@ class _Ledger extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final s = c.state;
     final cfg = c.config;
-    Widget line(String a, String b, {Color color = Palette.text}) => Padding(
+    Widget line(String a, String b, {Color? color}) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(children: [
-            Expanded(child: Text(a, style: t.bodyMedium?.copyWith(color: Palette.muted))),
-            Text(b, style: numeric.copyWith(fontSize: 14, color: color)),
+            Expanded(child: Text(a, style: t.bodyMedium?.copyWith(color: context.colors.muted))),
+            Text(b, style: numeric.copyWith(fontSize: 14, color: color ?? context.colors.text)),
           ]),
         );
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      line('Charged today', '+${formatMetres(s.chargedTodayM)}', color: Palette.accent),
+      line('Charged today', '+${formatMetres(s.chargedTodayM)}', color: context.colors.accent),
       line('Walked off today', '−${formatMetres(s.paidTodayM)}'),
       if (s.tamperChargedTodayM > 0)
-        line('Charged for tracking gaps', '+${formatMetres(s.tamperChargedTodayM)}', color: Palette.accent),
+        line('Charged for tracking gaps', '+${formatMetres(s.tamperChargedTodayM)}', color: context.colors.accent),
       const SizedBox(height: 8),
       const Divider(),
       const SizedBox(height: 8),
@@ -472,7 +567,7 @@ class _Ledger extends StatelessWidget {
         ),
         for (final g in c.gaps.take(3))
           line('${_fmt(g.start)} to ${_fmt(g.end)}, ${g.reason}', '+${formatMetres(g.chargedM)}',
-              color: Palette.accent),
+              color: context.colors.accent),
       ],
     ]);
   }
@@ -509,7 +604,10 @@ class _DebugToolsState extends State<_DebugTools> {
       future: _apps,
       builder: (context, snap) {
         final apps = (snap.data ?? const <AppMeta>[]).where((a) => !c.catalog.isExempt(a.pkg)).toList()
-          ..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+          ..sort((a, b) {
+            final r = (c.catalog.isRestricted(b.pkg) ? 1 : 0) - (c.catalog.isRestricted(a.pkg) ? 1 : 0);
+            return r != 0 ? r : a.label.toLowerCase().compareTo(b.label.toLowerCase());
+          });
         final pkg = _pkg ?? (apps.isNotEmpty ? apps.first.pkg : null);
         return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Add scrolling to an app', style: t.bodyMedium),
@@ -520,8 +618,8 @@ class _DebugToolsState extends State<_DebugTools> {
             DropdownButtonFormField<String>(
               initialValue: pkg,
               isExpanded: true,
-              icon: const Icon(Ph.caretDown, size: 16, color: Palette.muted),
-              dropdownColor: Palette.raised2,
+              icon: Icon(Ph.caretDown, size: 16, color: context.colors.muted),
+              dropdownColor: context.colors.raised2,
               borderRadius: BorderRadius.circular(Radii.small),
               items: [
                 for (final a in apps)
