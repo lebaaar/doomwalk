@@ -95,12 +95,14 @@ class NativeBridge {
     required String text,
     required int overridesLeft,
     required bool overrideActive,
+    required String penalty,
   }) =>
       _ch.invokeMethod('updateNotification', {
         'title': title,
         'text': text,
         'overridesLeft': overridesLeft,
         'overrideActive': overrideActive,
+        'penalty': penalty,
       });
 
   Future<void> startForegroundService() => _ch.invokeMethod('startForegroundService');

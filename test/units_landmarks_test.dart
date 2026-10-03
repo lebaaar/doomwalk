@@ -7,6 +7,20 @@ void main() {
     expect(formatRound(60), '60 m');
     expect(formatRound(5000), '5 km');
     expect(formatRound(1500), '1.5 km');
+    expect(formatRound(999.6), '1 km');
+    expect(formatRound(1960), '2 km');
+    expect(formatRound(-1500), '-1.5 km');
+  });
+
+  test('distances switch to km after rounding', () {
+    expect(formatMetres(999.94), '999.9 m');
+    expect(formatMetres(999.96), '1.00 km');
+    expect(formatMetres(1280), '1.28 km');
+  });
+
+  test('multipliers drop needless decimals', () {
+    expect(formatTimes(3), '3×');
+    expect(formatTimes(1.5), '1.5×');
   });
 
   group('pixels to metres', () {

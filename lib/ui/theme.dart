@@ -19,7 +19,6 @@ class Palette extends ThemeExtension<Palette> {
     required this.accentContainer,
     required this.onAccentContainer,
     required this.danger,
-    required this.ridge,
     required this.heroFrom,
     required this.heroTo,
     required this.onHero,
@@ -47,9 +46,6 @@ class Palette extends ThemeExtension<Palette> {
   /// Problems that need fixing (tracking off). Never used for debt.
   final Color danger;
 
-  /// Upper slope of the gauge's main ridge.
-  final Color ridge;
-
   /// The Today card while you owe: the icon's strongest colour as a
   /// gradient, so "go walk" is the loudest thing on screen.
   final Color heroFrom;
@@ -75,7 +71,6 @@ class Palette extends ThemeExtension<Palette> {
     accentContainer: Color(0xFF16395A),
     onAccentContainer: Color(0xFFD6ECF8),
     danger: Color(0xFFF2B8B5),
-    ridge: Color(0xFF1E3D59),
     heroFrom: Color(0xFFBFE0F3),
     heroTo: Color(0xFF86BCDD),
     onHero: Color(0xFF07131F),
@@ -98,7 +93,6 @@ class Palette extends ThemeExtension<Palette> {
     accentContainer: Color(0xFFD2E6F4),
     onAccentContainer: Color(0xFF0E4166),
     danger: Color(0xFFB3261E),
-    ridge: Color(0xFFC9DEEC),
     heroFrom: Color(0xFF15527E),
     heroTo: Color(0xFF0A2E4A),
     onHero: Color(0xFFFFFFFF),
@@ -127,7 +121,6 @@ class Palette extends ThemeExtension<Palette> {
       accentContainer: l(accentContainer, other.accentContainer),
       onAccentContainer: l(onAccentContainer, other.onAccentContainer),
       danger: l(danger, other.danger),
-      ridge: l(ridge, other.ridge),
       heroFrom: l(heroFrom, other.heroFrom),
       heroTo: l(heroTo, other.heroTo),
       onHero: l(onHero, other.onHero),

@@ -26,15 +26,18 @@ double sanitizeDpi({required double ydpi, required double densityDpi}) {
 
 /// Human formatting for distances: "12.4 m", "1.28 km".
 String formatMetres(double m, {int decimals = 1}) {
-  if (m.abs() >= 1000) return '${(m / 1000).toStringAsFixed(2)} km';
+  if (double.parse(m.toStringAsFixed(decimals)).abs() >= 1000) return '${(m / 1000).toStringAsFixed(2)} km';
   return '${m.toStringAsFixed(decimals)} m';
 }
 
 /// Round figures for settings and goals: "60 m", "5 km", "1.5 km".
+/// Rounds before picking the unit, so 999.6 is "1 km", not "1000 m".
 String formatRound(double m) {
-  if (m.abs() >= 1000) {
-    final km = m / 1000;
-    return '${km == km.roundToDouble() ? km.toStringAsFixed(0) : km.toStringAsFixed(1)} km';
-  }
+  if (m.round().abs() >= 1000) return '${_trim((m / 1000).toStringAsFixed(1))} km';
   return '${m.round()} m';
 }
+
+/// Multipliers: "3×", "1.5×".
+String formatTimes(double v) => '${_trim(v.toStringAsFixed(1))}×';
+
+String _trim(String s) => s.endsWith('.0') ? s.substring(0, s.length - 2) : s;

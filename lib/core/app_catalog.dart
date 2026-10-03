@@ -3,6 +3,9 @@ library;
 
 const selfPackage = 'com.lan.scrolldebt';
 
+/// Class name Android reports for window events from our own activity.
+const selfActivity = '$selfPackage.MainActivity';
+
 /// Never counted, never frosted. The native shim adds the device's actual
 /// launcher(s) and enabled keyboards at runtime on top of this list.
 const exemptPackages = <String>{

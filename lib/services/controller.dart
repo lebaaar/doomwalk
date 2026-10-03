@@ -207,7 +207,8 @@ class ScrollDebtController extends ChangeNotifier {
       case 'onScroll':
         _onScroll(RawScroll.fromMap(args as Map<Object?, Object?>));
       case 'onWindow':
-        _onWindow((args as Map<Object?, Object?>)['pkg'] as String? ?? '');
+        final a = args as Map<Object?, Object?>;
+        _onWindow(a['pkg'] as String? ?? '', a['cls'] as String? ?? '');
       case 'onServiceState':
         await _onServiceState((args as Map<Object?, Object?>)['connected'] == true);
       case 'onOverrideRequested':
@@ -251,9 +252,8 @@ class ScrollDebtController extends ChangeNotifier {
   void _chargeScroll(String pkg, double metres, DateTime at, {double weight = 1, required String source}) {
     final rate = catalog.rateFor(pkg);
     if (rate <= 0 || metres <= 0) return;
-    final rolled = _engine.state.dayKey != dayKeyOf(at);
+    _syncDay(at);
     final charge = _engine.applyScroll(metres: metres, appRate: rate, at: at, velocityWeight: weight);
-    if (rolled) _onRolledOver();
     _addAppDelta(pkg, charge.rawM, charge.costM);
     _ensureMeta(pkg);
     _log('scroll pkg=$pkg src=$source m=${metres.toStringAsFixed(3)} w=${weight.toStringAsFixed(2)} '
@@ -276,8 +276,13 @@ class ScrollDebtController extends ChangeNotifier {
     _dirty = true;
   }
 
-  void _onWindow(String pkg) {
+  void _onWindow(String pkg, String cls) {
     if (pkg.isEmpty || _keyboards.contains(pkg)) return;
+    // Showing the frost adds windows of our own, and Android announces each
+    // with a window-state event from our package. Taking that as "Scroll Debt
+    // is open" lifted the frost the moment it appeared. Only our activity
+    // means the user really switched to this app.
+    if (pkg == selfPackage && cls.isNotEmpty && cls != selfActivity) return;
     _setForeground(pkg);
   }
 
@@ -327,9 +332,8 @@ class ScrollDebtController extends ChangeNotifier {
 
   void _applyWalk(double metres, {required String source}) {
     final now = DateTime.now();
-    final rolled = state.dayKey != dayKeyOf(now);
+    _syncDay(now);
     final paid = _engine.applyWalk(metres, now);
-    if (rolled) _onRolledOver();
     _dirty = true;
     _log('walk src=$source m=${metres.toStringAsFixed(2)} paid=${paid.toStringAsFixed(2)} '
         'debt=${debtM.toStringAsFixed(2)} frost=${frostLevel.toStringAsFixed(3)}');
@@ -392,7 +396,9 @@ class ScrollDebtController extends ChangeNotifier {
   // -------------------------------------------------------------- override
 
   bool startOverride() {
-    final ok = _engine.startOverride(DateTime.now());
+    final now = DateTime.now();
+    _syncDay(now);
+    final ok = _engine.startOverride(now);
     _log('override start ok=$ok until=${state.overrideUntilMs}');
     _dirty = true;
     _pushFrost(force: true, animateMs: 300);
@@ -472,6 +478,7 @@ class ScrollDebtController extends ChangeNotifier {
     final cost = _tamper.costFor(gap, avg, config.effective.ratio);
     _log('gap close len=${gap.length.inMinutes}min avg=${avg.toStringAsFixed(1)}m/h cost=$cost');
     if (cost <= 0) return;
+    _syncDay(gap.end);
     _engine.chargeFlat(cost, gap.end, tamper: true);
     final row = GapRow(gap.start, gap.end, gap.reason, cost);
     await _store.addGap(row);
@@ -490,11 +497,7 @@ class ScrollDebtController extends ChangeNotifier {
 
   Future<void> _onTick() async {
     final now = DateTime.now();
-    final rolled = _engine.rollover(now);
-    if (rolled.happened) {
-      _log('rollover ${rolled.closedDays} interest=${rolled.interestM.toStringAsFixed(2)}');
-      _onRolledOver();
-    }
+    _syncDay(now);
     if (state.overrideUntilMs != null && !_engine.overrideActive(now)) {
       _engine.endOverride();
       _pushFrost(force: true);
@@ -512,6 +515,18 @@ class ScrollDebtController extends ChangeNotifier {
   }
 
   bool get _trackingEverEnabled => status.serviceConnected || state.lifetimeScrolledM > 0;
+
+  /// Rolls the ledger to [now]'s day before anything is charged or paid, so
+  /// every day change (including a clock set back, which closes no day)
+  /// reloads today's per-app totals instead of happening silently inside
+  /// the engine.
+  void _syncDay(DateTime now) {
+    final before = state.dayKey;
+    final r = _engine.rollover(now);
+    if (state.dayKey == before) return;
+    _log('rollover ${r.closedDays} interest=${r.interestM.toStringAsFixed(2)}');
+    _onRolledOver();
+  }
 
   void _onRolledOver() {
     _dirty = true;
@@ -599,7 +614,7 @@ class ScrollDebtController extends ChangeNotifier {
         ? 'Nothing owed. ${formatMetres(allowanceLeftM, decimals: 0)} of free scrolling left'
         : '${formatMetres(debtM)} to walk';
     final text = overrideActive
-        ? 'Emergency pass on until ${_hhmm(overrideUntil!)}. Scrolling costs ${config.overridePenalty.toStringAsFixed(0)}×.'
+        ? 'Emergency pass on until ${_hhmm(overrideUntil!)}. Scrolling costs ${formatTimes(config.overridePenalty)}.'
         : '${formatMetres(state.scrolledTodayM)} scrolled today, ${nearestText(state.scrolledTodayM)}';
     final key = '$title|$text|$overridesLeft|$overrideActive';
     if (key == _lastNotif) return;
@@ -609,6 +624,7 @@ class ScrollDebtController extends ChangeNotifier {
           text: text,
           overridesLeft: overridesLeft,
           overrideActive: overrideActive,
+          penalty: formatTimes(config.overridePenalty),
         )));
   }
 
@@ -783,11 +799,15 @@ class ScrollDebtController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Restricted apps used today: the ones the frost is on when debt is owed.
+  /// Restricted apps used today, most scrolled first. The frost covers every
+  /// restricted app; these are the examples the user will recognise.
   List<String> get frostedAppsToday => [
         for (final r in ranked(todayApps))
-          if (!catalog.isExempt(r.pkg) && catalog.rateFor(r.pkg) > 0) r.pkg,
+          if (catalog.isRestricted(r.pkg)) r.pkg,
       ];
+
+  /// Emergency passes used today, after a day change nobody has ticked yet.
+  int get passesUsedToday => config.overridesPerDay - overridesLeft;
 
   /// Per-app rows for a period, sorted by distance.
   List<AppTotals> ranked(Map<String, AppTotals> m) =>

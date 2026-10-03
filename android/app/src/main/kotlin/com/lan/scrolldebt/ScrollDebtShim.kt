@@ -78,6 +78,7 @@ object Shim {
     var notifText = "Tracking scroll distance"
     var overridesLeft = 0
     var overrideActive = false
+    var penaltyText = "3×"
 
     /** Returns the app's engine, creating and starting main() if needed. Main thread only. */
     fun engine(context: Context): FlutterEngine {
@@ -150,6 +151,7 @@ object Shim {
                     notifText = call.argument<String>("text") ?: notifText
                     overridesLeft = call.argument<Int>("overridesLeft") ?: 0
                     overrideActive = call.argument<Boolean>("overrideActive") ?: false
+                    penaltyText = call.argument<String>("penalty") ?: penaltyText
                     DebtForegroundService.refresh(app)
                     result.success(null)
                 }
@@ -310,8 +312,11 @@ class ScrollAccessibilityService : AccessibilityService() {
                     "count" to e.itemCount,
                 )
             )
-            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED ->
-                Shim.send("onWindow", mapOf("pkg" to pkg, "t" to now))
+            // The class name lets Dart tell our own activity from our frost
+            // windows, which announce themselves with the same event type.
+            AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> Shim.send(
+                "onWindow", mapOf("pkg" to pkg, "cls" to (e.className?.toString() ?: ""), "t" to now)
+            )
         }
     }
 
@@ -403,7 +408,11 @@ class FrostOverlay(private val service: AccessibilityService) {
     fun animateTo(target: Float, text: String?, durationMs: Long, passesLeft: Int) {
         val t = target.coerceIn(0f, 1f)
         overridesLeft = passesLeft
-        animator?.cancel()
+        // cancel() also fires onAnimationEnd; clearing the field first keeps a
+        // superseded fade-in (still at level 0) from detaching the window.
+        val old = animator
+        animator = null
+        old?.cancel()
         if (t <= 0.001f && root == null) {
             removeBar()
             return
@@ -415,17 +424,18 @@ class FrostOverlay(private val service: AccessibilityService) {
             it.visibility = if (overridesLeft > 0) View.VISIBLE else View.GONE
             it.text = "Use pass ($overridesLeft)"
         }
-        animator = ValueAnimator.ofFloat(level, t).apply {
+        val next = ValueAnimator.ofFloat(level, t).apply {
             duration = durationMs
             interpolator = DecelerateInterpolator()
             addUpdateListener { apply(it.animatedValue as Float) }
             addListener(object : AnimatorListenerAdapter() {
                 override fun onAnimationEnd(animation: Animator) {
-                    if (level <= 0.001f) detach()
+                    if (animator === animation && level <= 0.001f) detach()
                 }
             })
-            start()
         }
+        animator = next // before start(), so an immediate end still matches
+        next.start()
     }
 
     private fun ensureAdded() {
@@ -539,7 +549,9 @@ class FrostOverlay(private val service: AccessibilityService) {
     }
 
     fun remove() {
-        animator?.cancel()
+        val old = animator
+        animator = null
+        old?.cancel()
         detach()
         wm.removeCrossWindowBlurEnabledListener(blurListener)
     }
@@ -585,7 +597,7 @@ class DebtForegroundService : Service() {
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                 )
                 b.addAction(Notification.Action.Builder(
-                    null as android.graphics.drawable.Icon?, "Emergency pass (${Shim.overridesLeft} left, 3× cost)", pi
+                    null as android.graphics.drawable.Icon?, "Emergency pass (${Shim.overridesLeft} left, ${Shim.penaltyText} cost)", pi
                 ).build())
             }
             return b.build()

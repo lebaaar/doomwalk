@@ -15,10 +15,7 @@ import 'theme.dart';
 /// Settings as a short list of groups. Each row opens its own page, so the
 /// first screen fits without scrolling past controls nobody uses daily.
 class SettingsScreen extends ConsumerWidget {
-  const SettingsScreen({super.key, this.embedded = false});
-
-  /// Shown as a tab inside the home shell (no own app bar).
-  final bool embedded;
+  const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,7 +25,7 @@ class SettingsScreen extends ConsumerWidget {
     final preset = Strictness.of(cfg);
     final restricted = AppCategory.values.where(c.catalog.restricted.contains).map((e) => e.label).toList();
 
-    final list = ListView(
+    return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
         const SectionTitle('How strict'),
@@ -68,7 +65,7 @@ class SettingsScreen extends ConsumerWidget {
           _NavTile(
             icon: Ph.lifebuoy,
             title: 'Emergency passes',
-            subtitle: '${cfg.overridesPerDay} a day, scrolling costs ${_x(cfg.overridePenalty)}× while unfrozen',
+            subtitle: '${cfg.overridesPerDay} a day, scrolling costs ${formatTimes(cfg.overridePenalty)} while unfrozen',
             page: const _PassesPage(),
           ),
           const _NavTile(
@@ -119,7 +116,6 @@ class SettingsScreen extends ConsumerWidget {
         ]),
       ],
     );
-    return embedded ? list : Scaffold(appBar: AppBar(title: const Text('Settings')), body: list);
   }
 }
 
@@ -232,7 +228,7 @@ class _PassesPage extends ConsumerWidget {
           min: 1,
           max: 5,
           divisions: 8,
-          format: (v) => '${_x(v)}×',
+          format: formatTimes,
           onChanged: (v) => set(cfg.copyWith(overridePenalty: v)),
         ),
       ]),
@@ -469,19 +465,22 @@ class _DeveloperToolsState extends State<DeveloperTools> {
       FutureBuilder<List<AppMeta>>(
         future: _apps,
         builder: (context, snap) {
-          final apps = (snap.data ?? const <AppMeta>[]).where((a) => !c.catalog.isExempt(a.pkg)).toList()
-            ..sort((a, b) {
-              final r = (c.catalog.isRestricted(b.pkg) ? 1 : 0) - (c.catalog.isRestricted(a.pkg) ? 1 : 0);
-              return r != 0 ? r : a.label.toLowerCase().compareTo(b.label.toLowerCase());
-            });
-          final pkg = _pkg ?? (apps.isNotEmpty ? apps.first.pkg : null);
+          // Only apps that count: scrolling anywhere else is free and would
+          // be ignored, which the confirmation would misreport.
+          final apps = (snap.data ?? const <AppMeta>[]).where((a) => c.catalog.isRestricted(a.pkg)).toList()
+            ..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
+          // Pin the choice once made (or defaulted), so what the dropdown
+          // shows is always what the buttons charge, even if the list re-sorts.
+          if (_pkg == null || !apps.any((a) => a.pkg == _pkg)) _pkg = apps.isEmpty ? null : apps.first.pkg;
+          final pkg = _pkg;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
             child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
               if (apps.isEmpty)
-                Text(snap.hasData ? 'No apps found.' : 'Loading apps…', style: t.bodyMedium)
+                Text(snap.hasData ? 'No apps that count are installed.' : 'Loading apps…', style: t.bodyMedium)
               else
                 DropdownButtonFormField<String>(
+                  key: ValueKey(pkg),
                   initialValue: pkg,
                   isExpanded: true,
                   decoration: const InputDecoration(labelText: 'App'),
@@ -518,8 +517,8 @@ class _DeveloperToolsState extends State<DeveloperTools> {
       ListTile(
         leading: const Icon(Ph.ticket),
         title: const Text('Refill emergency passes'),
-        subtitle: Text('${c.state.overridesUsedToday} used today'),
-        enabled: c.state.overridesUsedToday > 0,
+        subtitle: Text('${c.passesUsedToday} used today'),
+        enabled: c.passesUsedToday > 0,
         onTap: () {
           c.devRefillPasses();
           _done('Passes refilled');

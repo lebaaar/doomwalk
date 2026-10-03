@@ -203,3 +203,34 @@ the Today screen showed about 20 numbers. Direction B was chosen from three opti
   segmented buttons are pills, the navigation bar shares the page colour. Settings
   rows sit in rounded groups with tonal icon badges (`TileGroup`, `IconBadge` in
   `lib/ui/theme.dart`), and warnings are tinted cards instead of outlined ones.
+
+## Round 7: bug audit
+* **Frost vanished as soon as it appeared.** Adding the frost overlay (and its
+  action bar) makes Android send a window-state event from our own package, and
+  `_onWindow` took that as "Scroll Debt is open", which is exempt, so the frost
+  faded out again until the next scroll. The shim now sends the event's class
+  name, and only our activity (`com.lan.scrolldebt.MainActivity`) switches the
+  foreground to Scroll Debt. Covered by a pipeline test.
+* **Overlay race:** `ValueAnimator.cancel()` also fires `onAnimationEnd`, so a
+  fade-in superseded at level 0 detached the window and restarted from zero
+  (flicker, and one more self window event). Only the current animator may
+  detach now.
+* **Silent day change:** `overridesLeft` rolled the ledger over from a getter
+  (and passes and tamper gaps did too), so after midnight the per-app totals
+  could stay on yesterday until a restart. Every day change now goes through
+  `_syncDay`, and `overridesLeft` is pure.
+* **UI:** switching tabs rebuilt all three (lost Activity's Today / 7 days choice
+  and scroll positions); a pass running after the debt was paid off hid its
+  countdown and *End pass*; half-step pass costs showed rounded (1.5× as 2×,
+  also in the notification, which was hardcoded to 3×); the big number showed
+  metres in km format while animating across 1 km; `formatRound(999.6)` gave
+  "1000 m"; the Today card claimed frost while the service was stopped (now a
+  notice says so); the share card's brand overlapped long app names; the week
+  chart's goal line sat 2 px off; the developer *Add scrolling* list offered
+  free apps and could charge a different app than the one shown.
+* **Not changed, on purpose:** Developer options stay available in release
+  builds (Round 4). Anyone can add steps there, so turn the switch off before
+  handing the phone over, or ask for it to be limited to debug builds.
+* **Known limit:** pulling the notification shade lifts the frost (System UI is
+  exempt), and closing it sends no event, so the frost returns on the next
+  scroll or app switch rather than instantly.

@@ -118,6 +118,12 @@ class ShareCard extends StatelessWidget {
                   const SizedBox(width: 12),
                 ],
                 Expanded(child: Text(label, style: t.titleMedium, overflow: TextOverflow.ellipsis)),
+                // In the row, not floated over it, so long app names
+                // ellipsise before the brand instead of running under it.
+                const SizedBox(width: 12),
+                DepthTicks(size: 16, small: true, color: context.colors.muted),
+                const SizedBox(width: 6),
+                Text('Scroll Debt', style: t.bodySmall),
               ]),
               const Spacer(),
               Text(
@@ -131,15 +137,6 @@ class ShareCard extends StatelessWidget {
                 style: t.bodyMedium?.copyWith(color: context.colors.muted),
               ),
               const SizedBox(height: 120),
-            ]),
-          ),
-          Positioned(
-            right: 24,
-            top: 30,
-            child: Row(children: [
-              DepthTicks(size: 16, small: true, color: context.colors.muted),
-              const SizedBox(width: 6),
-              Text('Scroll Debt', style: t.bodySmall),
             ]),
           ),
         ]),

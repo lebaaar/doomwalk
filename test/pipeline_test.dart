@@ -167,4 +167,42 @@ void main() {
     expect(notifications, isNotEmpty);
     c.dispose();
   });
+
+  test('our own frost windows do not lift the frost', () async {
+    final c = await ScrollDebtController.start();
+    await c.updateConfig(const DebtConfig(demoMode: true));
+    await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'com.instagram.mainactivity.MainActivity', 't': 0});
+    await c.setDeveloperOptions(true);
+    c.devAddScroll('com.instagram.android', 20);
+    expect(frostCalls.last, 1);
+
+    // Adding the overlay and its action bar makes Android announce both
+    // windows as window-state events from our package.
+    await sendNative('onWindow', {'pkg': selfPackage, 'cls': 'android.widget.FrameLayout', 't': 0});
+    await sendNative('onWindow', {'pkg': selfPackage, 'cls': 'android.widget.LinearLayout', 't': 0});
+    expect(c.foreground, 'com.instagram.android');
+    expect(frostCalls.last, 1);
+
+    // Opening Scroll Debt itself still lifts it.
+    await sendNative('onWindow', {'pkg': selfPackage, 'cls': selfActivity, 't': 0});
+    expect(c.foreground, selfPackage);
+    expect(frostCalls.last, 0);
+    c.dispose();
+  });
+
+  test('a day change from a pass or a getter reloads today', () async {
+    final c = await ScrollDebtController.start();
+    await c.setDeveloperOptions(true);
+    await c.updateConfig(const DebtConfig(allowanceM: 0, overridesPerDay: 2));
+    c.devAddScroll('com.instagram.android', 1);
+    expect(c.startOverride(), isTrue);
+    expect(c.overridesLeft, 1);
+    expect(c.passesUsedToday, 1);
+    // Pretend the ledger is from yesterday: reading passes must not roll it.
+    c.state.dayKey = '2000-01-01';
+    expect(c.overridesLeft, 2);
+    expect(c.passesUsedToday, 0);
+    expect(c.state.dayKey, '2000-01-01');
+    c.dispose();
+  });
 }

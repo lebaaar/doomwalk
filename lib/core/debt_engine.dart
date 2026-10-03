@@ -268,9 +268,11 @@ class DebtEngine {
   bool overrideActive(DateTime now) =>
       state.overrideUntilMs != null && now.millisecondsSinceEpoch < state.overrideUntilMs!;
 
+  /// Passes left on [now]'s day. Pure: a day nobody has rolled over to yet
+  /// simply has all of them, without rolling the ledger from a getter.
   int overridesLeft(DateTime now) {
-    rollover(now);
-    return math.max(0, _e.overridesPerDay - state.overridesUsedToday);
+    final used = state.dayKey == dayKeyOf(now) ? state.overridesUsedToday : 0;
+    return math.max(0, _e.overridesPerDay - used);
   }
 
   /// Advances the ledger to [now]'s local day, applying overnight interest

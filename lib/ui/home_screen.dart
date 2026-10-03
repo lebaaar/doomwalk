@@ -24,18 +24,14 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   int _tab = 0;
-  Timer? _clock;
+  late final _fade = AnimationController(vsync: this, duration: const Duration(milliseconds: 200), value: 1);
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Keeps the emergency-pass countdown fresh.
-    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (ref.read(controllerProvider).overrideActive && mounted) setState(() {});
-    });
   }
 
   @override
@@ -45,18 +41,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
   @override
   void dispose() {
-    _clock?.cancel();
+    _fade.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
-  void _go(int tab) => setState(() => _tab = tab);
+  void _go(int tab) {
+    if (tab == _tab) return;
+    setState(() => _tab = tab);
+    if (!MediaQuery.of(context).disableAnimations) _fade.forward(from: 0);
+  }
 
   @override
   Widget build(BuildContext context) {
     final c = ref.watch(controllerProvider);
     const titles = ['Today', 'Activity', 'Settings'];
-    final still = MediaQuery.of(context).disableAnimations;
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[_tab]),
@@ -72,19 +71,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             ),
         ],
       ),
-      // Tabs keep their scroll position; the incoming one fades in.
-      body: TweenAnimationBuilder<double>(
-        key: ValueKey(_tab),
-        tween: Tween(begin: still ? 1 : 0, end: 1),
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.easeOut,
-        builder: (_, v, child) => Opacity(opacity: v, child: child),
+      // Tabs keep their state and scroll position (the stack is never
+      // rebuilt from scratch); the incoming one fades in.
+      body: FadeTransition(
+        opacity: CurvedAnimation(parent: _fade, curve: Curves.easeOut),
         child: IndexedStack(
           index: _tab,
           children: [
             _TodayTab(c: c, onOpenActivity: () => _go(1)),
             _ActivityTab(c: c),
-            const SettingsScreen(embedded: true),
+            const SettingsScreen(),
           ],
         ),
       ),
@@ -138,6 +134,11 @@ class _TodayTab extends StatelessWidget {
             const _Notice(
               title: 'Scroll measuring is off',
               body: 'Time without tracking is charged at your average scroll rate. Tap to turn it on.',
+            )
+          else if (!c.status.serviceConnected)
+            const _Notice(
+              title: 'Scroll measuring isn\'t running',
+              body: 'It\'s switched on but Android stopped it, so nothing frosts. Switching it off and on again fixes it.',
             ),
           if (c.walkError != null)
             const _Notice(
@@ -215,32 +216,60 @@ enum _Verdict { walk, unfrozen, limit, low, free }
 
 /// The one card that answers "what now?": a verdict, the number behind it,
 /// and the two things it comes from, walked and scrolled today.
-class _TodayCard extends StatelessWidget {
+class _TodayCard extends StatefulWidget {
   const _TodayCard({required this.c, required this.onOpenActivity});
   final ScrollDebtController c;
   final VoidCallback onOpenActivity;
 
   @override
+  State<_TodayCard> createState() => _TodayCardState();
+}
+
+class _TodayCardState extends State<_TodayCard> {
+  Timer? _clock;
+
+  @override
+  void initState() {
+    super.initState();
+    // Keeps the emergency-pass countdown fresh. Only this card rebuilds.
+    _clock = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (widget.c.overrideActive && mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _clock?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final c = widget.c;
     final t = Theme.of(context).textTheme;
     final col = context.colors;
     final debt = c.debtM;
     final owed = debt >= 0.05;
+    final pass = c.overrideActive;
     final allowance = c.config.effective.allowanceM;
     final left = c.allowanceLeftM;
-    final verdict = owed
-        ? (c.overrideActive ? _Verdict.unfrozen : _Verdict.walk)
-        : left < 0.5
-            ? _Verdict.limit
-            : (allowance > 0 && left / allowance <= 0.25 ? _Verdict.low : _Verdict.free);
+    final verdict = pass
+        ? _Verdict.unfrozen
+        : owed
+            ? _Verdict.walk
+            : left < 0.5
+                ? _Verdict.limit
+                : (allowance > 0 && left / allowance <= 0.25 ? _Verdict.low : _Verdict.free);
 
     // Owing turns the card navy (frost blue in dark mode); otherwise it is
     // the pale frost of the icon background.
     final fg = owed ? col.onHero : col.text;
     final muted = owed ? col.onHeroMuted : col.muted;
     final strong = owed ? col.onHero : col.accent;
-    final penalty = c.config.overridePenalty.toStringAsFixed(0);
+    final penalty = formatTimes(c.config.overridePenalty);
     final frostPct = (c.frostLevel * 100).round();
+    final apps = c.frostedAppsToday;
+    final which = apps.isEmpty ? 'your restricted apps' : 'apps like ${_appList(c, apps)}';
 
     final (IconData icon, String status) = switch (verdict) {
       _Verdict.walk => (Ph.walk, 'Time for a walk'),
@@ -251,12 +280,15 @@ class _TodayCard extends StatelessWidget {
     };
     final value = owed ? debt : left;
     final sentence = switch (verdict) {
-      _Verdict.walk => 'to walk off. Until then, frost covers ${_appList(c, c.frostedAppsToday)} ($frostPct%).',
-      _Verdict.unfrozen => 'still to walk off. Scrolling costs $penalty× until the pass ends.',
+      _Verdict.walk => c.status.serviceConnected
+          ? 'to walk off. Until then, $which stay frosted ($frostPct%).'
+          : 'to walk off. Frost is paused while scroll measuring is off.',
+      _Verdict.unfrozen => owed
+          ? 'still to walk off. Scrolling costs $penalty until the pass ends.'
+          : 'of free scrolling left. Past that, scrolling costs $penalty until the pass ends.',
       _Verdict.limit => 'of free scrolling left. Anything more you scroll has to be walked off.',
       _Verdict.low || _Verdict.free => 'of free scrolling left today, out of ${formatRound(allowance)}.',
     };
-    final km = value >= 1000;
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -285,6 +317,10 @@ class _TodayCard extends StatelessWidget {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
+                  layoutBuilder: (current, previous) => Stack(
+                    alignment: AlignmentDirectional.centerStart,
+                    children: [...previous, ?current],
+                  ),
                   child: _StatusPill(key: ValueKey(verdict), icon: icon, text: status, color: strong),
                 ),
                 const SizedBox(height: 18),
@@ -292,22 +328,27 @@ class _TodayCard extends StatelessWidget {
                   label: '$status. ${formatMetres(value)} $sentence',
                   excludeSemantics: true,
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        TweenAnimationBuilder<double>(
-                          tween: Tween(end: value),
-                          duration: const Duration(milliseconds: 700),
-                          curve: Curves.easeOutCubic,
-                          builder: (_, v, _) => Text(
-                            km ? (v / 1000).toStringAsFixed(2) : v.toStringAsFixed(owed ? 1 : 0),
-                            style: t.displayLarge?.copyWith(color: fg, fontSize: 64, fontFeatures: tabular),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(km ? 'km' : 'm', style: t.headlineSmall?.copyWith(color: muted)),
-                      ],
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(end: value),
+                      duration: const Duration(milliseconds: 700),
+                      curve: Curves.easeOutCubic,
+                      // Unit follows the animated value, so crossing 1 km
+                      // never shows metres formatted as kilometres.
+                      builder: (_, v, _) {
+                        final km = v >= 999.95;
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                            Text(
+                              km ? (v / 1000).toStringAsFixed(2) : v.toStringAsFixed(owed ? 1 : 0),
+                              style: t.displayLarge?.copyWith(color: fg, fontSize: 64, fontFeatures: tabular),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(km ? 'km' : 'm', style: t.headlineSmall?.copyWith(color: muted)),
+                          ],
+                        );
+                      },
                     ),
                     const SizedBox(height: 6),
                     Text(sentence, style: t.bodyLarge?.copyWith(color: muted, height: 1.4)),
@@ -334,8 +375,8 @@ class _TodayCard extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 20),
-                _Tally(c: c, fg: fg, muted: muted, onOpenActivity: onOpenActivity),
-                if (owed) ...[
+                _Tally(c: c, fg: fg, muted: muted, onOpenActivity: widget.onOpenActivity),
+                if (owed || pass) ...[
                   const SizedBox(height: 16),
                   _PassButton(c: c, fg: fg, muted: muted),
                 ],
@@ -468,7 +509,7 @@ class _PassButton extends StatelessWidget {
       );
     }
     final left = c.overridesLeft;
-    final penalty = c.config.overridePenalty.toStringAsFixed(0);
+    final penalty = formatTimes(c.config.overridePenalty);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       // Tonal: a way out, not the main thing to do (that's walking).
       FilledButton.tonalIcon(
@@ -485,7 +526,7 @@ class _PassButton extends StatelessWidget {
       const SizedBox(height: 6),
       Text(
         left > 0
-            ? 'Scrolling costs $penalty× while unfrozen. $left ${left == 1 ? 'pass' : 'passes'} left today.'
+            ? 'Scrolling costs $penalty while unfrozen. $left ${left == 1 ? 'pass' : 'passes'} left today.'
             : 'No passes left today.',
         textAlign: TextAlign.center,
         style: t.bodySmall?.copyWith(color: muted),
@@ -567,7 +608,7 @@ class LedgerView extends StatelessWidget {
         line('Over the limit', formatMetres(overM)),
         Text(
           'Each metre over the limit is multiplied by the app\'s rate (shown next to each app), '
-          'then by ${cfg.effective.ratio.toStringAsFixed(1)} to turn it into walking.',
+          'then by ${formatTimes(cfg.effective.ratio)} to turn it into walking.',
           style: t.bodyMedium?.copyWith(color: col.muted),
         ),
         const SizedBox(height: 12),
@@ -695,13 +736,13 @@ class _WalkingPanel extends StatelessWidget {
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: 20 + goalY,
+                bottom: 22 + goalY,
                 child: Row(children: [
                   for (var x = 0; x < 40; x++)
                     Expanded(child: Container(height: 1, color: x.isEven ? col.faint : Colors.transparent)),
                 ]),
               ),
-              Positioned(right: 0, bottom: 24 + goalY, child: Text('goal', style: t.labelSmall)),
+              Positioned(right: 0, bottom: 26 + goalY, child: Text('goal', style: t.labelSmall)),
               Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 for (var i = 0; i < 7; i++)
                   Expanded(
@@ -715,7 +756,9 @@ class _WalkingPanel extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 6),
-                      Text(days[(today - 7 + i) % 7], style: t.labelSmall),
+                      // Fixed height so bars start exactly 22 px up, where
+                      // the goal line is measured from.
+                      SizedBox(height: 16, child: Text(days[(today - 7 + i) % 7], style: t.labelSmall)),
                     ]),
                   ),
               ]),

@@ -31,6 +31,45 @@ flutter build apk --debug && adb install -r build/app/outputs/flutter-apk/app-de
 flutter build apk --release
 ```
 
+## Release build
+
+A release build is optimised (no debug banner or slow debug checks), has no
+INTERNET permission, no adb debug hooks and no `SD` logging. Sign it with your
+own key so later releases can update it in place.
+
+1. Create a key once and keep it safe (back it up: without it you can't ship
+   updates to the installed app):
+   ```bash
+   keytool -genkey -v -keystore ~/scrolldebt-upload.jks -keyalg RSA -keysize 2048 \
+     -validity 10000 -alias upload
+   ```
+2. Create `android/key.properties` (git-ignored, never commit it):
+   ```properties
+   storePassword=<the password you chose>
+   keyPassword=<the password you chose>
+   keyAlias=upload
+   storeFile=/home/<you>/scrolldebt-upload.jks
+   ```
+3. Raise `version:` in `pubspec.yaml` for every release (`1.0.1+2`: the number
+   after `+` must go up, or Android refuses the update).
+4. Build and install:
+   ```bash
+   flutter build apk --release
+   adb install -r build/app/outputs/flutter-apk/app-release.apk
+   # or, for Google Play:
+   flutter build appbundle --release   # build/app/outputs/bundle/release/app-release.aab
+   ```
+5. Check it: `aapt2 dump permissions build/app/outputs/flutter-apk/app-release.apk`
+   must not list `android.permission.INTERNET`.
+
+Without `key.properties` the release build is signed with the debug key. It
+runs, but it can't update (or be updated by) an APK signed with your real key:
+uninstall first, which erases the app's data. The first install of a properly
+signed build over a debug one needs that uninstall too.
+
+A sideloaded release APK needs *Allow restricted settings* before Android lets
+you turn on the accessibility service (see Permissions).
+
 ## Permissions
 
 The onboarding screen walks through each one with a deep link and a live tick:
