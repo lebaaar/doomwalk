@@ -222,6 +222,7 @@ void main() {
     final c = await ScrollDebtController.start();
     await c.updateConfig(const DebtConfig(allowanceM: 5));
     await c.setDeveloperOptions(true);
+    await c.setMilestoneToasts(false); // only the used-up notice here
     await sendNative('onWindow', {'pkg': 'com.reddit.frontpage', 'cls': 'X', 't': 0});
     expect(notices, isEmpty); // free scrolling left
     c.devAddScroll('com.reddit.frontpage', 5); // exactly used up, nothing owed
@@ -235,6 +236,31 @@ void main() {
     await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
     expect(notices, hasLength(1)); // not again within 10 minutes
     c.dispose();
+  });
+
+  test('passing a milestone pops up once, and can be switched off', () async {
+    final c = await ScrollDebtController.start();
+    await c.setDeveloperOptions(true);
+    await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
+    c.devAddScroll('com.instagram.android', 0.5);
+    expect(notices, isEmpty);
+    c.devAddScroll('com.instagram.android', 5.5); // past 1 m and the giraffe at once
+    await Future<void>.delayed(Duration.zero);
+    expect(notices, hasLength(1));
+    expect(notices.last['title'], contains('giraffe'));
+    c.devAddScroll('com.instagram.android', 1);
+    await Future<void>.delayed(Duration.zero);
+    expect(notices, hasLength(1)); // nothing new passed
+    // Survives a restart, and switched off it stays quiet.
+    await c.setMilestoneToasts(false);
+    c.dispose();
+    final c2 = await ScrollDebtController.start();
+    expect(c2.milestoneToasts, isFalse);
+    await c2.setDeveloperOptions(true);
+    c2.devAddScroll('com.instagram.android', 10);
+    await Future<void>.delayed(Duration.zero);
+    expect(notices, hasLength(1));
+    c2.dispose();
   });
 
   test('turning developer options off also ends demo mode', () async {

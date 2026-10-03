@@ -9,6 +9,7 @@ import '../core/units.dart';
 import '../services/controller.dart';
 import '../services/store.dart';
 import 'icons.dart';
+import 'landmark_art.dart';
 import 'logo.dart';
 import 'permissions_screen.dart';
 import 'providers.dart';
@@ -152,10 +153,10 @@ class _TodayTab extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
             child: _TodayCard(c: c, onOpenActivity: onOpenActivity),
           ),
-          const SectionTitle('Did you know?'),
+          const SectionTitle('Today\'s climb'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
-            child: _DidYouKnow(c: c),
+            child: _Climb(c: c),
           ),
           SectionTitle(
             'Most scrolled today',
@@ -902,9 +903,11 @@ class _AppRow extends StatelessWidget {
   }
 }
 
-/// Today's scrolling as a landmark, plus the all-time total, on Today.
-class _DidYouKnow extends StatelessWidget {
-  const _DidYouKnow({required this.c});
+/// Today's scrolling as a climb up the next landmark: its silhouette fills
+/// as you scroll, the ones already passed line up underneath. Plus the
+/// all-time total.
+class _Climb extends StatelessWidget {
+  const _Climb({required this.c});
   final ScrollDebtController c;
 
   @override
@@ -912,26 +915,40 @@ class _DidYouKnow extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final col = context.colors;
     final metres = c.state.scrolledTodayM;
-    final mark = LandmarkTier.today.yardstick;
+    final p = progressToward(metres, ladder: climb);
+    final next = p.next;
+    final pct = (p.fraction * 100).floor();
     final lifetime = c.lifetimeRawM;
+    final way = next.upright ? 'up' : 'along';
+    final size = next.upright ? 'tall' : 'long';
+    final beyond = metres >= next.heightM; // past the last landmark
     return _Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        if (metres < 0.05) ...[
-          Text('${formatRound(mark.heightM)} tall', style: t.headlineMedium?.merge(numeric)),
-          const SizedBox(height: 4),
-          Text(
-            'That\'s the ${mark.name}. Nothing scrolled yet today, so you haven\'t climbed any of it.',
-            style: t.bodyMedium?.copyWith(color: col.muted),
+        Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('$pct%', style: t.headlineMedium?.merge(numeric)),
+              const SizedBox(height: 2),
+              Text('of the way $way ${next.refer}\u00A0${next.emoji}', style: t.bodyLarge),
+              const SizedBox(height: 8),
+              Text(
+                metres < 0.05
+                    ? 'It\'s ${formatRound(next.heightM)} $size. Nothing scrolled yet today, so you haven\'t started.'
+                    : beyond
+                        ? 'You\'ve scrolled ${next.count(metres)} today. Please go outside.'
+                        : '${formatMetres(next.heightM - metres)} to go. You\'ve scrolled ${formatMetres(metres)} today.',
+                style: t.bodyMedium?.merge(numeric).copyWith(color: col.muted),
+              ),
+            ]),
           ),
-        ] else ...[
-          Text(mark.count(metres), style: t.headlineMedium?.merge(numeric)),
-          const SizedBox(height: 4),
-          Text(
-            'You\'ve scrolled ${formatMetres(metres)} today. Stood on end, that\'s '
-            '${metres >= mark.heightM ? 'taller than' : '${(metres / mark.heightM * 100).round()}% of'} '
-            'the ${mark.name}.',
-            style: t.bodyMedium?.merge(numeric).copyWith(color: col.muted),
-          ),
+          const SizedBox(width: 16),
+          LandmarkArt(landmark: next, fraction: p.fraction, color: col.accent, track: col.faint),
+        ]),
+        if (p.passed.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Wrap(spacing: 6, runSpacing: 6, children: [
+            for (final l in p.passed) _Passed(l),
+          ]),
         ],
         const SizedBox(height: 14),
         const Divider(),
@@ -942,6 +959,29 @@ class _DidYouKnow extends StatelessWidget {
           style: t.bodyMedium?.merge(numeric).copyWith(color: col.muted),
         ),
       ]),
+    );
+  }
+}
+
+/// A landmark already passed today: "🦒 Giraffe ✓".
+class _Passed extends StatelessWidget {
+  const _Passed(this.l);
+  final Landmark l;
+
+  @override
+  Widget build(BuildContext context) {
+    final col = context.colors;
+    final name = l.name[0].toUpperCase() + l.name.substring(1);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: col.accentContainer,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        '${l.emoji} $name',
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(color: col.onAccentContainer),
+      ),
     );
   }
 }

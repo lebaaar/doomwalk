@@ -60,6 +60,10 @@ class ScrollDebtController extends ChangeNotifier {
   /// (adding steps or scrolling, demo mode), in any build.
   bool developerOptions = false;
 
+  /// A funny pop-up over the open app when today's scrolling passes a
+  /// milestone (a giraffe, the Eiffel Tower...).
+  bool milestoneToasts = true;
+
   /// Walked metres per previous day, newest first (today is live in state).
   List<(String, double)> walkHistory = [];
   bool onboardingDone = false;
@@ -126,6 +130,7 @@ class ScrollDebtController extends ChangeNotifier {
     );
     c.themeMode = kv['theme_mode'] ?? 'system';
     c.developerOptions = kv['dev_options'] == 'true';
+    c.milestoneToasts = kv['milestone_toasts'] != 'false';
     c._openGapStartMs = int.tryParse(kv['gap.open_start'] ?? '');
     c._openGapReason = kv['gap.open_reason'];
     c.onboardingDone = kv['onboarding.done'] == 'true';
@@ -253,13 +258,32 @@ class ScrollDebtController extends ChangeNotifier {
     final rate = catalog.rateFor(pkg);
     if (rate <= 0 || metres <= 0) return;
     _syncDay(at);
+    final before = state.scrolledTodayM;
     final charge = _engine.applyScroll(metres: metres, appRate: rate, at: at, velocityWeight: weight);
     _addAppDelta(pkg, charge.rawM, charge.costM);
     _ensureMeta(pkg);
     _log('scroll pkg=$pkg src=$source m=${metres.toStringAsFixed(3)} w=${weight.toStringAsFixed(2)} '
         'cost=${charge.costM.toStringAsFixed(3)} debt=${debtM.toStringAsFixed(2)} '
         'today=${todayApps[pkg]!.rawM.toStringAsFixed(2)}');
+    _celebrate(before, state.scrolledTodayM);
     _changed();
+  }
+
+  /// Pops up a milestone over the open app when today's scrolling has just
+  /// passed one. Each fires once a day, since today's total only grows.
+  void _celebrate(double before, double after) {
+    if (!milestoneToasts || !status.serviceConnected) return;
+    final m = milestoneCrossed(before, after);
+    if (m == null) return;
+    _log('milestone ${m.metres}');
+    unawaited(_safe(() => _native.showNotice(m.title, m.body, ms: 3500)));
+  }
+
+  Future<void> setMilestoneToasts(bool on) async {
+    milestoneToasts = on;
+    _dirty = true;
+    notifyListeners();
+    await flush();
   }
 
   void _addAppDelta(String pkg, double raw, double charged) {
@@ -584,6 +608,7 @@ class ScrollDebtController extends ChangeNotifier {
       'restricted_categories': catalog.restricted.map((c) => c.name).join(','),
       'theme_mode': themeMode,
       'dev_options': developerOptions.toString(),
+      'milestone_toasts': milestoneToasts.toString(),
     };
     try {
       await _store.flush(kv: kv, appDeltas: deltas, walkedToday: (state.dayKey, state.walkedTodayM));

@@ -80,6 +80,13 @@ class SettingsScreen extends ConsumerWidget {
                 '${cfg.strideM.toStringAsFixed(2)} m stride',
             page: const _YouPage(),
           ),
+          SwitchListTile(
+            secondary: const IconBadge(icon: Ph.confetti),
+            title: const Text('Milestone pop-ups'),
+            subtitle: const Text('A note over the app when today\'s scrolling passes a giraffe, a bus, the Eiffel Tower…'),
+            value: c.milestoneToasts,
+            onChanged: c.setMilestoneToasts,
+          ),
           _NavTile(
             icon: Ph.palette,
             title: 'Appearance',

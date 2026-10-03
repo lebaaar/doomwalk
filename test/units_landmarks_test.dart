@@ -63,5 +63,27 @@ void main() {
       expect(q.passed, [eiffel, burj]);
       expect(progressToward(150000).next, karman);
     });
+    test('the climb has a landmark close by from the first metres', () {
+      final p = progressToward(3, ladder: climb);
+      expect(p.next, giraffe);
+      expect(p.passed, isEmpty);
+      final q = progressToward(100, ladder: climb);
+      expect(q.next, eiffel);
+      expect(q.passed, [giraffe, bus, whale, liberty]);
+      expect(progressToward(5000, ladder: climb).next, everest);
+      expect(progressToward(5000, ladder: climb).passed.last, triglav);
+      // The climb is sorted, smallest first.
+      for (var i = 1; i < climb.length; i++) {
+        expect(climb[i].heightM, greaterThan(climb[i - 1].heightM));
+      }
+    });
+    test('milestones fire when passed, the biggest of several', () {
+      expect(milestoneCrossed(0, 0.9), isNull);
+      expect(milestoneCrossed(0.9, 1.0)!.metres, 1);
+      expect(milestoneCrossed(1.0, 1.5), isNull); // already passed
+      expect(milestoneCrossed(5, 6)!.title, contains('giraffe'));
+      expect(milestoneCrossed(0, 40)!.title, contains('whale'));
+      expect(milestoneCrossed(320, 331)!.title, contains('Eiffel'));
+    });
   });
 }

@@ -648,6 +648,11 @@ class FrostOverlay(private val service: AccessibilityService) {
         banner = ll
         try {
             wm.addView(ll, bannerParams)
+            // Drops in from above rather than just appearing.
+            ll.alpha = 0f
+            ll.translationY = -dp(24).toFloat()
+            ll.animate().alpha(1f).translationY(0f).setDuration(280)
+                .setInterpolator(DecelerateInterpolator()).start()
             handler.postDelayed(hideBanner, ms)
         } catch (e: Exception) {
             Log.w(TAG, "notice addView failed: $e")
