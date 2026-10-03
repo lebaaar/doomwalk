@@ -13,6 +13,7 @@ class LandmarkArt extends StatelessWidget {
     required this.color,
     required this.track,
     this.height = 132,
+    this.maxWidth = 120,
   });
 
   final Landmark landmark;
@@ -21,9 +22,14 @@ class LandmarkArt extends StatelessWidget {
   final Color track;
   final double height;
 
+  /// Wide landmarks (a bus, a whale) shrink to fit this, keeping their shape.
+  final double maxWidth;
+
   @override
   Widget build(BuildContext context) {
     final shape = _shapes[landmark.shape]!;
+    final aspect = shape.size.width / shape.size.height;
+    final w = (height * aspect).clamp(0.0, maxWidth);
     return Semantics(
       label: '${(fraction * 100).round()}% of ${landmark.refer}',
       child: TweenAnimationBuilder<double>(
@@ -32,8 +38,8 @@ class LandmarkArt extends StatelessWidget {
         duration: const Duration(milliseconds: 1100),
         curve: Curves.easeOutCubic,
         builder: (_, f, _) => SizedBox(
-          height: height,
-          width: height * shape.size.width / shape.size.height,
+          width: w,
+          height: w / aspect,
           child: CustomPaint(
             painter: _ArtPainter(shape, f, upright: landmark.upright, color: color, track: track),
           ),

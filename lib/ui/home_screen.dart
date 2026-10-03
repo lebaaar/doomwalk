@@ -921,6 +921,7 @@ class _Climb extends StatelessWidget {
     final way = next.upright ? 'up' : 'along';
     final size = next.upright ? 'tall' : 'long';
     final beyond = metres >= next.heightM; // past the last landmark
+    final art = LandmarkArt(landmark: next, fraction: p.fraction, color: col.accent, track: col.faint);
     return _Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
@@ -940,9 +941,25 @@ class _Climb extends StatelessWidget {
               ),
             ]),
           ),
-          const SizedBox(width: 16),
-          LandmarkArt(landmark: next, fraction: p.fraction, color: col.accent, track: col.faint),
+          // Tall landmarks stand beside the text; long ones lie under it.
+          if (next.upright) ...[const SizedBox(width: 16), art],
         ]),
+        if (!next.upright)
+          Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: LayoutBuilder(
+              builder: (_, box) => Center(
+                child: LandmarkArt(
+                  landmark: next,
+                  fraction: p.fraction,
+                  color: col.accent,
+                  track: col.faint,
+                  height: 96,
+                  maxWidth: box.maxWidth,
+                ),
+              ),
+            ),
+          ),
         if (p.passed.isNotEmpty) ...[
           const SizedBox(height: 14),
           Wrap(spacing: 6, runSpacing: 6, children: [

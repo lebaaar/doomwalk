@@ -203,6 +203,17 @@ void main() {
     brightness.value = Brightness.dark;
     await shot('home_done', null);
 
+    // A long landmark (the whale) lies under the text instead of squeezing it.
+    await tester.runAsync(() async {
+      await c.setDeveloperOptions(true);
+      await c.devResetTracking();
+      c.devAddScroll('com.instagram.android', 17.5);
+      await c.setDeveloperOptions(false);
+    });
+    tester.view.physicalSize = const Size(1080, 3200);
+    await shot('home_climb_long', null);
+    tester.view.physicalSize = const Size(1080, 2400);
+
     // Unmounting the scope disposes the controller (and closes the DB).
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
