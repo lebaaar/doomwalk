@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -24,6 +25,14 @@ class AltitudeGauge extends StatelessWidget {
           size: Size.infinite,
         ),
       );
+}
+
+/// Largest 1/2/5 × 10ⁿ step that puts about three ticks under [max].
+double niceTickStep(double max) {
+  if (max <= 0) return 0;
+  final raw = max / 3;
+  final mag = math.pow(10, (math.log(raw) / math.ln10).floor()).toDouble();
+  return [5.0, 2.0, 1.0].map((k) => k * mag).firstWhere((s) => s <= raw, orElse: () => mag);
 }
 
 class _GaugePainter extends CustomPainter {
@@ -87,10 +96,12 @@ class _GaugePainter extends CustomPainter {
 
     if (showScale) {
       _label(canvas, 'Full frost ${frostMaxM.toStringAsFixed(0)} m', Offset(14, frostY - 18), c.muted);
-      for (var i = 1; i < 4; i++) {
-        final y = base - (base - frostY) * i / 4;
+      // Round ticks (50, 100 under a 150 m summit), never crowding the summit label.
+      final step = niceTickStep(frostMaxM);
+      for (var m = step; step > 0 && m < frostMaxM * 0.9; m += step) {
+        final y = base - (base - frostY) * m / frostMaxM;
         canvas.drawLine(Offset(0, y), Offset(8, y), dash);
-        _label(canvas, (frostMaxM * i / 4).toStringAsFixed(0), Offset(14, y - 7), c.faint);
+        _label(canvas, m.toStringAsFixed(m % 1 == 0 ? 0 : 1), Offset(14, y - 7), c.faint);
       }
     }
 

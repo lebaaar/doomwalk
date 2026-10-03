@@ -85,7 +85,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         index: _tab,
         children: [
           page([
-            if (!c.status.accessibilityEnabled) const _TrackingOff(),
+            if (!c.status.accessibilityEnabled)
+              const _Notice(
+                title: 'Scroll measuring is off',
+                body: 'Time without tracking is charged at your average scroll rate.',
+              ),
+            if (c.walkError != null)
+              const _Notice(
+                title: 'Step counting is off',
+                body: 'Walking won\'t pay your debt down until physical activity access is allowed.',
+              ),
             const SizedBox(height: 20),
             _Hero(c: c),
             const SizedBox(height: 20),
@@ -142,8 +151,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   }
 }
 
-class _TrackingOff extends StatelessWidget {
-  const _TrackingOff();
+/// A tappable problem that blocks part of the loop; opens setup to fix it.
+class _Notice extends StatelessWidget {
+  const _Notice({required this.title, required this.body});
+  final String title;
+  final String body;
 
   @override
   Widget build(BuildContext context) {
@@ -164,9 +176,9 @@ class _TrackingOff extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text('Scroll measuring is off', style: t.titleSmall),
+                  Text(title, style: t.titleSmall),
                   const SizedBox(height: 2),
-                  Text('Time without tracking is charged at your average scroll rate.', style: t.bodySmall),
+                  Text(body, style: t.bodySmall),
                 ]),
               ),
               Icon(Ph.caretRight, size: 18, color: context.colors.muted),
@@ -370,7 +382,7 @@ class _Stats extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16),
         child: Row(children: [
           stat(formatMetres(c.state.scrolledTodayM), 'scrolled today'),
-          stat(formatMetres(c.state.walkedTodayM), c.walkError == null ? 'walked today' : 'step sensor off'),
+          stat(formatMetres(c.state.walkedTodayM), 'walked today'),
           stat(formatMetres(c.allowanceLeftM, decimals: 0),
               'free of ${formatMetres(c.config.effective.allowanceM, decimals: 0)}'),
         ]),
@@ -569,18 +581,38 @@ class _Ledger extends StatelessWidget {
             Text(b, style: numeric.copyWith(fontSize: 14, color: color ?? context.colors.text)),
           ]),
         );
+    // Reads top to bottom as a sum that ends at the hero number:
+    // carried + scrolling + gaps − walked = to walk.
+    final scrollChargedM = s.chargedTodayM - s.tamperChargedTodayM;
+    final overM = s.scrolledTodayM - s.allowanceUsedM;
+    final carriedM = s.debtM - s.chargedTodayM + s.paidTodayM;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      line('Charged today', '+${formatMetres(s.chargedTodayM)}', color: context.colors.accent),
-      line('Walked off today', '−${formatMetres(s.paidTodayM)}'),
+      line('Scrolled today', formatMetres(s.scrolledTodayM)),
+      line('Free allowance', '−${formatMetres(s.allowanceUsedM)}'),
+      line('Over the allowance', formatMetres(overM)),
+      Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Text(
+          'Each metre over is charged at the app\'s rate, then × ${cfg.effective.ratio.toStringAsFixed(1)} '
+          'to turn it into walking.',
+          style: t.bodySmall,
+        ),
+      ),
+      const SizedBox(height: 8),
+      const Divider(),
+      const SizedBox(height: 8),
+      if (carriedM >= 0.05) line('Carried over', '+${formatMetres(carriedM)}'),
+      line('Charged for scrolling', '+${formatMetres(scrollChargedM)}', color: context.colors.accent),
       if (s.tamperChargedTodayM > 0)
         line('Charged for tracking gaps', '+${formatMetres(s.tamperChargedTodayM)}', color: context.colors.accent),
+      line('Walked off today', '−${formatMetres(s.paidTodayM)}'),
+      line('Left to walk', formatMetres(s.debtM), color: context.colors.text),
       const SizedBox(height: 8),
       const Divider(),
       const SizedBox(height: 8),
       line('Overnight interest', '${(cfg.interestRate * 100).toStringAsFixed(1)}% per night'),
       line('Interest last night', '+${formatMetres(s.lastInterestM)}'),
       line('Interest so far', formatMetres(s.interestTotalM)),
-      line('Exchange rate', '1 m scrolled = ${cfg.effective.ratio.toStringAsFixed(1)} m walked'),
       if (c.gaps.isNotEmpty) ...[
         const SizedBox(height: 8),
         const Divider(),
