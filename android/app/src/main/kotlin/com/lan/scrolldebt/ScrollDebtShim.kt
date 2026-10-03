@@ -402,7 +402,7 @@ class FrostOverlay(private val service: AccessibilityService) {
             setPadding((16 * density).toInt(), (8 * density).toInt(), (16 * density).toInt(), (8 * density).toInt())
             background = GradientDrawable().apply {
                 cornerRadius = 20 * density
-                setColor(Color.argb(150, 13, 16, 20))
+                setColor(Color.argb(150, 11, 15, 20))
             }
         }
         val fl = FrameLayout(service)

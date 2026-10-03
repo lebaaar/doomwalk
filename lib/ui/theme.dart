@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
 
-/// One cool neutral scale and a single accent (alpenglow orange) used for
-/// debt and primary actions only. No secondary accent colours anywhere.
+/// "Glacier": blue-black neutrals and a single frost-cyan accent, the same
+/// colour language as the frost overlay. The accent marks debt and primary
+/// actions only; when debt-free the hero number falls back to plain text.
 abstract final class Palette {
-  static const ink = Color(0xFF0D1014);
-  static const raised = Color(0xFF151A20);
-  static const raised2 = Color(0xFF1C232B);
-  static const hairline = Color(0xFF252D37);
-  static const text = Color(0xFFE8ECF0);
-  static const muted = Color(0xFF8C96A3);
-  static const faint = Color(0xFF5D6773);
-  static const accent = Color(0xFFE58A57);
-  static const onAccent = Color(0xFF1A0F08);
+  static const ink = Color(0xFF0B0F14);
+  static const raised = Color(0xFF121821);
+  static const raised2 = Color(0xFF18202B);
+  static const hairline = Color(0xFF1F2A36);
+  static const text = Color(0xFFE6EDF3);
+  static const muted = Color(0xFF7D8B99);
+  static const faint = Color(0xFF55626F);
+  static const accent = Color(0xFF7CC4E8);
+  static const onAccent = Color(0xFF06131C);
 }
 
 /// One radius scale: surfaces 16, small elements 8, buttons are pills.
@@ -111,7 +112,7 @@ ThemeData buildTheme() {
       activeTrackColor: Palette.text,
       inactiveTrackColor: Palette.hairline,
       thumbColor: Palette.text,
-      overlayColor: const Color(0x14E8ECF0),
+      overlayColor: const Color(0x14E6EDF3),
       tickMarkShape: SliderTickMarkShape.noTickMark,
       trackHeight: 3,
       showValueIndicator: ShowValueIndicator.never,

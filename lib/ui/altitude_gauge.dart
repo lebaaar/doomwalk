@@ -72,7 +72,7 @@ class _GaugePainter extends CustomPainter {
     canvas.drawPath(
       ridge,
       Paint()
-        ..shader = ui.Gradient.linear(peak, Offset(peak.dx, base), [const Color(0xFF2C3642), Palette.raised]),
+        ..shader = ui.Gradient.linear(peak, Offset(peak.dx, base), [const Color(0xFF243344), Palette.raised]),
     );
 
     // Frost line at the summit.

@@ -90,7 +90,7 @@ The UI was reworked against the anti-slop rules from
 [tasteskill.dev](https://www.tasteskill.dev/) (source: github.com/Leonxlnx/taste-skill;
 the site itself is blocked by this environment's network policy). The skill targets web
 landing pages, so only its general rules were applied:
-* **One accent** (alpenglow orange `#E58A57`, saturation under 80%) used only for debt
+* **One accent** (glacier cyan `#7CC4E8`, matching the frost overlay) used only for debt
   and primary actions, on a single cool neutral scale. The previous four accents
   (blue, orange, green, red) are gone.
 * **Type:** Geist with tabular figures, and Geist Mono for the gauge scale only. Both
