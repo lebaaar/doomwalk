@@ -26,6 +26,8 @@ void main() {
     frostCalls.clear();
     notifications.clear();
     widgetData.clear();
+    statusOverrides.clear();
+    restartCalls = 0;
     installMocks();
   });
 
@@ -145,6 +147,34 @@ void main() {
     expect(c.state.walkedTodayM, 0);
     expect(c.todayApps, isEmpty);
     expect(c.config.allowanceM, 0);
+    c.dispose();
+  });
+
+  test('a stopped service is restarted once confirmed, at most once a minute', () async {
+    final c = await ScrollDebtController.start();
+    statusOverrides.addAll({'serviceConnected': false, 'canRestartService': true});
+    await c.refreshStatus(); // first sighting: may still be connecting
+    expect(restartCalls, 0);
+    await c.refreshStatus();
+    expect(restartCalls, 1);
+    await c.refreshStatus();
+    await c.refreshStatus();
+    expect(restartCalls, 1);
+    c.dispose();
+  });
+
+  test('without WRITE_SECURE_SETTINGS a stopped service is only reported', () async {
+    statusOverrides.addAll({
+      'serviceConnected': false,
+      'exitReason': 8,
+      'exitTimeMs': 1700000000000,
+    });
+    final c = await ScrollDebtController.start();
+    await c.refreshStatus();
+    await c.refreshStatus();
+    expect(restartCalls, 0);
+    expect(c.status.serviceStalled, isTrue);
+    expect(c.status.lastExit!.label, 'a permission was changed');
     c.dispose();
   });
 

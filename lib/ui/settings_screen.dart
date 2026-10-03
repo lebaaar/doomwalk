@@ -8,7 +8,7 @@ import '../core/units.dart';
 import '../services/controller.dart';
 import '../services/native_bridge.dart';
 import 'icons.dart';
-import 'onboarding_screen.dart';
+import 'permissions_screen.dart';
 import 'providers.dart';
 import 'theme.dart';
 
@@ -89,8 +89,12 @@ class SettingsScreen extends ConsumerWidget {
           _NavTile(
             icon: Ph.listChecks,
             title: 'Permissions',
-            subtitle: c.status.accessibilityEnabled ? 'Scroll measuring is on' : 'Scroll measuring is off',
-            page: const OnboardingScreen(standalone: true),
+            subtitle: c.status.serviceConnected
+                ? 'Scroll measuring is on'
+                : c.status.accessibilityEnabled
+                    ? 'Scroll measuring has stopped'
+                    : 'Scroll measuring is off',
+            page: const PermissionsScreen(),
           ),
           const _NavTile(
             icon: Ph.shieldCheck,

@@ -27,7 +27,9 @@ class NativeStatus {
         ignoringBatteryOptimizations = m['ignoringBatteryOptimizations'] == true,
         restrictedSettingsAllowed = m['restrictedSettingsAllowed'] as bool?,
         blurEnabled = m['blurEnabled'] == true,
-        sdk = (m['sdk'] as num?)?.toInt() ?? 31;
+        sdk = (m['sdk'] as num?)?.toInt() ?? 31,
+        canRestartService = m['canRestartService'] == true,
+        lastExit = ExitRecord.fromMap(m);
 
   NativeStatus.unknown()
       : accessibilityEnabled = false,
@@ -35,7 +37,9 @@ class NativeStatus {
         ignoringBatteryOptimizations = false,
         restrictedSettingsAllowed = null,
         blurEnabled = false,
-        sdk = 31;
+        sdk = 31,
+        canRestartService = false,
+        lastExit = null;
 
   final bool accessibilityEnabled;
   final bool serviceConnected;
@@ -43,6 +47,60 @@ class NativeStatus {
   final bool? restrictedSettingsAllowed;
   final bool blurEnabled;
   final int sdk;
+
+  /// The app holds WRITE_SECURE_SETTINGS (granted over adb), so it can switch
+  /// its own accessibility service off and on.
+  final bool canRestartService;
+
+  /// Why the app's process last died, as Android recorded it.
+  final ExitRecord? lastExit;
+
+  /// Switched on in Settings, but Android isn't running it.
+  bool get serviceStalled => accessibilityEnabled && !serviceConnected;
+}
+
+/// Android's record of the last time the app's process ended
+/// (ApplicationExitInfo).
+class ExitRecord {
+  const ExitRecord({required this.reason, required this.time, this.description});
+  final int reason;
+  final DateTime time;
+  final String? description;
+
+  static ExitRecord? fromMap(Map<Object?, Object?> m) {
+    final r = m['exitReason'];
+    final t = m['exitTimeMs'];
+    if (r is! num || t is! num) return null;
+    return ExitRecord(
+      reason: r.toInt(),
+      time: DateTime.fromMillisecondsSinceEpoch(t.toInt()),
+      description: m['exitDescription'] as String?,
+    );
+  }
+
+  /// Plain words for ApplicationExitInfo.REASON_*.
+  String get label => switch (reason) {
+        1 => 'it closed itself',
+        2 => 'Android killed it',
+        3 => 'Android closed it to free memory',
+        4 => 'it crashed',
+        5 => 'it crashed in native code',
+        6 => 'it stopped responding',
+        7 => 'it failed to start',
+        8 => 'a permission was changed',
+        9 => 'it used too many resources',
+        10 => 'it was force stopped',
+        11 => 'Android turned it off for this user',
+        12 => 'a process it depended on died',
+        13 => 'Android ended it',
+        14 => 'it was frozen in the background',
+        15 => 'its package changed',
+        16 => 'the app was updated',
+        _ => 'an unknown reason',
+      };
+
+  /// The ones caused by a bug in the app rather than by Android or the user.
+  bool get isCrash => reason == 4 || reason == 5 || reason == 6 || reason == 7;
 }
 
 class AppMeta {
@@ -108,6 +166,16 @@ class NativeBridge {
   Future<void> startForegroundService() => _ch.invokeMethod('startForegroundService');
   Future<void> openAccessibilitySettings() => _ch.invokeMethod('openAccessibilitySettings');
   Future<void> openAppDetails() => _ch.invokeMethod('openAppDetails');
+
+  /// Switches the accessibility service off and on. False when the app lacks
+  /// WRITE_SECURE_SETTINGS.
+  Future<bool> restartAccessibility() async {
+    try {
+      return await _ch.invokeMethod<bool>('restartAccessibility') ?? false;
+    } on PlatformException {
+      return false;
+    }
+  }
   Future<void> requestIgnoreBatteryOptimizations() =>
       _ch.invokeMethod('requestIgnoreBatteryOptimizations');
 

@@ -30,6 +30,10 @@ Future<void> sendNative(String method, [Object? args]) async {
 Map<String, Object?> scrollEvent(String pkg, int t, int dy) =>
     {'pkg': pkg, 'cls': 'androidx.recyclerview.widget.RecyclerView', 't': t, 'win': 1, 'dx': 0, 'dy': dy};
 
+/// Merged over the default `status` reply, to fake a stopped service etc.
+final statusOverrides = <String, Object?>{};
+int restartCalls = 0;
+
 void installMocks() {
   final m = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   m.setMockMethodCallHandler(const MethodChannel(nativeChannel), (call) async {
@@ -49,7 +53,11 @@ void installMocks() {
           'ignoringBatteryOptimizations': true,
           'restrictedSettingsAllowed': true,
           'blurEnabled': true,
+          ...statusOverrides,
         };
+      case 'restartAccessibility':
+        restartCalls++;
+        return statusOverrides['canRestartService'] == true;
       case 'setFrost':
         frostCalls.add((call.arguments as Map)['level'] as double);
         return true;

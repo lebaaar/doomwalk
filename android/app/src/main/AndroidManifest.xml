@@ -13,6 +13,12 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <!-- Never granted by install. A developer can grant it with
+         `adb shell pm grant com.lan.scrolldebt android.permission.WRITE_SECURE_SETTINGS`
+         so the app can switch its own accessibility service off and on
+         after Android stops it. -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
 
     <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
 

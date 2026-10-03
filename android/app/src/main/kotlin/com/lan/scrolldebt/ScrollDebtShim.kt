@@ -14,7 +14,9 @@ import android.accessibilityservice.AccessibilityService
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
+import android.app.ActivityManager
 import android.app.AppOpsManager
+import android.app.ApplicationExitInfo
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -159,6 +161,7 @@ object Shim {
                     startForeground(app); result.success(null)
                 }
                 "status" -> result.success(status(app))
+                "restartAccessibility" -> result.success(restartAccessibility(app))
                 "openAccessibilitySettings" -> {
                     val cn = ComponentName(app, ScrollAccessibilityService::class.java)
                     val details = Intent("android.settings.ACCESSIBILITY_DETAILS_SETTINGS")
@@ -223,7 +226,64 @@ object Shim {
             "restrictedSettingsAllowed" to restrictedSettingsAllowed(app),
             "blurEnabled" to app.getSystemService(WindowManager::class.java).isCrossWindowBlurEnabled,
             "sdk" to Build.VERSION.SDK_INT,
+            "canRestartService" to canWriteSecureSettings(app),
+        ) + lastExit(app)
+    }
+
+    /**
+     * Why the process last died, from Android's own record. A dead process
+     * takes the accessibility service with it, and Android 10+ then treats
+     * the service as crashed and won't bind it again until it is switched
+     * off and on, so this is the "why did it stop" answer.
+     */
+    private fun lastExit(app: Context): Map<String, Any?> = try {
+        val info = app.getSystemService(ActivityManager::class.java)
+            .getHistoricalProcessExitReasons(app.packageName, 0, 1).firstOrNull()
+        if (info == null) emptyMap() else mapOf(
+            "exitReason" to info.reason,
+            "exitDescription" to info.description,
+            "exitTimeMs" to info.timestamp,
+            "exitWasCrash" to (info.reason == ApplicationExitInfo.REASON_CRASH ||
+                info.reason == ApplicationExitInfo.REASON_CRASH_NATIVE),
         )
+    } catch (e: Exception) {
+        emptyMap()
+    }
+
+    /** Granted only by `adb shell pm grant <pkg> android.permission.WRITE_SECURE_SETTINGS`. */
+    private fun canWriteSecureSettings(app: Context) =
+        app.checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Switches our accessibility service off and on again, which is what the
+     * user would otherwise do by hand in Settings. Android clears the
+     * "crashed" mark when a service leaves the enabled list, then binds it
+     * fresh when it is added back. Needs WRITE_SECURE_SETTINGS.
+     */
+    private fun restartAccessibility(app: Context): Boolean {
+        if (!canWriteSecureSettings(app)) return false
+        val me = ComponentName(app, ScrollAccessibilityService::class.java)
+        val cr = app.contentResolver
+        val key = Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        val others = (Settings.Secure.getString(cr, key) ?: "").split(':')
+            .filter { it.isNotBlank() && ComponentName.unflattenFromString(it) != me }
+        return try {
+            Settings.Secure.putString(cr, key, others.joinToString(":"))
+            // Give the system a moment to unbind before binding again.
+            main.postDelayed({
+                try {
+                    Settings.Secure.putString(cr, key, (others + me.flattenToString()).joinToString(":"))
+                    Settings.Secure.putString(cr, Settings.Secure.ACCESSIBILITY_ENABLED, "1")
+                    Log.i(TAG, "accessibility service re-enabled")
+                } catch (e: Exception) {
+                    Log.w(TAG, "re-enable failed: $e")
+                }
+            }, 800)
+            true
+        } catch (e: Exception) {
+            Log.w(TAG, "restart failed: $e")
+            false
+        }
     }
 
     /** Android 13+ "Allow restricted settings". null = cannot tell. */
@@ -614,16 +674,20 @@ class DebtForegroundService : Service() {
                 setShowBadge(false)
             }
         )
-        Shim.engine(this)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        goForeground()
+        // startForeground first: starting the Flutter engine can take long
+        // enough on a cold start to miss Android's deadline, and a missed
+        // deadline kills the whole process, accessibility service included.
+        if (!goForeground()) return START_NOT_STICKY
+        Shim.engine(this)
         if (intent?.action == ACTION_OVERRIDE) Shim.send("onOverrideRequested", null)
         return START_STICKY
     }
 
-    private fun goForeground() {
+    /** False if Android refused; the service has then stopped itself. */
+    private fun goForeground(): Boolean {
         val notification = build(this)
         try {
             if (Build.VERSION.SDK_INT >= 34) {
@@ -638,8 +702,14 @@ class DebtForegroundService : Service() {
                 startForeground(NOTIF_ID, notification)
             }
             running = true
+            return true
         } catch (e: Exception) {
+            // A service started with startForegroundService() that never
+            // reaches startForeground() crashes the app when the deadline
+            // passes. Stop cleanly instead; tracking runs without it.
             Log.w(TAG, "startForeground failed: $e")
+            stopSelf()
+            return false
         }
     }
 

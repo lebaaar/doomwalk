@@ -509,6 +509,7 @@ class ScrollDebtController extends ChangeNotifier {
       _pushFrost(force: true);
     }
     status = await _native.status().catchError((_) => status);
+    _healService();
     if (!status.accessibilityEnabled && _openGapStartMs == null && _trackingEverEnabled) {
       _openGap(now.millisecondsSinceEpoch, 'accessibility service turned off');
     }
@@ -759,8 +760,37 @@ class ScrollDebtController extends ChangeNotifier {
 
   Future<NativeStatus> refreshStatus() async {
     status = await _native.status();
+    _healService();
     notifyListeners();
     return status;
+  }
+
+  // ------------------------------------------------------ service health
+
+  bool _stalledLastCheck = false;
+  DateTime? _lastRestart;
+
+  /// Switches scroll measuring off and on again, the fix for a service that
+  /// is enabled but not running. Needs WRITE_SECURE_SETTINGS (adb); returns
+  /// false without it, and the user has to toggle it in Settings.
+  Future<bool> restartScrollMeasuring() async {
+    _lastRestart = DateTime.now();
+    final ok = await _native.restartAccessibility();
+    _log('restart scroll measuring: ${ok ? 'sent' : 'not allowed'}');
+    return ok;
+  }
+
+  /// When Android has stopped the service and the app may restart it, do so:
+  /// only once it has looked stopped on two checks in a row (not while it is
+  /// still connecting after being switched on), and at most once a minute.
+  void _healService() {
+    final stalled = status.serviceStalled;
+    final confirmed = stalled && _stalledLastCheck;
+    _stalledLastCheck = stalled;
+    if (!confirmed || !status.canRestartService) return;
+    final last = _lastRestart;
+    if (last != null && DateTime.now().difference(last) < const Duration(minutes: 1)) return;
+    unawaited(restartScrollMeasuring());
   }
 
   NativeBridge get native => _native;

@@ -10,7 +10,7 @@ import '../services/controller.dart';
 import '../services/store.dart';
 import 'icons.dart';
 import 'logo.dart';
-import 'onboarding_screen.dart';
+import 'permissions_screen.dart';
 import 'providers.dart';
 import 'settings_screen.dart';
 import 'share_card.dart';
@@ -140,8 +140,8 @@ class _TodayTab extends StatelessWidget {
             )
           else if (!c.status.serviceConnected)
             const _Notice(
-              title: 'Scroll measuring isn\'t running',
-              body: 'It\'s switched on but Android stopped it, so nothing frosts. Switching it off and on again fixes it.',
+              title: 'Scroll measuring has stopped',
+              body: 'It\'s switched on but Android stopped it, so nothing frosts. Tap to see why and restart it.',
             ),
           if (c.walkError != null)
             const _Notice(
@@ -186,7 +186,7 @@ class _Notice extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => Navigator.of(context)
-              .push(MaterialPageRoute<void>(builder: (_) => const OnboardingScreen(standalone: true))),
+              .push(MaterialPageRoute<void>(builder: (_) => const PermissionsScreen())),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -201,7 +201,7 @@ class _Notice extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(body, style: t.bodyMedium?.copyWith(color: col.muted)),
                   const SizedBox(height: 8),
-                  Text('Fix in setup', style: t.labelLarge?.copyWith(color: col.text)),
+                  Text('Open permissions', style: t.labelLarge?.copyWith(color: col.text)),
                 ]),
               ),
             ]),
@@ -276,7 +276,10 @@ class _TodayCardState extends State<_TodayCard> {
     // card.
     final fg = owed ? col.onHero : col.text;
     final muted = owed ? col.onHeroMuted : col.muted;
-    final strong = owed ? col.onHero : col.accent;
+    // Free scrolling used up (nothing owed yet): a red "done for the day"
+    // instead of a meaningless 0 m.
+    final done = verdict == _Verdict.limit;
+    final strong = owed ? col.onHero : (done ? col.danger : col.accent);
     final penalty = formatTimes(c.config.overridePenalty);
     final frostPct = (c.frostLevel * 100).round();
     final apps = c.frostedAppsToday;
@@ -297,19 +300,25 @@ class _TodayCardState extends State<_TodayCard> {
       _Verdict.unfrozen => owed
           ? 'still to walk off. Scrolling costs $penalty until the pass ends.'
           : 'of free scrolling left. Past that, scrolling costs $penalty until the pass ends.',
-      _Verdict.limit => 'of free scrolling left. Anything more you scroll has to be walked off.',
+      _Verdict.limit => 'You\'ve used all your free scrolling. Anything more you scroll has to be walked off.',
       _Verdict.low || _Verdict.free => 'of free scrolling left today, out of ${formatRound(allowance)}.',
     };
 
     // A flat fill lit from the top corner by a soft glow: strong navy while
     // you owe, a plain card with a hint of frost while scrolling is free.
-    final glow = owed ? col.heroTo : col.calmTo;
+    final glow = owed ? col.heroTo : (done ? col.danger : col.calmTo);
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Radii.surface + 4),
         color: owed ? col.heroFrom : col.calmFrom,
-        border: Border.all(color: owed ? col.heroTo.withValues(alpha: 0.22) : col.hairline),
+        border: Border.all(
+          color: owed
+              ? col.heroTo.withValues(alpha: 0.22)
+              : done
+                  ? col.danger.withValues(alpha: 0.35)
+                  : col.hairline,
+        ),
       ),
       child: Material(
         type: MaterialType.transparency,
@@ -320,7 +329,7 @@ class _TodayCardState extends State<_TodayCard> {
             gradient: RadialGradient(
               center: const Alignment(1.0, -1.1),
               radius: 1.25,
-              colors: [glow.withValues(alpha: owed ? 0.34 : 0.10), glow.withValues(alpha: 0)],
+              colors: [glow.withValues(alpha: owed ? 0.34 : (done ? 0.16 : 0.10)), glow.withValues(alpha: 0)],
             ),
           ),
           child: InkWell(
@@ -338,38 +347,44 @@ class _TodayCardState extends State<_TodayCard> {
                 ),
                 const SizedBox(height: 22),
                 Semantics(
-                  label: '$status. ${formatMetres(value)} $sentence',
+                  label: done ? '$status. Done for the day. $sentence' : '$status. ${formatMetres(value)} $sentence',
                   excludeSemantics: true,
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    TweenAnimationBuilder<double>(
-                      tween: Tween(end: value),
-                      duration: const Duration(milliseconds: 700),
-                      curve: Curves.easeOutCubic,
-                      // Unit follows the animated value, so crossing 1 km
-                      // never shows metres formatted as kilometres.
-                      builder: (_, v, _) {
-                        final km = v >= 999.95;
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                            Text(
-                              km ? (v / 1000).toStringAsFixed(2) : v.toStringAsFixed(owed ? 1 : 0),
-                              style: t.displayLarge
-                                  ?.copyWith(color: fg, fontSize: 72, letterSpacing: -3.6, fontFeatures: tabular),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(km ? 'km' : 'm',
-                                style: t.headlineSmall?.copyWith(color: muted, fontWeight: FontWeight.w500)),
-                          ],
-                        );
-                      },
-                    ),
+                    if (done)
+                      Text(
+                        'Done for the day',
+                        style: t.displayMedium?.copyWith(color: col.danger, fontSize: 44, letterSpacing: -1.8),
+                      )
+                    else
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(end: value),
+                        duration: const Duration(milliseconds: 700),
+                        curve: Curves.easeOutCubic,
+                        // Unit follows the animated value, so crossing 1 km
+                        // never shows metres formatted as kilometres.
+                        builder: (_, v, _) {
+                          final km = v >= 999.95;
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                              Text(
+                                km ? (v / 1000).toStringAsFixed(2) : v.toStringAsFixed(owed ? 1 : 0),
+                                style: t.displayLarge
+                                    ?.copyWith(color: fg, fontSize: 72, letterSpacing: -3.6, fontFeatures: tabular),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(km ? 'km' : 'm',
+                                  style: t.headlineSmall?.copyWith(color: muted, fontWeight: FontWeight.w500)),
+                            ],
+                          );
+                        },
+                      ),
                     const SizedBox(height: 10),
                     Text(sentence, style: t.bodyLarge?.copyWith(color: muted, height: 1.45)),
                   ]),
                 ),
-                if (!owed) ...[
+                if (!owed && !done) ...[
                   const SizedBox(height: 18),
                   // Drains like a battery as the free scrolling is used.
                   ExcludeSemantics(
@@ -487,7 +502,11 @@ class _Tally extends StatelessWidget {
           stat(
             'Scrolled today',
             formatMetres(s.scrolledTodayM),
-            over >= 0.05 ? '${formatMetres(over)} over the limit' : 'All within free',
+            over >= 0.05
+                ? '${formatMetres(over)} over the limit'
+                : c.allowanceLeftM < 0.5
+                    ? 'All of your free scrolling'
+                    : 'All within free',
           ),
         ]),
       ),

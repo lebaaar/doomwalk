@@ -263,3 +263,33 @@ Audited against the taste-skill anti-slop rules (Leonxlnx/taste-skill).
 * **Developer reset:** *Reset walking and scrolling* in Developer options
   (`devResetTracking`) does the same wipe as Privacy's erase (debt, steps,
   scrolling, history, gaps, passes; settings kept) after a confirmation.
+
+## Round 9: scroll measuring that stays running
+* **Why it stopped:** on Android 10+, when the app's process dies for any
+  reason (crash, a permission being changed, force stop), Android marks the
+  accessibility service as crashed and won't bind it again until it is
+  switched off and on. Settings still shows it as on, so Today said "isn't
+  running" and setup counted it as done.
+* **A crash we caused:** the status-notification service called
+  `startForeground` after starting the Flutter engine, and on failure just
+  logged. A service started with `startForegroundService()` that misses
+  `startForeground` takes the whole process down after the deadline. It now
+  goes foreground first, and stops itself cleanly if Android refuses.
+* **Why, in plain words:** `status` carries Android's last process exit
+  record (`ApplicationExitInfo`), shown as "the app stopped today at 14:05
+  because a permission was changed".
+* **Self-restart:** with `WRITE_SECURE_SETTINGS` (only grantable over adb:
+  `adb shell pm grant com.lan.scrolldebt android.permission.WRITE_SECURE_SETTINGS`)
+  the app switches its own service off and on, automatically once it has
+  looked stopped on two checks in a row, at most once a minute, or from the
+  Restart button. Without it, the button opens accessibility settings with
+  "switch it off, then on again".
+* **Permissions page** replaces setup as the place Settings and the Today
+  notices open: every permission with a live check mark and a button to its
+  Android settings page, granted or not. Setup now counts scroll measuring as
+  done only when it is running, and the standalone setup mode (whose only
+  button was a Start that did nothing) is gone.
+* **Done for the day:** with free scrolling used up and nothing owed, Today
+  shows a red "Done for the day" instead of "0 m left".
+* Kotlin type-checked with `kotlinc` 2.2.20 against Robolectric android-all 16
+  and this engine's embedding jar (androidx.lifecycle and R stubbed).

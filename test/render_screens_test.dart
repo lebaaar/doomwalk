@@ -57,6 +57,9 @@ void main() {
     late ScrollDebtController c;
     await tester.runAsync(() async {
       await _loadFonts();
+      // Own directory: test files run in parallel, and the pipeline tests
+      // delete the shared database file between their cases.
+      await databaseFactory.setDatabasesPath(Directory.systemTemp.createTempSync('render').path);
       final f = File('${await getDatabasesPath()}/scrolldebt.db');
       if (f.existsSync()) f.deleteSync();
       c = await ScrollDebtController.start();
@@ -154,6 +157,27 @@ void main() {
       await shot('settings_$name', null);
       await back();
     }
+    await tester.ensureVisible(find.text('Permissions'));
+    await tester.pump();
+    await open('Permissions');
+    await shot('permissions', null);
+    await back();
+    // Switched on but not running, after a permission change killed the app.
+    statusOverrides.addAll({'serviceConnected': false, 'exitReason': 8, 'exitTimeMs': DateTime.now().millisecondsSinceEpoch});
+    await tester.runAsync(c.refreshStatus);
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Developer options'));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.ensureVisible(find.text('Permissions'));
+    await tester.pump();
+    await open('Permissions');
+    tester.view.physicalSize = const Size(1080, 3200);
+    await shot('permissions_stopped', null);
+    tester.view.physicalSize = const Size(1080, 2400);
+    await back();
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Developer options'));
+    await tester.pump(const Duration(seconds: 1));
+    statusOverrides.clear();
+    await tester.runAsync(c.refreshStatus);
     await tab('Today');
     await shot('onboarding', const OnboardingScreen());
     await shot('share_card', Scaffold(
@@ -166,6 +190,18 @@ void main() {
     await tab('Activity');
     await shot('tab_activity_light', null);
     tester.view.physicalSize = const Size(1080, 2400);
+
+    // Free scrolling used up exactly, nothing owed yet: "done for the day".
+    await tester.runAsync(() async {
+      await c.setDeveloperOptions(true);
+      await c.devResetTracking();
+      c.devAddScroll('com.instagram.android', 60);
+      await c.setDeveloperOptions(false);
+    });
+    await tab('Today');
+    await shot('home_done_light', null);
+    brightness.value = Brightness.dark;
+    await shot('home_done', null);
 
     // Unmounting the scope disposes the controller (and closes the DB).
     await tester.pumpWidget(const SizedBox());

@@ -59,10 +59,7 @@ const _steps = [
 ];
 
 class OnboardingScreen extends ConsumerStatefulWidget {
-  const OnboardingScreen({super.key, this.standalone = false});
-
-  /// Opened from settings (has a back button) rather than as the root.
-  final bool standalone;
+  const OnboardingScreen({super.key});
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -73,6 +70,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
   Timer? _poll;
   bool _activityWasGranted = false;
   bool _loaded = false;
+
+  /// Switched on in Settings, though maybe not running.
+  bool _enabled = false;
+  bool _stalled = false;
 
   @override
   void initState() {
@@ -108,7 +109,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     if (!mounted) return;
     setState(() {
       _loaded = true;
-      _done[_StepId.accessibility] = st.accessibilityEnabled;
+      // Done means running, not just switched on: Android can leave it on
+      // but stopped, and then nothing is measured.
+      _done[_StepId.accessibility] = st.serviceConnected;
+      _enabled = st.accessibilityEnabled;
+      _stalled = st.serviceStalled;
       // Restricted settings only matter on 13+ and only until accessibility is on.
       _done[_StepId.restricted] =
           st.sdk < 33 || st.accessibilityEnabled || st.restrictedSettingsAllowed != false;
@@ -150,7 +155,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
 
   Future<void> _finish() async {
     await _c.completeOnboarding();
-    if (widget.standalone && mounted) Navigator.of(context).pop();
   }
 
   @override
@@ -159,34 +163,33 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     final current = _current;
     final steps = _visible;
     final doneCount = steps.where((s) => _done[s.id] == true).length;
-    final canFinish = _done[_StepId.accessibility] == true;
+    // Switched on is enough to go on; if Android isn't running it, Today and
+    // Permissions say so and offer the fix.
+    final canFinish = _enabled;
     return Scaffold(
-      appBar: widget.standalone ? AppBar(title: const Text('Setup')) : null,
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
           children: [
-            if (!widget.standalone) ...[
-              Row(children: [
-                IconBadge(
-                  size: 36,
-                  background: context.colors.accentContainer,
-                  child: DepthTicks(size: 20, color: context.colors.onAccentContainer),
-                ),
-                const SizedBox(width: 10),
-                Text('Scroll Debt', style: t.titleMedium),
-              ]),
-              const SizedBox(height: 36),
-              Text('Every metre you scroll, you walk back.',
-                  style: t.headlineLarge?.copyWith(fontSize: 34, letterSpacing: -1.4)),
-              const SizedBox(height: 14),
-              Text(
-                'Scrolling past your daily allowance turns into walking you owe. Social apps frost over until '
-                'you walk it off, and every metre counts toward your daily movement goal.',
-                style: t.bodyLarge?.copyWith(color: context.colors.muted),
+            Row(children: [
+              IconBadge(
+                size: 36,
+                background: context.colors.accentContainer,
+                child: DepthTicks(size: 20, color: context.colors.onAccentContainer),
               ),
-              const SizedBox(height: 32),
-            ],
+              const SizedBox(width: 10),
+              Text('Scroll Debt', style: t.titleMedium),
+            ]),
+            const SizedBox(height: 36),
+            Text('Every metre you scroll, you walk back.',
+                style: t.headlineLarge?.copyWith(fontSize: 34, letterSpacing: -1.4)),
+            const SizedBox(height: 14),
+            Text(
+              'Scrolling past your daily allowance turns into walking you owe. Social apps frost over until '
+              'you walk it off, and every metre counts toward your daily movement goal.',
+              style: t.bodyLarge?.copyWith(color: context.colors.muted),
+            ),
+            const SizedBox(height: 32),
             Row(children: [
               Text('Setup', style: t.titleSmall),
               const Spacer(),
@@ -218,7 +221,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                 duration: const Duration(milliseconds: 250),
                 curve: Curves.easeOutCubic,
                 child: identical(s, current)
-                    ? _ActiveStep(step: s, onAct: () => _act(s))
+                    ? _ActiveStep(
+                        step: s,
+                        onAct: () => _act(s),
+                        why: s.id == _StepId.accessibility && _stalled
+                            ? 'Scroll measuring is switched on, but Android isn\'t running it. In accessibility '
+                                'settings, switch Scroll Debt off, then on again.'
+                            : null,
+                      )
                     : _StepRow(step: s, done: _done[s.id] == true, onAct: () => _act(s)),
               ),
             const SizedBox(height: 24),
@@ -240,9 +250,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
 
 /// The step to do now: the only one that gets a surface.
 class _ActiveStep extends StatelessWidget {
-  const _ActiveStep({required this.step, required this.onAct});
+  const _ActiveStep({required this.step, required this.onAct, this.why});
   final _Step step;
   final VoidCallback onAct;
+
+  /// Replaces the step's usual explanation (a stopped service, say).
+  final String? why;
 
   @override
   Widget build(BuildContext context) {
@@ -261,7 +274,7 @@ class _ActiveStep extends StatelessWidget {
           if (step.optional) Text('Optional', style: t.bodySmall),
         ]),
         const SizedBox(height: 6),
-        Text(step.why, style: t.bodyMedium?.copyWith(color: context.colors.muted)),
+        Text(why ?? step.why, style: t.bodyMedium?.copyWith(color: context.colors.muted)),
         const SizedBox(height: 18),
         FilledButton(onPressed: onAct, child: Text(step.action)),
       ]),
