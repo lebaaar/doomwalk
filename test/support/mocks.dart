@@ -1,0 +1,80 @@
+// Shared mocks for the native shim and plugins.
+
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+const nativeChannel = 'com.lan.scrolldebt/native';
+const codec = StandardMethodCodec();
+
+final frostCalls = <double>[];
+final notifications = <Map<Object?, Object?>>[];
+final widgetData = <String, Object?>{};
+
+const appLabels = {
+  'com.instagram.android': 'Instagram',
+  'com.zhiliaoapp.musically': 'TikTok',
+  'com.android.chrome': 'Chrome',
+  'com.reddit.frontpage': 'Reddit',
+  'com.google.android.apps.maps': 'Maps',
+};
+
+Future<void> sendNative(String method, [Object? args]) async {
+  final binding = TestDefaultBinaryMessengerBinding.instance;
+  await binding.defaultBinaryMessenger.handlePlatformMessage(
+    nativeChannel,
+    codec.encodeMethodCall(MethodCall(method, args)),
+    (_) {},
+  );
+}
+
+Map<String, Object?> scrollEvent(String pkg, int t, int dy) =>
+    {'pkg': pkg, 'cls': 'androidx.recyclerview.widget.RecyclerView', 't': t, 'win': 1, 'dx': 0, 'dy': dy};
+
+void installMocks() {
+  final m = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+  m.setMockMethodCallHandler(const MethodChannel(nativeChannel), (call) async {
+    switch (call.method) {
+      case 'ready':
+      case 'status':
+        return {
+          'ydpi': 400.0,
+          'densityDpi': 420.0,
+          'screenHeightPx': 2400.0,
+          'sdk': 34,
+          'launchers': ['com.google.android.apps.nexuslauncher'],
+          'keyboards': ['com.google.android.inputmethod.latin'],
+          'bootTimeMs': 0,
+          'accessibilityEnabled': true,
+          'serviceConnected': true,
+          'ignoringBatteryOptimizations': true,
+          'restrictedSettingsAllowed': true,
+          'blurEnabled': true,
+        };
+      case 'setFrost':
+        frostCalls.add((call.arguments as Map)['level'] as double);
+        return true;
+      case 'updateNotification':
+        notifications.add(call.arguments as Map<Object?, Object?>);
+        return null;
+      case 'appInfo':
+        final pkg = (call.arguments as Map)['pkg'] as String;
+        return {'pkg': pkg, 'label': appLabels[pkg] ?? pkg, 'category': 4};
+      case 'launchableApps':
+        return [
+          for (final e in appLabels.entries) {'pkg': e.key, 'label': e.value, 'category': -1},
+        ];
+      default:
+        return null;
+    }
+  });
+  m.setMockMethodCallHandler(const MethodChannel('home_widget'), (call) async {
+    if (call.method == 'saveWidgetData') {
+      final a = call.arguments as Map;
+      widgetData[a['id'] as String] = a['data'];
+    }
+    return true;
+  });
+  m.setMockMethodCallHandler(const MethodChannel('flutter.baseflow.com/permissions/methods'),
+      (call) async => 0 /* denied */);
+}
+

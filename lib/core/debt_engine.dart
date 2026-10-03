@@ -231,15 +231,12 @@ class RolloverResult {
 }
 
 class DebtEngine {
-  DebtEngine({required DebtConfig config, required this.state})
-      : _config = config;
+  DebtEngine({required this.config, required this.state});
 
-  DebtConfig _config;
+  DebtConfig config;
   final DebtState state;
 
-  DebtConfig get config => _config;
-  set config(DebtConfig c) => _config = c;
-  DebtConfig get _e => _config.effective;
+  DebtConfig get _e => config.effective;
 
   double get debtM => state.debtM;
   double get allowanceLeftM => math.max(0, _e.allowanceM - state.allowanceUsedM);

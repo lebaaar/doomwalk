@@ -4,4 +4,14 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <application>
+        <!-- Debug-only hook to simulate walking from adb. Not in release. -->
+        <receiver android:name=".DebugReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="com.lan.scrolldebt.DEBUG_WALK"/>
+                <action android:name="com.lan.scrolldebt.DEBUG_DUMP"/>
+                <action android:name="com.lan.scrolldebt.DEBUG_RESET"/>
+            </intent-filter>
+        </receiver>
+    </application>
 </manifest>

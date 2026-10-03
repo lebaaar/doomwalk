@@ -7,9 +7,7 @@
 library;
 
 class WalkTracker {
-  WalkTracker({double strideM = 0.75, int? baseline})
-      : _strideM = strideM,
-        _baseline = baseline;
+  WalkTracker({this._strideM = 0.75, this._baseline});
 
   double _strideM;
   int? _baseline;

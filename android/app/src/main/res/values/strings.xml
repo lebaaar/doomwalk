@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_summary">Measures how far you scroll and frosts apps when you owe a walk.</string>
+    <string name="accessibility_description">Scroll Debt measures the vertical distance you scroll in other apps (in metres) and shows a frosted layer over them when your scroll debt is high.\n\nIt only receives scroll and app-switch events. It cannot read what is on your screen, and nothing leaves your phone: the app has no internet permission.</string>
+    <string name="widget_small_description">Scroll debt at a glance</string>
+    <string name="widget_large_description">Scroll debt, progress, distance scrolled today and the nearest landmark</string>
+</resources>
