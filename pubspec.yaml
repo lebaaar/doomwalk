@@ -38,7 +38,7 @@ dependencies:
   sqflite: ^2.4.4
   path: ^1.9.1
   pedometer: ^4.2.0
-  permission_handler: ^13.0.2
+  permission_handler: 12.0.3 # 13.x pulls permission_handler_android 14.x (compileSdk 37, not resolvable on current SDK managers)
   home_widget: ^0.10.0
   share_plus: ^13.3.1
   path_provider: ^2.1.6
