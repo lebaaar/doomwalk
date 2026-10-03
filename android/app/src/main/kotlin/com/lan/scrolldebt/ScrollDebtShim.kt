@@ -29,10 +29,12 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
@@ -81,6 +83,7 @@ object Shim {
     var overridesLeft = 0
     var overrideActive = false
     var penaltyText = "3×"
+    var overrideUntilMs: Long? = null
 
     /** Returns the app's engine, creating and starting main() if needed. Main thread only. */
     fun engine(context: Context): FlutterEngine {
@@ -142,10 +145,20 @@ object Shim {
                 }
                 "setFrost" -> {
                     val level = (call.argument<Double>("level") ?: 0.0).toFloat()
-                    val label = call.argument<String>("label")
+                    val title = call.argument<String>("title")
+                    val body = call.argument<String>("body")
                     val ms = (call.argument<Int>("animateMs") ?: 600).toLong()
                     val passes = call.argument<Int>("overridesLeft") ?: 0
-                    accessibility?.frost?.animateTo(level, label, ms, passes)
+                    accessibility?.frost?.animateTo(level, title, body, ms, passes)
+                    accessibility?.frost?.showPass(call.argument<Number>("passUntilMs")?.toLong())
+                    result.success(accessibility != null)
+                }
+                "showNotice" -> {
+                    accessibility?.frost?.notice(
+                        call.argument<String>("title") ?: "",
+                        call.argument<String>("body") ?: "",
+                        (call.argument<Int>("ms") ?: 4000).toLong(),
+                    )
                     result.success(accessibility != null)
                 }
                 "updateNotification" -> {
@@ -153,6 +166,7 @@ object Shim {
                     notifText = call.argument<String>("text") ?: notifText
                     overridesLeft = call.argument<Int>("overridesLeft") ?: 0
                     overrideActive = call.argument<Boolean>("overrideActive") ?: false
+                    overrideUntilMs = call.argument<Number>("overrideUntilMs")?.toLong()
                     penaltyText = call.argument<String>("penalty") ?: penaltyText
                     DebtForegroundService.refresh(app)
                     result.success(null)
@@ -403,17 +417,22 @@ class ScrollAccessibilityService : AccessibilityService() {
 }
 
 /**
- * Full-screen, non-touchable TYPE_ACCESSIBILITY_OVERLAY, plus a small
- * touchable action bar ("Use pass", "Leave app") once the frost is heavy. Accessibility
- * overlays are trusted windows, so with FLAG_NOT_TOUCHABLE every touch goes
- * to the app below (Android 12 untrusted-touch occlusion rules don't apply).
- * Real blur via FLAG_BLUR_BEHIND when cross-window blur is enabled; otherwise
- * a milky translucent layer.
+ * What a frozen app looks like. A full-screen, non-touchable
+ * TYPE_ACCESSIBILITY_OVERLAY frosts the app (real blur when cross-window blur
+ * is on, otherwise a milky tint), and whenever there is any frost at all a
+ * card in the middle of the screen says why and what to do ("Use pass",
+ * "Leave app"), so frost never looks like the app has hung. Only the card
+ * takes touches. Accessibility overlays are trusted windows, so with
+ * FLAG_NOT_TOUCHABLE every touch outside the card reaches the app below
+ * (Android 12's untrusted-touch occlusion rules don't apply).
+ *
+ * [notice] shows a short banner at the top that never takes touches.
  */
 class FrostOverlay(private val service: AccessibilityService) {
     private val wm = service.getSystemService(WindowManager::class.java)
     private val density = service.resources.displayMetrics.density
     private val maxBlurPx = (48 * density).toInt()
+    private val handler = Handler(Looper.getMainLooper())
     private var root: FrameLayout? = null
     private var animator: ValueAnimator? = null
     private var level = 0f
@@ -438,13 +457,16 @@ class FrostOverlay(private val service: AccessibilityService) {
         layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
     }
 
-    // The action bar is a separate, small, touchable window at the bottom.
+    // The card is a separate, small, touchable window in the middle.
     // FLAG_NOT_TOUCH_MODAL lets every touch outside it reach the app below.
-    private var bar: LinearLayout? = null
-    private var barLabel: TextView? = null
+    private var card: LinearLayout? = null
+    private var cardTitle: TextView? = null
+    private var cardBody: TextView? = null
     private var passButton: TextView? = null
     private var overridesLeft = 0
-    private val barParams = WindowManager.LayoutParams(
+    private var titleText = "This app is frozen"
+    private var bodyText = ""
+    private val cardParams = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
@@ -453,36 +475,142 @@ class FrostOverlay(private val service: AccessibilityService) {
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
         PixelFormat.TRANSLUCENT
     ).apply {
-        title = "ScrollDebtFrostBar"
-        gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-        y = (72 * density).toInt()
+        title = "ScrollDebtFrostCard"
+        gravity = Gravity.CENTER
     }
 
-    /** Below this frost level the bar stays hidden; the app is still usable. */
-    private val barThreshold = 0.25f
+    private var banner: LinearLayout? = null
+    private val bannerParams = WindowManager.LayoutParams(
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+        PixelFormat.TRANSLUCENT
+    ).apply {
+        title = "ScrollDebtNotice"
+        gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        y = (56 * density).toInt()
+    }
+    private val hideBanner = Runnable { removeBanner() }
+
+    // Countdown pill at the top while an emergency pass has unfrozen the app.
+    private var pass: TextView? = null
+    /** End of the pass on the monotonic clock, so a clock change can't skew it. */
+    private var passEndElapsed = 0L
+    private val passParams = WindowManager.LayoutParams(
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
+        PixelFormat.TRANSLUCENT
+    ).apply {
+        title = "ScrollDebtPass"
+        gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        y = (40 * density).toInt()
+    }
+    private val tickPass = object : Runnable {
+        override fun run() {
+            val left = passEndElapsed - SystemClock.elapsedRealtime()
+            if (left <= 0) {
+                removePass()
+                return
+            }
+            val s = (left + 999) / 1000
+            pass?.text = "Pass: %d:%02d left".format(s / 60, s % 60)
+            // Next whole second, so the display never skips or lingers.
+            handler.postDelayed(this, (left - 1) % 1000 + 1)
+        }
+    }
+
+    /** The app's palette, following the system light/dark setting. */
+    private class Colors(
+        val surface: Int, val text: Int, val muted: Int, val hairline: Int,
+        val accent: Int, val onAccent: Int, val danger: Int,
+    )
+
+    private fun colors(): Colors {
+        val night = (service.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+        return if (night) Colors(
+            surface = Color.rgb(0x12, 0x15, 0x1A), text = Color.rgb(0xED, 0xF0, 0xF3),
+            muted = Color.rgb(0x8D, 0x96, 0xA1), hairline = Color.rgb(0x23, 0x28, 0x30),
+            accent = Color.rgb(0xA9, 0xD3, 0xEC), onAccent = Color.rgb(0x0A, 0x0C, 0x0F),
+            danger = Color.rgb(0xF2, 0xB8, 0xB5),
+        ) else Colors(
+            surface = Color.WHITE, text = Color.rgb(0x0C, 0x11, 0x17),
+            muted = Color.rgb(0x5B, 0x64, 0x70), hairline = Color.rgb(0xE3, 0xE6, 0xEA),
+            accent = Color.rgb(0x0E, 0x41, 0x66), onAccent = Color.WHITE,
+            danger = Color.rgb(0xB3, 0x26, 0x1E),
+        )
+    }
 
     init {
         wm.addCrossWindowBlurEnabledListener(service.mainExecutor, blurListener)
     }
 
-    fun animateTo(target: Float, text: String?, durationMs: Long, passesLeft: Int) {
+    val isCardShown get() = card != null
+    val passText: String? get() = pass?.text?.toString()
+
+    /** Shows, moves or (with null or a past time) hides the pass countdown. */
+    fun showPass(untilMs: Long?) {
+        if (untilMs == null || untilMs <= System.currentTimeMillis()) {
+            removePass()
+            return
+        }
+        passEndElapsed = SystemClock.elapsedRealtime() + (untilMs - System.currentTimeMillis())
+        if (pass == null) {
+            val c = colors()
+            val tv = text("", 14f, c.text, bold = true).apply {
+                setPadding(dp(14), dp(8), dp(14), dp(8))
+                background = GradientDrawable().apply {
+                    cornerRadius = dp(20).toFloat()
+                    setColor(c.surface)
+                    setStroke(dp(1), c.hairline)
+                }
+                elevation = dp(6).toFloat()
+                fontFeatureSettings = "tnum"
+            }
+            pass = tv
+            try {
+                wm.addView(tv, passParams)
+            } catch (e: Exception) {
+                Log.w(TAG, "pass addView failed: $e")
+                pass = null
+                return
+            }
+        }
+        handler.removeCallbacks(tickPass)
+        tickPass.run()
+    }
+
+    private fun removePass() {
+        handler.removeCallbacks(tickPass)
+        pass?.let { try { wm.removeView(it) } catch (_: Exception) {} }
+        pass = null
+    }
+    val isBannerShown get() = banner != null
+
+    fun animateTo(target: Float, title: String?, body: String?, durationMs: Long, passesLeft: Int) {
         val t = target.coerceIn(0f, 1f)
         overridesLeft = passesLeft
+        if (title != null) titleText = title
+        if (body != null) bodyText = body
         // cancel() also fires onAnimationEnd; clearing the field first keeps a
         // superseded fade-in (still at level 0) from detaching the window.
         val old = animator
         animator = null
         old?.cancel()
-        if (t <= 0.001f && root == null) {
-            removeBar()
-            return
-        }
-        ensureAdded()
-        if (t >= barThreshold) ensureBar() else removeBar()
-        if (text != null) barLabel?.text = text
-        passButton?.let {
-            it.visibility = if (overridesLeft > 0) View.VISIBLE else View.GONE
-            it.text = "Use pass ($overridesLeft)"
+        if (t <= 0.001f) {
+            removeCard()
+            if (root == null) return
+        } else {
+            ensureAdded()
+            ensureCard()
+            updateCard()
         }
         val next = ValueAnimator.ofFloat(level, t).apply {
             duration = durationMs
@@ -496,6 +624,35 @@ class FrostOverlay(private val service: AccessibilityService) {
         }
         animator = next // before start(), so an immediate end still matches
         next.start()
+    }
+
+    /** A short message at the top that never takes touches; hides after [ms]. */
+    fun notice(title: String, body: String, ms: Long) {
+        removeBanner()
+        val c = colors()
+        val ll = LinearLayout(service).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(18), dp(14), dp(18), dp(14))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(16).toFloat()
+                setColor(c.surface)
+                setStroke(dp(1), c.hairline)
+            }
+            elevation = dp(8).toFloat()
+            addView(text(title, 16f, c.text, bold = true))
+            addView(text(body, 14f, c.muted), LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = dp(2) })
+        }
+        bannerParams.width = cardWidth()
+        banner = ll
+        try {
+            wm.addView(ll, bannerParams)
+            handler.postDelayed(hideBanner, ms)
+        } catch (e: Exception) {
+            Log.w(TAG, "notice addView failed: $e")
+            banner = null
+        }
     }
 
     private fun ensureAdded() {
@@ -513,67 +670,107 @@ class FrostOverlay(private val service: AccessibilityService) {
 
     private fun dp(v: Int) = (v * density).toInt()
 
-    private fun pill(text: String, filled: Boolean, onClick: () -> Unit) = TextView(service).apply {
-        this.text = text
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-        setTextColor(if (filled) Color.WHITE else Color.rgb(14, 65, 102))
-        setPadding(dp(16), dp(10), dp(16), dp(10))
+    /** Card width: the screen less 24 dp a side, at most 440 dp. */
+    private fun cardWidth(): Int {
+        val screen = wm.currentWindowMetrics.bounds.width()
+        return minOf(screen - dp(48), dp(440)).coerceAtLeast(dp(200))
+    }
+
+    private fun text(s: String, sp: Float, color: Int, bold: Boolean = false) = TextView(service).apply {
+        text = s
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, sp)
+        setTextColor(color)
+        if (bold) typeface = Typeface.create(Typeface.DEFAULT, 600, false)
+        setLineSpacing(0f, 1.15f)
+    }
+
+    private fun button(s: String, filled: Boolean, c: Colors, onClick: () -> Unit) = TextView(service).apply {
+        text = s
+        gravity = Gravity.CENTER
+        setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
+        typeface = Typeface.create(Typeface.DEFAULT, 500, false)
+        setTextColor(if (filled) c.onAccent else c.text)
+        minHeight = dp(48)
+        setPadding(dp(16), dp(12), dp(16), dp(12))
         background = GradientDrawable().apply {
-            cornerRadius = dp(20).toFloat()
-            if (filled) setColor(Color.rgb(14, 65, 102)) else setStroke(dp(1), Color.argb(110, 14, 65, 102))
+            cornerRadius = dp(12).toFloat()
+            if (filled) setColor(c.accent) else setStroke(dp(1), c.hairline)
         }
         isClickable = true
         setOnClickListener { onClick() }
     }
 
-    private fun ensureBar() {
-        if (bar != null) return
-        val label = TextView(service).apply {
-            setTextColor(Color.rgb(11, 34, 53))
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
-            gravity = Gravity.CENTER
-        }
-        val pass = pill("Use pass", filled = false) { Shim.send("onOverrideRequested", null) }
-        val leave = pill("Leave app", filled = true) {
+    private fun ensureCard() {
+        if (card != null) return
+        val c = colors()
+        // Names who put the card there, since it sits over another app.
+        val eyebrow = text("Scroll Debt", 13f, c.muted, bold = true)
+        val title = text(titleText, 22f, c.text, bold = true)
+        val body = text(bodyText, 15f, c.muted)
+        val pass = button("Use pass", filled = false, c) { Shim.send("onOverrideRequested", null) }
+        val leave = button("Leave app", filled = true, c) {
             service.performGlobalAction(AccessibilityService.GLOBAL_ACTION_HOME)
         }
+        fun weighted(start: Int) = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            .apply { marginStart = start }
         val buttons = LinearLayout(service).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER
-            addView(pass)
-            addView(leave, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { marginStart = dp(8) })
+            addView(pass, weighted(0))
+            addView(leave, weighted(dp(8)))
         }
+        fun below(top: Int) = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+        ).apply { topMargin = top }
         val ll = LinearLayout(service).apply {
             orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(dp(20), dp(14), dp(20), dp(14))
+            setPadding(dp(22), dp(20), dp(22), dp(20))
             background = GradientDrawable().apply {
                 cornerRadius = dp(24).toFloat()
-                setColor(Color.argb(240, 255, 255, 255))
+                setColor(c.surface)
+                setStroke(dp(1), c.hairline)
             }
-            addView(label)
-            addView(buttons, LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = dp(10) })
+            elevation = dp(12).toFloat()
+            addView(eyebrow)
+            addView(title, below(dp(6)))
+            addView(body, below(dp(8)))
+            addView(buttons, below(dp(20)))
         }
-        bar = ll
-        barLabel = label
+        card = ll
+        cardTitle = title
+        cardBody = body
         passButton = pass
+        cardParams.width = cardWidth()
         try {
-            wm.addView(ll, barParams)
+            wm.addView(ll, cardParams)
+            ll.alpha = 0f
+            ll.animate().alpha(1f).setDuration(200).start()
         } catch (e: Exception) {
-            Log.w(TAG, "frost bar addView failed: $e")
-            bar = null
+            Log.w(TAG, "frost card addView failed: $e")
+            card = null
         }
     }
 
-    private fun removeBar() {
-        bar?.let { try { wm.removeView(it) } catch (_: Exception) {} }
-        bar = null
-        barLabel = null
+    private fun updateCard() {
+        cardTitle?.text = titleText
+        cardBody?.text = bodyText
+        passButton?.let {
+            it.visibility = if (overridesLeft > 0) View.VISIBLE else View.GONE
+            it.text = "Use pass ($overridesLeft)"
+        }
+    }
+
+    private fun removeCard() {
+        card?.let { try { wm.removeView(it) } catch (_: Exception) {} }
+        card = null
+        cardTitle = null
+        cardBody = null
         passButton = null
+    }
+
+    private fun removeBanner() {
+        handler.removeCallbacks(hideBanner)
+        banner?.let { try { wm.removeView(it) } catch (_: Exception) {} }
+        banner = null
     }
 
     private fun apply(v: Float) {
@@ -598,13 +795,12 @@ class FrostOverlay(private val service: AccessibilityService) {
             tintAlpha = 0.86f * v
         }
         r.setBackgroundColor(Color.argb((tintAlpha * 255).toInt(), 226, 240, 248))
-        bar?.alpha = ((v - barThreshold) / 0.15f).coerceIn(0f, 1f)
     }
 
     private fun detach() {
         root?.let { try { wm.removeView(it) } catch (_: Exception) {} }
         root = null
-        removeBar()
+        removeCard()
         level = 0f
     }
 
@@ -613,6 +809,8 @@ class FrostOverlay(private val service: AccessibilityService) {
         animator = null
         old?.cancel()
         detach()
+        removeBanner()
+        removePass()
         wm.removeCrossWindowBlurEnabledListener(blurListener)
     }
 }
@@ -650,6 +848,11 @@ class DebtForegroundService : Service() {
                 .setOnlyAlertOnce(true)
                 .setShowWhen(false)
                 .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
+            // A running pass counts down live in the notification.
+            val until = Shim.overrideUntilMs
+            if (Shim.overrideActive && until != null && until > System.currentTimeMillis()) {
+                b.setWhen(until).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true)
+            }
             if (!Shim.overrideActive && Shim.overridesLeft > 0) {
                 val pi = PendingIntent.getService(
                     context, 1,

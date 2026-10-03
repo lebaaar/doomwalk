@@ -24,6 +24,8 @@ void main() {
     final f = File('$dir/scrolldebt.db');
     if (f.existsSync()) f.deleteSync();
     frostCalls.clear();
+    frostArgs.clear();
+    notices.clear();
     notifications.clear();
     widgetData.clear();
     statusOverrides.clear();
@@ -175,6 +177,63 @@ void main() {
     expect(restartCalls, 0);
     expect(c.status.serviceStalled, isTrue);
     expect(c.status.lastExit!.label, 'a permission was changed');
+    c.dispose();
+  });
+
+  test('a frozen app gets a card saying why and how far to walk', () async {
+    final c = await ScrollDebtController.start();
+    await c.updateConfig(const DebtConfig(demoMode: true)); // full frost at 15 m
+    await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
+    await c.setDeveloperOptions(true);
+    c.devAddScroll('com.instagram.android', 4); // 2 free, then 2 * 2x * 1 = 4 m owed
+    expect(frostCalls.last, closeTo(4 / 15, 0.01));
+    expect(frostArgs.last['title'], 'Instagram is frosting over');
+    expect(frostArgs.last['body'], contains('Walk 4.0\u00A0m'));
+    c.devAddScroll('com.instagram.android', 20);
+    expect(frostCalls.last, 1);
+    expect(frostArgs.last['title'], 'Instagram is frozen');
+    expect(frostArgs.last['body'], contains('used up your free scrolling'));
+    c.dispose();
+  });
+
+  test('a running pass counts down over the app it unfroze and in the notification', () async {
+    final c = await ScrollDebtController.start();
+    await c.updateConfig(const DebtConfig(demoMode: true));
+    await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
+    await c.setDeveloperOptions(true);
+    c.devAddScroll('com.instagram.android', 20);
+    expect(frostArgs.last['passUntilMs'], isNull);
+    expect(c.startOverride(), isTrue);
+    final until = c.state.overrideUntilMs!;
+    expect(frostCalls.last, 0);
+    expect(frostArgs.last['passUntilMs'], until);
+    await sendNative('onWindow', {'pkg': 'com.android.settings', 'cls': 'X', 't': 0}); // exempt
+    expect(frostArgs.last['passUntilMs'], isNull);
+    await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
+    expect(frostArgs.last['passUntilMs'], until);
+    await Future<void>.delayed(const Duration(milliseconds: 300)); // notification is debounced
+    expect(notifications.last['overrideUntilMs'], until);
+    c.endOverride();
+    expect(frostArgs.last['passUntilMs'], isNull);
+    c.dispose();
+  });
+
+  test('opening an app with free scrolling used up shows a notice, once', () async {
+    final c = await ScrollDebtController.start();
+    await c.updateConfig(const DebtConfig(allowanceM: 5));
+    await c.setDeveloperOptions(true);
+    await sendNative('onWindow', {'pkg': 'com.reddit.frontpage', 'cls': 'X', 't': 0});
+    expect(notices, isEmpty); // free scrolling left
+    c.devAddScroll('com.reddit.frontpage', 5); // exactly used up, nothing owed
+    await sendNative('onWindow', {'pkg': 'com.android.chrome', 'cls': 'X', 't': 0}); // doesn't count
+    expect(notices, isEmpty);
+    await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
+    expect(notices, hasLength(1));
+    expect(notices.last['title'], 'Free scrolling used up');
+    expect(notices.last['body'], contains('Instagram'));
+    await sendNative('onWindow', {'pkg': 'com.android.chrome', 'cls': 'X', 't': 0});
+    await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
+    expect(notices, hasLength(1)); // not again within 10 minutes
     c.dispose();
   });
 

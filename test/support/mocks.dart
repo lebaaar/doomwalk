@@ -7,6 +7,10 @@ const nativeChannel = 'com.lan.scrolldebt/native';
 const codec = StandardMethodCodec();
 
 final frostCalls = <double>[];
+
+/// Full `setFrost` arguments (title, body, ...), newest last.
+final frostArgs = <Map<Object?, Object?>>[];
+final notices = <Map<Object?, Object?>>[];
 final notifications = <Map<Object?, Object?>>[];
 final widgetData = <String, Object?>{};
 
@@ -55,11 +59,15 @@ void installMocks() {
           'blurEnabled': true,
           ...statusOverrides,
         };
+      case 'showNotice':
+        notices.add(call.arguments as Map<Object?, Object?>);
+        return true;
       case 'restartAccessibility':
         restartCalls++;
         return statusOverrides['canRestartService'] == true;
       case 'setFrost':
         frostCalls.add((call.arguments as Map)['level'] as double);
+        frostArgs.add(call.arguments as Map<Object?, Object?>);
         return true;
       case 'updateNotification':
         notifications.add(call.arguments as Map<Object?, Object?>);

@@ -68,3 +68,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// JVM tests of the native shim on Robolectric: ./gradlew testDebugUnitTest
+dependencies {
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.robolectric:robolectric:4.16")
+}

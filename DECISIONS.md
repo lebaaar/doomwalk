@@ -293,3 +293,29 @@ Audited against the taste-skill anti-slop rules (Leonxlnx/taste-skill).
   shows a red "Done for the day" instead of "0 m left".
 * Kotlin type-checked with `kotlinc` 2.2.20 against Robolectric android-all 16
   and this engine's embedding jar (androidx.lifecycle and R stubbed).
+
+## Round 10: a frozen app always says why
+* **The problem:** the action bar only appeared from 25% frost. Below that,
+  and whenever it failed to show, a frosted app was a blurred or milky screen
+  with nothing on it. Taps still went through, but to an app you couldn't
+  see, so it looked hung.
+* **The card:** any frost now comes with a card in the middle of the screen:
+  "Scroll Debt", "Instagram is frozen" (or "is frosting over"), how far to
+  walk, and "Use pass (n)" / "Leave app". It follows the system light/dark
+  setting with the app's palette. Only the card takes touches; the frost
+  layer stays FLAG_NOT_TOUCHABLE. The app name waits for the real label
+  rather than showing the package fallback ("android").
+* **Used-up notice:** opening an app that counts with free scrolling used up
+  and nothing owed (no frost yet) shows a banner for 4 s, "Free scrolling
+  used up. Anything you scroll in Instagram now has to be walked off.", at
+  most once per app every 10 minutes. It never takes touches.
+* **Pass countdown:** while a pass has unfrozen the open app, a pill at the
+  top counts down ("Pass: 4:32 left") on the monotonic clock, and the status
+  notification shows a live countdown chronometer.
+* **Checked on the JVM:** `android/app/src/test/.../FrostOverlayTest.kt` runs
+  the real overlay on Robolectric (`./gradlew testDebugUnitTest`): windows
+  added, touch flags, card text at full and light frost, clean removal,
+  banner timeout, pass countdown. It passed here outside Gradle (androidx
+  test stubbed, since Google's Maven is blocked in this environment).
+  `docs/screenshots/overlay_*.png` are the native views drawn by
+  Robolectric's native graphics.

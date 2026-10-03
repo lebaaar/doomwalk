@@ -291,9 +291,33 @@ class ScrollDebtController extends ChangeNotifier {
     final prev = foreground;
     foreground = pkg;
     _log('foreground $prev -> $pkg exempt=${catalog.isExempt(pkg)}');
+    _ensureMeta(pkg);
     unawaited(flush()); // batch boundary on app switch
     _pushFrost(animateMs: 250);
+    _noticeIfUsedUp();
     _changed();
+  }
+
+  final _lastNotice = <String, DateTime>{};
+
+  /// Opening an app that counts after free scrolling is used up, with
+  /// nothing owed yet (so no frost): say so, briefly, over the app. At most
+  /// once per app every 10 minutes.
+  void _noticeIfUsedUp() {
+    final fg = foreground;
+    if (fg == null || !_foregroundFrostable || overrideActive || !status.serviceConnected) return;
+    if (debtM >= 0.05 || allowanceLeftM >= 0.5) return;
+    final now = DateTime.now();
+    final last = _lastNotice[fg];
+    if (last != null && now.difference(last) < const Duration(minutes: 10)) return;
+    _lastNotice[fg] = now;
+    unawaited(_safe(() async {
+      // Usually a first visit today, so the name may still be loading.
+      final name = _knownLabel(fg) ?? (await _native.appInfo(fg))?.label ?? 'this app';
+      if (foreground != fg) return;
+      final notice = usedUpNotice(name);
+      await _native.showNotice(notice.$1, notice.$2);
+    }));
   }
 
   // ------------------------------------------------------------------ walk
@@ -605,15 +629,27 @@ class ScrollDebtController extends ChangeNotifier {
   double get targetFrost =>
       (!_foregroundFrostable || overrideActive || !status.serviceConnected) ? 0 : frostLevel;
 
+  int? _lastPassSent;
+
+  /// When the running pass ends, while the open app is one it unfroze; the
+  /// overlay shows a countdown to it. Null otherwise.
+  int? get _passShownUntilMs => overrideActive && _foregroundFrostable ? state.overrideUntilMs : null;
+
   void _pushFrost({bool force = false, int animateMs = 600}) {
     final target = targetFrost;
+    final pass = _passShownUntilMs;
     final endpoint = (target == 0 || target == 1) && target != _lastFrostSent;
-    if (!force && !endpoint && (target - _lastFrostSent).abs() < 0.01) return;
+    if (!force && !endpoint && pass == _lastPassSent && (target - _lastFrostSent).abs() < 0.01) return;
     _lastFrostSent = target;
-    final label = '${formatMetres(debtM)} to walk';
+    _lastPassSent = pass;
+    final (title, body) = frostCard(_knownLabel(foreground), debtM, full: target >= 0.999);
     _log('frost -> ${target.toStringAsFixed(3)} fg=$foreground');
     unawaited(_safe(() => _native.setFrost(target,
-        label: label, animateMs: animateMs, overridesLeft: overrideActive ? 0 : overridesLeft)));
+        title: title,
+        body: body,
+        animateMs: animateMs,
+        overridesLeft: overrideActive ? 0 : overridesLeft,
+        passUntilMs: pass)));
   }
 
   void _pushNotification() {
@@ -631,6 +667,7 @@ class ScrollDebtController extends ChangeNotifier {
           text: text,
           overridesLeft: overridesLeft,
           overrideActive: overrideActive,
+          overrideUntilMs: overrideActive ? state.overrideUntilMs : null,
           penalty: formatTimes(config.overridePenalty),
         )));
   }
@@ -682,11 +719,17 @@ class ScrollDebtController extends ChangeNotifier {
       if (m == null) return;
       appMeta[pkg] = m;
       catalog.categories[pkg] = categoryFromAndroid(m.category);
+      // The frost card names the app; give it the real name once known.
+      if (pkg == foreground && _lastFrostSent > 0) _pushFrost(force: true);
       notifyListeners();
     }).catchError((Object _) {});
   }
 
   String labelFor(String pkg) => appMeta[pkg]?.label ?? pkg.split('.').last;
+
+  /// The app's real name, or null while it is still being looked up (the
+  /// package-name fallback reads badly on the frost card: "android").
+  String? _knownLabel(String? pkg) => pkg == null ? null : appMeta[pkg]?.label;
 
   Future<List<AppMeta>> launchableApps() => _native.launchableApps();
 
@@ -865,3 +908,17 @@ class ScrollDebtController extends ChangeNotifier {
     super.dispose();
   }
 }
+
+/// The card over a frosted app: what happened and what to do.
+(String, String) frostCard(String? app, double debtM, {required bool full}) {
+  final name = app ?? 'This app';
+  // No-break space: "512.6 m" never splits across lines.
+  final walk = formatMetres(debtM).replaceAll(' ', '\u00A0');
+  return full
+      ? ('$name is frozen', 'You\'ve used up your free scrolling. Walk $walk to unfreeze it.')
+      : ('$name is frosting over', 'You\'re past your free scrolling. Walk $walk to clear it. Scrolling more adds to it.');
+}
+
+/// The banner when an app that counts is opened with free scrolling used up.
+(String, String) usedUpNotice(String app) =>
+    ('Free scrolling used up', 'Anything you scroll in $app now has to be walked off.');

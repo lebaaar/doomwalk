@@ -140,13 +140,30 @@ class NativeBridge {
     }
   }
 
-  Future<void> setFrost(double level, {String? label, int animateMs = 600, int overridesLeft = 0}) =>
+  /// Frosts the open app to [level] (0..1). While above 0 a card over the
+  /// app shows [title] and [body] with "Use pass" and "Leave app".
+  Future<void> setFrost(
+    double level, {
+    String? title,
+    String? body,
+    int animateMs = 600,
+    int overridesLeft = 0,
+    int? passUntilMs,
+  }) =>
       _ch.invokeMethod('setFrost', {
         'level': level,
-        'label': label,
+        'title': title,
+        'body': body,
         'animateMs': animateMs,
         'overridesLeft': overridesLeft,
+        // While set, a countdown to the end of the emergency pass shows
+        // over the app.
+        'passUntilMs': passUntilMs,
       });
+
+  /// A short banner over the open app that never takes touches.
+  Future<void> showNotice(String title, String body, {int ms = 4000}) =>
+      _ch.invokeMethod('showNotice', {'title': title, 'body': body, 'ms': ms});
 
   Future<void> updateNotification({
     required String title,
@@ -154,12 +171,14 @@ class NativeBridge {
     required int overridesLeft,
     required bool overrideActive,
     required String penalty,
+    int? overrideUntilMs,
   }) =>
       _ch.invokeMethod('updateNotification', {
         'title': title,
         'text': text,
         'overridesLeft': overridesLeft,
         'overrideActive': overrideActive,
+        'overrideUntilMs': overrideUntilMs,
         'penalty': penalty,
       });
 
