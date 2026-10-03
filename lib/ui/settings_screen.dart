@@ -521,6 +521,28 @@ class _DeveloperToolsState extends State<DeveloperTools> {
         },
       ),
       ListTile(
+        leading: const Icon(Ph.trash),
+        title: const Text('Reset walking and scrolling'),
+        subtitle: const Text('Debt, steps, scrolling and history back to zero. Settings are kept.'),
+        onTap: () async {
+          final ok = await showDialog<bool>(
+            context: context,
+            builder: (d) => AlertDialog(
+              title: const Text('Reset walking and scrolling?'),
+              content: const Text('Debt, today\'s steps and scrolling, history and tracking gaps are deleted. '
+                  'Settings are kept.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
+                TextButton(onPressed: () => Navigator.pop(d, true), child: const Text('Reset')),
+              ],
+            ),
+          );
+          if (ok != true) return;
+          await c.devResetTracking();
+          if (mounted) _done('Walking and scrolling reset');
+        },
+      ),
+      ListTile(
         leading: const Icon(Ph.arrowCounterClockwise),
         title: const Text('Show setup again'),
         subtitle: const Text('Opens the permission walkthrough from the start'),

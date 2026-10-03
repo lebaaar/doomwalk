@@ -152,6 +152,11 @@ class _TodayTab extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
             child: _TodayCard(c: c, onOpenActivity: onOpenActivity),
           ),
+          const SectionTitle('Did you know?'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
+            child: _DidYouKnow(c: c),
+          ),
           SectionTitle(
             'Most scrolled today',
             action: c.todayApps.isEmpty ? null : 'See all',
@@ -678,7 +683,6 @@ class _ActivityTabState extends State<_ActivityTab> {
       ),
       _WalkingPanel(c: c, week: _week),
       _AppsPanel(c: c, week: _week),
-      _LandmarksPanel(c: c, week: _week),
     ]);
   }
 }
@@ -879,34 +883,44 @@ class _AppRow extends StatelessWidget {
   }
 }
 
-class _LandmarksPanel extends StatelessWidget {
-  const _LandmarksPanel({required this.c, required this.week});
+/// Today's scrolling as a landmark, plus the all-time total, on Today.
+class _DidYouKnow extends StatelessWidget {
+  const _DidYouKnow({required this.c});
   final ScrollDebtController c;
-  final bool week;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final col = context.colors;
-    final metres = week ? c.weekRawM : c.state.scrolledTodayM;
-    final tier = week ? LandmarkTier.week : LandmarkTier.today;
+    final metres = c.state.scrolledTodayM;
+    final mark = LandmarkTier.today.yardstick;
+    final lifetime = c.lifetimeRawM;
     return _Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('How far that is', style: t.labelLarge?.copyWith(color: col.muted)),
-        const SizedBox(height: 6),
-        Text(tier.yardstick.count(metres), style: t.headlineLarge),
-        const SizedBox(height: 4),
-        Text(
-          '${formatMetres(metres)} scrolled ${week ? 'in 7 days' : 'today'}.',
-          style: t.bodyMedium?.copyWith(color: col.muted),
-        ),
+        if (metres < 0.05) ...[
+          Text('${formatRound(mark.heightM)} tall', style: t.headlineMedium?.merge(numeric)),
+          const SizedBox(height: 4),
+          Text(
+            'That\'s the ${mark.name}. Nothing scrolled yet today, so you haven\'t climbed any of it.',
+            style: t.bodyMedium?.copyWith(color: col.muted),
+          ),
+        ] else ...[
+          Text(mark.count(metres), style: t.headlineMedium?.merge(numeric)),
+          const SizedBox(height: 4),
+          Text(
+            'You\'ve scrolled ${formatMetres(metres)} today. Stood on end, that\'s '
+            '${metres >= mark.heightM ? 'taller than' : '${(metres / mark.heightM * 100).round()}% of'} '
+            'the ${mark.name}.',
+            style: t.bodyMedium?.merge(numeric).copyWith(color: col.muted),
+          ),
+        ],
         const SizedBox(height: 14),
         const Divider(),
         const SizedBox(height: 14),
         Text(
-          'All time: ${LandmarkTier.lifetime.yardstick.count(c.lifetimeRawM)}, '
-          '${(c.lifetimeRawM / karman.heightM * 100).toStringAsFixed(c.lifetimeRawM < 1000 ? 2 : 1)}% of the way to space.',
-          style: t.bodyMedium?.copyWith(color: col.muted),
+          'All time: ${LandmarkTier.lifetime.yardstick.count(lifetime)}, '
+          '${(lifetime / karman.heightM * 100).toStringAsFixed(lifetime < 1000 ? 2 : 1)}% of the way to space.',
+          style: t.bodyMedium?.merge(numeric).copyWith(color: col.muted),
         ),
       ]),
     );

@@ -373,6 +373,12 @@ class ScrollDebtController extends ChangeNotifier {
     _changed();
   }
 
+  /// Walking, scrolling and debt back to zero, history and passes included.
+  /// Settings are kept. The same wipe as Privacy's erase, one tap closer.
+  Future<void> devResetTracking() async {
+    if (developerOptions) await resetAll();
+  }
+
   /// Shows the setup flow again from the start.
   Future<void> devReplayOnboarding() async {
     if (!developerOptions) return;

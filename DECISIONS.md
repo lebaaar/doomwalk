@@ -257,3 +257,9 @@ Audited against the taste-skill anti-slop rules (Leonxlnx/taste-skill).
 * **System bars:** edge-to-edge with transparent status and navigation bars
   and Android's contrast scrim off, so the area behind the back / home /
   recents buttons is the app's own colour in light and dark mode.
+* **Did you know?** The landmark panel moved from Activity to Today, between
+  the Today card and Most scrolled today: today's scrolling in Eiffel Towers
+  with a plain sentence, and the all-time line.
+* **Developer reset:** *Reset walking and scrolling* in Developer options
+  (`devResetTracking`) does the same wipe as Privacy's erase (debt, steps,
+  scrolling, history, gaps, passes; settings kept) after a confirmation.

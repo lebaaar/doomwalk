@@ -135,6 +135,7 @@ void main() {
     Navigator.of(tester.element(find.byType(LedgerView))).pop();
     await tester.pump(const Duration(seconds: 1));
     tester.view.physicalSize = const Size(1080, 4000);
+    await shot('tab_today', null);
     await tab('Activity');
     await shot('tab_activity', null);
     await tab('Settings');

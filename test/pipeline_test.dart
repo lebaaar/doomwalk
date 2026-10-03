@@ -128,6 +128,26 @@ void main() {
     c.dispose();
   });
 
+  test('developer reset zeroes walking, scrolling and debt but keeps settings', () async {
+    final c = await ScrollDebtController.start();
+    await c.updateConfig(const DebtConfig(allowanceM: 0));
+    await c.setDeveloperOptions(true);
+    c.devAddScroll('com.instagram.android', 10);
+    c.devAddSteps(10);
+    expect(c.debtM, greaterThan(0));
+    await c.setDeveloperOptions(false);
+    await c.devResetTracking(); // switch off: nothing happens
+    expect(c.state.scrolledTodayM, closeTo(10, 1e-9));
+    await c.setDeveloperOptions(true);
+    await c.devResetTracking();
+    expect(c.debtM, 0);
+    expect(c.state.scrolledTodayM, 0);
+    expect(c.state.walkedTodayM, 0);
+    expect(c.todayApps, isEmpty);
+    expect(c.config.allowanceM, 0);
+    c.dispose();
+  });
+
   test('turning developer options off also ends demo mode', () async {
     final c = await ScrollDebtController.start();
     await c.setDeveloperOptions(true);
