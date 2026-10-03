@@ -667,7 +667,8 @@ class ScrollDebtController extends ChangeNotifier {
     if (!force && !endpoint && pass == _lastPassSent && (target - _lastFrostSent).abs() < 0.01) return;
     _lastFrostSent = target;
     _lastPassSent = pass;
-    final (title, body) = frostCard(_knownLabel(foreground), debtM, full: target >= 0.999);
+    final (title, body) = frostCard(_knownLabel(foreground), debtM,
+        full: target >= 0.999, seed: DateTime.now().difference(DateTime(2000)).inDays);
     _log('frost -> ${target.toStringAsFixed(3)} fg=$foreground');
     unawaited(_safe(() => _native.setFrost(target,
         title: title,
@@ -934,14 +935,36 @@ class ScrollDebtController extends ChangeNotifier {
   }
 }
 
-/// The card over a frosted app: what happened and what to do.
-(String, String) frostCard(String? app, double debtM, {required bool full}) {
+/// Lines under the walking ask on the lock card, one a day ([frostCard]'s
+/// seed), so the card doesn't change text while it's up.
+const walkNudges = [
+  'A short walk beats another hour of feed.',
+  'Your legs have been waiting all day.',
+  'Every step clears the blur a little.',
+  'The feed will still be here. The sun might not.',
+  'Fresh air first, then back to it. Deal?',
+  'Your thumb deserves a break. Your legs don\'t.',
+  'Put on some music and go. It\'s over before the third song.',
+];
+
+/// Minutes to walk [metres] at an easy 80 m a minute: "about 3 minutes".
+String walkMinutes(double metres) {
+  final min = (metres / 80).ceil();
+  return min <= 1 ? 'about a minute' : 'about $min minutes';
+}
+
+/// The card over an app once the daily limit is hit: what happened, how
+/// far (and how long) to walk, and a nudge to go.
+(String, String) frostCard(String? app, double debtM, {required bool full, int seed = 0}) {
   final name = app ?? 'This app';
   // No-break space: "512.6 m" never splits across lines.
   final walk = formatMetres(debtM).replaceAll(' ', '\u00A0');
+  final time = walkMinutes(debtM);
+  final nudge = walkNudges[seed % walkNudges.length];
   return full
-      ? ('$name is frozen', 'You\'ve used up your free scrolling. Walk $walk to unfreeze it.')
-      : ('$name is frosting over', 'You\'re past your free scrolling. Walk $walk to clear it. Scrolling more adds to it.');
+      ? ('$name is locked', 'Daily limit hit. Walk $walk ($time) to unlock it.\n\n$nudge')
+      : ('Daily limit hit',
+          '$name stays blurred until you walk $walk ($time). Scrolling more adds to it.\n\n$nudge');
 }
 
 /// The banner when an app that counts is opened with free scrolling used up.

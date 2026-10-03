@@ -45,7 +45,7 @@ class SettingsScreen extends ConsumerWidget {
                 : preset == null
                     ? 'You\'re using custom rules. Pick a level to replace them.'
                     : '${formatRound(cfg.allowanceM)} of free scrolling a day. After that, walk '
-                        '${_x(cfg.ratio)} m for every metre. Apps freeze completely at '
+                        '${_x(cfg.ratio)} m for every metre. Apps lock completely at '
                         '${formatRound(cfg.frostMaxDebtM)} owed.',
             style: t.bodyMedium?.copyWith(color: context.colors.muted),
           ),
@@ -61,13 +61,13 @@ class SettingsScreen extends ConsumerWidget {
           _NavTile(
             icon: Ph.lifebuoy,
             title: 'Emergency passes',
-            subtitle: '${cfg.overridesPerDay} a day, scrolling costs ${formatTimes(cfg.overridePenalty)} while unfrozen',
+            subtitle: '${cfg.overridesPerDay} a day, scrolling costs ${formatTimes(cfg.overridePenalty)} while unlocked',
             page: const _PassesPage(),
           ),
           const _NavTile(
             icon: Ph.sliders,
             title: 'Custom rules',
-            subtitle: 'Free scrolling, walking, frost, overnight growth',
+            subtitle: 'Free scrolling, walking, locking, overnight growth',
             page: _CustomRulesPage(),
           ),
         ]),
@@ -185,7 +185,7 @@ class _AppsThatCountPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(controllerProvider);
     return _SubPage(title: 'Apps that count', children: [
-      const _Help('Scrolling in these apps counts toward debt, and they freeze over when you owe. '
+      const _Help('Scrolling in these apps counts toward debt, and they blur and lock when you owe. '
           'Everything else, like banking, calls and maps, is never touched.'),
       TileGroup(children: [
         for (final cat in AppCategory.values)
@@ -217,7 +217,7 @@ class _PassesPage extends ConsumerWidget {
     final cfg = c.config;
     void set(DebtConfig n) => c.updateConfig(n);
     return _SubPage(title: 'Emergency passes', children: [
-      _Help('A pass unfreezes your apps for ${cfg.overrideMinutes} minutes when you really need them. '
+      _Help('A pass unlocks your apps for ${cfg.overrideMinutes} minutes when you really need them. '
           'Scrolling still counts, at a higher cost.'),
       TileGroup(children: [
         _SliderRow(
@@ -230,7 +230,7 @@ class _PassesPage extends ConsumerWidget {
           onChanged: (v) => set(cfg.copyWith(overridesPerDay: v.round())),
         ),
         _SliderRow(
-          label: 'Cost while unfrozen',
+          label: 'Cost while unlocked',
           value: cfg.overridePenalty,
           min: 1,
           max: 5,
@@ -275,7 +275,7 @@ class _CustomRulesPage extends ConsumerWidget {
           onChanged: (v) => set(cfg.copyWith(ratio: v)),
         ),
         _SliderRow(
-          label: 'Apps freeze completely at',
+          label: 'Apps lock completely at',
           value: cfg.frostMaxDebtM,
           min: 10,
           max: 500,
@@ -445,8 +445,8 @@ class _DeveloperToolsState extends State<DeveloperTools> {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SwitchListTile(
         title: const Text('Demo mode'),
-        subtitle: Text('${demo.allowanceM.toStringAsFixed(0)} m free, 1 m walked per metre, apps freeze at '
-            '${demo.frostMaxDebtM.toStringAsFixed(0)} m. Scroll, freeze, walk and clear fit in two minutes.'),
+        subtitle: Text('${demo.allowanceM.toStringAsFixed(0)} m free, 1 m walked per metre, apps lock at '
+            '${demo.frostMaxDebtM.toStringAsFixed(0)} m. Scroll, lock, walk and unlock fit in two minutes.'),
         value: c.config.demoMode,
         onChanged: (v) => c.updateConfig(c.config.copyWith(demoMode: v)),
       ),

@@ -187,12 +187,13 @@ void main() {
     await c.setDeveloperOptions(true);
     c.devAddScroll('com.instagram.android', 4); // 2 free, then 2 * 2x * 1 = 4 m owed
     expect(frostCalls.last, closeTo(4 / 15, 0.01));
-    expect(frostArgs.last['title'], 'Instagram is frosting over');
-    expect(frostArgs.last['body'], contains('Walk 4.0\u00A0m'));
+    expect(frostArgs.last['title'], 'Daily limit hit');
+    expect(frostArgs.last['body'], contains('Instagram stays blurred until you walk 4.0\u00A0m (about a minute)'));
     c.devAddScroll('com.instagram.android', 20);
     expect(frostCalls.last, 1);
-    expect(frostArgs.last['title'], 'Instagram is frozen');
-    expect(frostArgs.last['body'], contains('used up your free scrolling'));
+    expect(frostArgs.last['title'], 'Instagram is locked');
+    expect(frostArgs.last['body'], contains('to unlock it'));
+    expect(walkNudges.any((n) => (frostArgs.last['body'] as String).endsWith(n)), isTrue);
     c.dispose();
   });
 

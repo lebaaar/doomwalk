@@ -40,7 +40,7 @@ class FrostOverlayTest {
     private fun fullScreen(v: View) = params(v).width == WindowManager.LayoutParams.MATCH_PARENT
 
     @Test fun fullFrostShowsCardOverAppAndLetsTouchesThrough() {
-        overlay.animateTo(1f, "Instagram is frozen", "Walk 512.6 m to unfreeze it.", 0, 3)
+        overlay.animateTo(1f, "Instagram is locked", "Daily limit hit. Walk 512.6 m to unlock it.", 0, 3)
         idle()
         val w = windows()
         assertEquals("frost + card", 2, w.size)
@@ -51,15 +51,15 @@ class FrostOverlayTest {
         assertTrue("card takes touches (its buttons)", touchable(card))
         assertTrue("touches outside the card go to the app",
             params(card).flags and WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL != 0)
-        assertEquals(listOf("Scroll Debt", "Instagram is frozen", "Walk 512.6 m to unfreeze it.", "Use pass (3)", "Leave app"), texts(card))
+        assertEquals(listOf("Scroll Debt", "Instagram is locked", "Daily limit hit. Walk 512.6 m to unlock it.", "Use pass (3)", "Leave app"), texts(card))
         assertTrue("card narrower than the screen", params(card).width > 0)
     }
 
     @Test fun lightFrostStillExplainsItself() {
-        overlay.animateTo(0.1f, "Instagram is frosting over", "Walk 20 m to clear it.", 0, 0)
+        overlay.animateTo(0.1f, "Daily limit hit", "Instagram stays blurred until you walk 20 m.", 0, 0)
         idle()
         val card = windows().single { !fullScreen(it) }
-        assertEquals(listOf("Scroll Debt", "Instagram is frosting over", "Walk 20 m to clear it.", "Leave app"), texts(card))
+        assertEquals(listOf("Scroll Debt", "Daily limit hit", "Instagram stays blurred until you walk 20 m.", "Leave app"), texts(card))
     }
 
     @Test fun frostClearsCompletely() {
@@ -86,7 +86,7 @@ class FrostOverlayTest {
         overlay.showPass(start + 5 * 60_000)
         idle()
         val p = windows().single()
-        assertTrue("pill never takes touches", !touchable(p))
+        assertTrue("pill takes touches (opens the app)", touchable(p))
         assertTrue(overlay.passText == "Pass: 5:00 left" || overlay.passText == "Pass: 4:59 left")
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(61))
         assertTrue(overlay.passText!!.startsWith("Pass: 3:5"))

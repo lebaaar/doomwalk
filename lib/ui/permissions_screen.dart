@@ -118,7 +118,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> with Widg
                   ? 'On and running'
                   : st.accessibilityEnabled
                       ? 'On, but not running'
-                      : 'Off. Nothing is measured or frosted.',
+                      : 'Off. Nothing is measured or locked.',
               action: 'Accessibility',
               onTap: c.native.openAccessibilitySettings,
             ),
@@ -258,7 +258,7 @@ class _StoppedCard extends StatelessWidget {
           ]),
           const SizedBox(height: 8),
           Text(
-            'It\'s switched on in Settings, but Android isn\'t running it, so nothing is measured or frosted. $why',
+            'It\'s switched on in Settings, but Android isn\'t running it, so nothing is measured or locked. $why',
             style: t.bodyMedium?.copyWith(color: col.muted),
           ),
           if (showAdbHint && exit?.description != null) ...[

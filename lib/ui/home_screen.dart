@@ -142,7 +142,7 @@ class _TodayTab extends StatelessWidget {
           else if (!c.status.serviceConnected)
             const _Notice(
               title: 'Scroll measuring has stopped',
-              body: 'It\'s switched on but Android stopped it, so nothing frosts. Tap to see why and restart it.',
+              body: 'It\'s switched on but Android stopped it, so no app gets locked. Tap to see why and restart it.',
             ),
           if (c.walkError != null)
             const _Notice(
@@ -282,13 +282,12 @@ class _TodayCardState extends State<_TodayCard> {
     final done = verdict == _Verdict.limit;
     final strong = owed ? col.onHero : (done ? col.danger : col.accent);
     final penalty = formatTimes(c.config.overridePenalty);
-    final frostPct = (c.frostLevel * 100).round();
     final apps = c.frostedAppsToday;
     final which = apps.isEmpty ? 'your restricted apps' : 'apps like ${_appList(c, apps)}';
 
     final (IconData icon, String status) = switch (verdict) {
       _Verdict.walk => (Ph.walk, 'Time for a walk'),
-      _Verdict.unfrozen => (Ph.lifebuoy, 'Unfrozen for ${_countdown(c)}'),
+      _Verdict.unfrozen => (Ph.lifebuoy, 'Unlocked for ${_countdown(c)}'),
       _Verdict.limit => (Ph.lockSimple, 'Free scrolling used up'),
       _Verdict.low => (Ph.warningCircle, 'Almost at your limit'),
       _Verdict.free => (Ph.checkCircle, 'You\'re good to scroll'),
@@ -296,8 +295,8 @@ class _TodayCardState extends State<_TodayCard> {
     final value = owed ? debt : left;
     final sentence = switch (verdict) {
       _Verdict.walk => c.status.serviceConnected
-          ? 'to walk off. Until then, $which stay frosted ($frostPct%).'
-          : 'to walk off. Frost is paused while scroll measuring is off.',
+          ? 'to walk off (${walkMinutes(debt)}). Until then, $which stay locked.'
+          : 'to walk off. Locking is paused while scroll measuring is off.',
       _Verdict.unfrozen => owed
           ? 'still to walk off. Scrolling costs $penalty until the pass ends.'
           : 'of free scrolling left. Past that, scrolling costs $penalty until the pass ends.',
@@ -548,12 +547,12 @@ class _PassButton extends StatelessWidget {
         ),
         onPressed: left > 0 ? c.startOverride : null,
         icon: const Icon(Ph.lifebuoy, size: 20),
-        label: Text('Unfreeze for ${c.config.overrideMinutes} min'),
+        label: Text('Unlock for ${c.config.overrideMinutes} min'),
       ),
       const SizedBox(height: 8),
       Text(
         left > 0
-            ? 'Scrolling costs $penalty while unfrozen. $left ${left == 1 ? 'pass' : 'passes'} left today.'
+            ? 'Scrolling costs $penalty while unlocked. $left ${left == 1 ? 'pass' : 'passes'} left today.'
             : 'No passes left today.',
         textAlign: TextAlign.center,
         style: t.bodySmall?.merge(numeric).copyWith(color: muted),

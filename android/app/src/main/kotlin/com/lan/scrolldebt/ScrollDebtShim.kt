@@ -464,7 +464,7 @@ class FrostOverlay(private val service: AccessibilityService) {
     private var cardBody: TextView? = null
     private var passButton: TextView? = null
     private var overridesLeft = 0
-    private var titleText = "This app is frozen"
+    private var titleText = "Daily limit hit"
     private var bodyText = ""
     private val cardParams = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -495,7 +495,9 @@ class FrostOverlay(private val service: AccessibilityService) {
     }
     private val hideBanner = Runnable { removeBanner() }
 
-    // Countdown pill at the top while an emergency pass has unfrozen the app.
+    // Countdown pill at the top while an emergency pass has unlocked the app.
+    // Tapping it opens Scroll Debt (where the pass can be ended early); only
+    // the pill itself takes touches.
     private var pass: TextView? = null
     /** End of the pass on the monotonic clock, so a clock change can't skew it. */
     private var passEndElapsed = 0L
@@ -503,8 +505,8 @@ class FrostOverlay(private val service: AccessibilityService) {
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.WRAP_CONTENT,
         WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-        WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
         PixelFormat.TRANSLUCENT
     ).apply {
@@ -573,6 +575,10 @@ class FrostOverlay(private val service: AccessibilityService) {
                 }
                 elevation = dp(6).toFloat()
                 fontFeatureSettings = "tnum"
+                minHeight = dp(36)
+                gravity = Gravity.CENTER
+                isClickable = true
+                setOnClickListener { openApp() }
             }
             pass = tv
             try {
@@ -585,6 +591,17 @@ class FrostOverlay(private val service: AccessibilityService) {
         }
         handler.removeCallbacks(tickPass)
         tickPass.run()
+    }
+
+    private fun openApp() {
+        try {
+            service.startActivity(
+                Intent(service, MainActivity::class.java)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "open app from pass failed: $e")
+        }
     }
 
     private fun removePass() {
@@ -781,23 +798,29 @@ class FrostOverlay(private val service: AccessibilityService) {
     private fun apply(v: Float) {
         level = v
         val r = root ?: return
+        // How hidden the app is. Any debt at all should already blur it
+        // properly (half strength), growing to full as the debt does; the
+        // first 5 % of the level only fades that in.
+        val s = if (v <= 0f) 0f else minOf(1f, 0.5f + 0.5f * v) * minOf(1f, v / 0.05f)
         val tintAlpha: Float
         if (blurEnabled) {
-            val radius = (v * maxBlurPx).toInt()
+            val radius = (s * maxBlurPx).toInt()
             params.flags = params.flags or WindowManager.LayoutParams.FLAG_BLUR_BEHIND
             if (radius != lastRadius) {
                 params.blurBehindRadius = radius
                 lastRadius = radius
                 try { wm.updateViewLayout(r, params) } catch (_: Exception) {}
             }
-            tintAlpha = 0.30f * v
+            tintAlpha = 0.35f * s
         } else {
             if (params.flags and WindowManager.LayoutParams.FLAG_BLUR_BEHIND != 0) {
                 params.flags = params.flags and WindowManager.LayoutParams.FLAG_BLUR_BEHIND.inv()
                 params.blurBehindRadius = 0
                 try { wm.updateViewLayout(r, params) } catch (_: Exception) {}
             }
-            tintAlpha = 0.86f * v
+            // No blur on this phone (battery saver, or off in developer
+            // options): a near-opaque wash hides the app instead.
+            tintAlpha = 0.94f * s
         }
         r.setBackgroundColor(Color.argb((tintAlpha * 255).toInt(), 226, 240, 248))
     }

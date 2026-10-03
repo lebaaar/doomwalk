@@ -32,7 +32,7 @@ const _steps = [
   _Step(
     _StepId.accessibility,
     'Turn on scroll measuring',
-    'An accessibility service measures how far you scroll and draws the frost. It receives scroll '
+    'An accessibility service measures how far you scroll and blurs apps once your limit is hit. It receives scroll '
         'distances and the name of the open app. It cannot read your screen.',
     'Open accessibility settings',
   ),
@@ -185,7 +185,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                 style: t.headlineLarge?.copyWith(fontSize: 34, letterSpacing: -1.4)),
             const SizedBox(height: 14),
             Text(
-              'Scrolling past your daily allowance turns into walking you owe. Social apps frost over until '
+              'Scrolling past your daily allowance turns into walking you owe. Past it, social apps blur and lock until '
               'you walk it off, and every metre counts toward your daily movement goal.',
               style: t.bodyLarge?.copyWith(color: context.colors.muted),
             ),
