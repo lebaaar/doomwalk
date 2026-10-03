@@ -208,6 +208,20 @@ ThemeData buildTheme(Brightness brightness) {
       ),
       hintStyle: TextStyle(color: p.muted),
     ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: p.raised,
+      surfaceTintColor: Colors.transparent,
+      indicatorColor: p.raised2,
+      height: 68,
+      labelTextStyle: WidgetStateProperty.resolveWith((s) => TextStyle(
+            fontFamily: 'Geist',
+            fontSize: 12,
+            fontWeight: s.contains(WidgetState.selected) ? FontWeight.w500 : FontWeight.w400,
+            color: s.contains(WidgetState.selected) ? p.text : p.muted,
+          )),
+      iconTheme: WidgetStateProperty.resolveWith(
+          (s) => IconThemeData(size: 22, color: s.contains(WidgetState.selected) ? p.accent : p.muted)),
+    ),
     progressIndicatorTheme: ProgressIndicatorThemeData(color: p.text),
   );
 }

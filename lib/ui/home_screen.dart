@@ -27,6 +27,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
   bool _week = false;
+  int _tab = 0;
   Timer? _clock;
 
   @override
@@ -55,9 +56,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   Widget build(BuildContext context) {
     final c = ref.watch(controllerProvider);
     final dark = Theme.of(context).brightness == Brightness.dark;
+    const titles = ['Scroll Debt', 'Health', 'Apps', 'Settings'];
+    Widget page(List<Widget> children) => ListView(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
+          children: children,
+        );
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scroll Debt'),
+        title: Text(titles[_tab]),
         actions: [
           if (c.config.demoMode)
             Padding(
@@ -71,20 +77,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             icon: Icon(dark ? Ph.sun : Ph.moon, size: 22),
             onPressed: () => c.setThemeMode(dark ? 'light' : 'dark'),
           ),
-          IconButton(
-            tooltip: 'Settings',
-            icon: const Icon(Ph.slidersHorizontal, size: 22),
-            onPressed: () =>
-                Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const SettingsScreen())),
-          ),
           const SizedBox(width: 8),
         ],
       ),
-      body: SafeArea(
-        top: false,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 40),
-          children: [
+      // Tabs keep their scroll position when switching.
+      body: IndexedStack(
+        index: _tab,
+        children: [
+          page([
             if (!c.status.accessibilityEnabled) const _TrackingOff(),
             const SizedBox(height: 20),
             _Hero(c: c),
@@ -93,13 +93,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             const SizedBox(height: 24),
             _Stats(c: c),
             _EmergencyPass(c: c),
-            const SectionTitle('Health'),
+            const SectionTitle('Ledger'),
+            _Ledger(c: c),
+            if (kDebugMode) ...[
+              const SectionTitle('Debug build'),
+              _DebugTools(c: c),
+            ],
+          ]),
+          page([
+            const SizedBox(height: 16),
             _Health(c: c),
             const SectionTitle('Landmarks'),
             _Landmarks(c: c),
-            SectionTitle(
-              'By app',
-              trailing: SegmentedButton<bool>(
+          ]),
+          page([
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(
+                child: Text('Tap an app to share its card.', style: Theme.of(context).textTheme.bodySmall),
+              ),
+              SegmentedButton<bool>(
                 showSelectedIcon: false,
                 segments: const [
                   ButtonSegment(value: false, label: Text('Today')),
@@ -108,16 +121,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 selected: {_week},
                 onSelectionChanged: (s) => setState(() => _week = s.first),
               ),
-            ),
+            ]),
+            const SizedBox(height: 12),
             _AppList(c: c, week: _week),
-            const SectionTitle('Ledger'),
-            _Ledger(c: c),
-            if (kDebugMode) ...[
-              const SectionTitle('Debug build'),
-              _DebugTools(c: c),
-            ],
-          ],
-        ),
+          ]),
+          const SettingsScreen(embedded: true),
+        ],
+      ),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _tab,
+        onDestinationSelected: (i) => setState(() => _tab = i),
+        destinations: const [
+          NavigationDestination(icon: Icon(Ph.mountains), selectedIcon: Icon(PhFill.mountains), label: 'Today'),
+          NavigationDestination(icon: Icon(Ph.heartbeat), selectedIcon: Icon(PhFill.heartbeat), label: 'Health'),
+          NavigationDestination(icon: Icon(Ph.squaresFour), selectedIcon: Icon(PhFill.squaresFour), label: 'Apps'),
+          NavigationDestination(icon: Icon(Ph.gear), selectedIcon: Icon(PhFill.gear), label: 'Settings'),
+        ],
       ),
     );
   }
@@ -282,6 +301,11 @@ class _Health extends StatelessWidget {
                 for (var x = 0; x < 40; x++)
                   Expanded(child: Container(height: 1, color: x.isEven ? col.faint : Colors.transparent)),
               ]),
+            ),
+            Positioned(
+              right: 0,
+              bottom: 24 + goalY,
+              child: Text('goal ${formatMetres(goal, decimals: 0)}', style: t.bodySmall?.copyWith(fontSize: 11)),
             ),
             Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
               for (var i = 0; i < 7; i++)

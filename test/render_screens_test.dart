@@ -39,6 +39,7 @@ Future<void> _loadFonts() async {
   await load('Geist', [for (final w in ['Light', 'Regular', 'Medium', 'SemiBold']) 'assets/fonts/Geist-$w.ttf']);
   await load('GeistMono', ['assets/fonts/GeistMono-Regular.ttf', 'assets/fonts/GeistMono-Medium.ttf']);
   await load('Phosphor', ['assets/fonts/Phosphor-Regular.ttf']);
+  await load('PhosphorFill', ['assets/fonts/Phosphor-Fill.ttf']);
 }
 
 void main() {
@@ -93,8 +94,8 @@ void main() {
       ),
     ));
 
-    Future<void> shot(String name, Widget child) async {
-      screen.value = child;
+    Future<void> shot(String name, Widget? child) async {
+      if (child != null) screen.value = child;
       await tester.pump(const Duration(seconds: 2));
       await tester.pump(const Duration(seconds: 2));
       expect(tester.takeException(), isNull);
@@ -112,6 +113,12 @@ void main() {
     tester.view.physicalSize = const Size(1080, 7000);
     await shot('home_full', const HomeScreen());
     tester.view.physicalSize = const Size(1080, 2400);
+    for (final tab in ['Health', 'Apps', 'Settings']) {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text(tab)));
+      await shot('tab_${tab.toLowerCase()}', null);
+    }
+    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Today')));
+    await tester.pump(const Duration(seconds: 1));
     await shot('onboarding', const OnboardingScreen());
     await shot('settings', const SettingsScreen());
     await shot('share_card', Scaffold(

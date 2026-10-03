@@ -11,7 +11,10 @@ import 'providers.dart';
 import 'theme.dart';
 
 class SettingsScreen extends ConsumerWidget {
-  const SettingsScreen({super.key});
+  const SettingsScreen({super.key, this.embedded = false});
+
+  /// Shown as a tab inside the home shell (no own app bar).
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,7 +24,7 @@ class SettingsScreen extends ConsumerWidget {
     void set(DebtConfig n) => c.updateConfig(n);
     const demo = DebtConfig.demo;
 
-    return Scaffold(
+    final page = Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 40),
@@ -215,6 +218,7 @@ class SettingsScreen extends ConsumerWidget {
         ],
       ),
     );
+    return embedded ? page.body! : page;
   }
 }
 

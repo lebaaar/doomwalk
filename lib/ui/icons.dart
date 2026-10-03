@@ -25,4 +25,16 @@ abstract final class Ph {
   static const walk = IconData(0xe73a, fontFamily: _f);
   static const target = IconData(0xe47c, fontFamily: _f);
   static const lightning = IconData(0xe2de, fontFamily: _f);
+  static const mountains = IconData(0xe7ae, fontFamily: _f);
+  static const heartbeat = IconData(0xe2ac, fontFamily: _f);
+  static const gear = IconData(0xe272, fontFamily: _f);
+}
+
+/// Phosphor Fill, same code points, for selected states.
+abstract final class PhFill {
+  static const _f = 'PhosphorFill';
+  static const mountains = IconData(0xe7ae, fontFamily: _f);
+  static const heartbeat = IconData(0xe2ac, fontFamily: _f);
+  static const squaresFour = IconData(0xe464, fontFamily: _f);
+  static const gear = IconData(0xe272, fontFamily: _f);
 }

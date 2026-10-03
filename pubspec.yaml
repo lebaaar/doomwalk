@@ -81,3 +81,6 @@ flutter:
     - family: Phosphor
       fonts:
         - asset: assets/fonts/Phosphor-Regular.ttf
+    - family: PhosphorFill
+      fonts:
+        - asset: assets/fonts/Phosphor-Fill.ttf
