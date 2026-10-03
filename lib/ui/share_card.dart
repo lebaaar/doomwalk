@@ -9,8 +9,8 @@ import 'package:share_plus/share_plus.dart';
 import '../core/landmarks.dart';
 import '../core/units.dart';
 import '../services/controller.dart';
-import 'altitude_gauge.dart';
 import 'icons.dart';
+import 'logo.dart';
 import 'theme.dart';
 
 /// "Instagram: 4.2 Eiffel Towers this week" for [pkg].
@@ -100,16 +100,11 @@ class ShareCard extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(children: [
+          // The mark, large and faint, sinking off the bottom edge.
           Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            height: 170,
-            child: AltitudeGauge(
-              fraction: (week / lm.heightM).clamp(0.0, 1.0),
-              frostMaxM: lm.heightM,
-              showScale: false,
-            ),
+            right: -36,
+            bottom: -48,
+            child: DepthTicks(size: 240, color: context.colors.accent.withValues(alpha: 0.16)),
           ),
           Padding(
             padding: const EdgeInsets.all(24),
@@ -135,13 +130,17 @@ class ShareCard extends StatelessWidget {
                 'scrolled this week. ${formatMetres(week)} of thumb travel.',
                 style: t.bodyMedium?.copyWith(color: context.colors.muted),
               ),
-              const SizedBox(height: 180),
+              const SizedBox(height: 120),
             ]),
           ),
           Positioned(
             right: 24,
             top: 30,
-            child: Text('Scroll Debt', style: t.bodySmall),
+            child: Row(children: [
+              DepthTicks(size: 16, small: true, color: context.colors.muted),
+              const SizedBox(width: 6),
+              Text('Scroll Debt', style: t.bodySmall),
+            ]),
           ),
         ]),
       ),

@@ -168,3 +168,19 @@ the Today screen showed about 20 numbers. Direction B was chosen from three opti
   buttons and sliders, `Semantics` labels on the debt number, goal ring and week
   chart, a fade between tabs that respects reduced motion, and predictive back
   (`enableOnBackInvokedCallback`).
+
+## Round 5: logo and Frost palette
+* **Logo:** depth ticks, six rounded bars that widen and thicken going down.
+  Chosen after six concept rounds made with the logo-design skill
+  (kaankiziltug/logo-design-skill); masters and rules in `docs/logo/`. The
+  mountain is gone everywhere: the Today tab, the share card and the
+  notification icon now use the mark, and `AltitudeGauge` was removed.
+* **Palette "Frost"** replaces "Glacier" so the app matches the icon: navy
+  `#0E4166` on white and frost blue `#E2F0F8` in light mode, the icon
+  inverted (frost blue `#A9D3EC` on deep navy `#07131F`) in dark mode. Every
+  text and accent pair passes 4.5:1. The frost overlay tint, its action bar,
+  the splash screen and the home-screen widgets use the same colours, with
+  dark values in `values-night`.
+* **Launcher icon:** adaptive (white to frost-blue gradient background, navy
+  vector ticks) with a monochrome layer for Android 13 themed icons. The
+  vector is flat; the soft shadow exists only in the PNG and store artwork.

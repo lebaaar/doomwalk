@@ -9,6 +9,7 @@ import '../core/units.dart';
 import '../services/controller.dart';
 import '../services/store.dart';
 import 'icons.dart';
+import 'logo.dart';
 import 'onboarding_screen.dart';
 import 'providers.dart';
 import 'settings_screen.dart';
@@ -91,7 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         selectedIndex: _tab,
         onDestinationSelected: _go,
         destinations: const [
-          NavigationDestination(icon: Icon(Ph.mountains), selectedIcon: Icon(PhFill.mountains), label: 'Today'),
+          NavigationDestination(icon: DepthTicks(small: true), label: 'Today'),
           NavigationDestination(icon: Icon(Ph.chartBar), selectedIcon: Icon(PhFill.chartBar), label: 'Activity'),
           NavigationDestination(icon: Icon(Ph.gear), selectedIcon: Icon(PhFill.gear), label: 'Settings'),
         ],

@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../services/controller.dart';
 import 'icons.dart';
+import 'logo.dart';
 import 'providers.dart';
 import 'theme.dart';
 
@@ -161,7 +162,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
           padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
           children: [
             if (!widget.standalone) ...[
-              Text('Scroll Debt', style: t.titleMedium?.copyWith(color: context.colors.muted)),
+              Row(children: [
+                DepthTicks(size: 28, color: context.colors.accent),
+                const SizedBox(width: 10),
+                Text('Scroll Debt', style: t.titleMedium?.copyWith(color: context.colors.muted)),
+              ]),
               const SizedBox(height: 20),
               Text('Every metre you scroll, you walk back.', style: t.headlineMedium?.copyWith(fontSize: 32)),
               const SizedBox(height: 12),

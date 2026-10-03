@@ -446,11 +446,11 @@ class FrostOverlay(private val service: AccessibilityService) {
     private fun pill(text: String, filled: Boolean, onClick: () -> Unit) = TextView(service).apply {
         this.text = text
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 14f)
-        setTextColor(if (filled) Color.rgb(6, 19, 28) else Color.rgb(230, 237, 243))
+        setTextColor(if (filled) Color.WHITE else Color.rgb(14, 65, 102))
         setPadding(dp(16), dp(10), dp(16), dp(10))
         background = GradientDrawable().apply {
             cornerRadius = dp(20).toFloat()
-            if (filled) setColor(Color.rgb(124, 196, 232)) else setStroke(dp(1), Color.argb(90, 230, 237, 243))
+            if (filled) setColor(Color.rgb(14, 65, 102)) else setStroke(dp(1), Color.argb(110, 14, 65, 102))
         }
         isClickable = true
         setOnClickListener { onClick() }
@@ -459,7 +459,7 @@ class FrostOverlay(private val service: AccessibilityService) {
     private fun ensureBar() {
         if (bar != null) return
         val label = TextView(service).apply {
-            setTextColor(Color.rgb(230, 237, 243))
+            setTextColor(Color.rgb(11, 34, 53))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
             gravity = Gravity.CENTER
         }
@@ -481,7 +481,7 @@ class FrostOverlay(private val service: AccessibilityService) {
             setPadding(dp(20), dp(14), dp(20), dp(14))
             background = GradientDrawable().apply {
                 cornerRadius = dp(24).toFloat()
-                setColor(Color.argb(235, 11, 15, 20))
+                setColor(Color.argb(240, 255, 255, 255))
             }
             addView(label)
             addView(buttons, LinearLayout.LayoutParams(
@@ -527,7 +527,7 @@ class FrostOverlay(private val service: AccessibilityService) {
             }
             tintAlpha = 0.86f * v
         }
-        r.setBackgroundColor(Color.argb((tintAlpha * 255).toInt(), 222, 234, 246))
+        r.setBackgroundColor(Color.argb((tintAlpha * 255).toInt(), 226, 240, 248))
         bar?.alpha = ((v - barThreshold) / 0.15f).coerceIn(0f, 1f)
     }
 
@@ -570,7 +570,7 @@ class DebtForegroundService : Service() {
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
             val b = Notification.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_stat_mountain)
+                .setSmallIcon(R.drawable.ic_stat_ticks)
                 .setContentTitle(Shim.notifTitle)
                 .setContentText(Shim.notifText)
                 .setContentIntent(open)

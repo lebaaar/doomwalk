@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Frost, from the app icon (docs/logo/final). Dark values in values-night. -->
 <resources>
-    <color name="ic_launcher_background">#FF0B0F14</color>
-    <color name="splash_background">#FF0B0F14</color>
+    <color name="splash_background">#FFF7FBFE</color>
+    <color name="widget_bg_top">#FFFFFFFF</color>
+    <color name="widget_bg_bottom">#FFE2F0F8</color>
+    <color name="widget_stroke">#FFD3E6F1</color>
+    <color name="widget_track">#FFD3E6F1</color>
+    <color name="widget_fill">#FF0E4166</color>
+    <color name="widget_debt">#FF0E4166</color>
+    <color name="widget_text">#FF0B2235</color>
+    <color name="widget_caption">#FF4F6B80</color>
 </resources>

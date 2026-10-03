@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-/// "Glacier": cool neutrals and a single frost-cyan accent, the same colour
-/// language as the frost overlay. The accent marks debt and primary actions
-/// only. Dark and light variants share the structure; read them through
-/// `context.colors` so widgets follow the active theme.
+/// "Frost", taken from the app icon: navy on white and frost blue, and the
+/// same mark inverted for dark mode. The accent marks debt and primary
+/// actions only. Read colours through `context.colors` so widgets follow the
+/// active theme.
 @immutable
 class Palette extends ThemeExtension<Palette> {
   const Palette({
@@ -44,37 +44,38 @@ class Palette extends ThemeExtension<Palette> {
   /// Upper slope of the gauge's main ridge.
   final Color ridge;
 
+  /// Dark: the logo inverted, frost-blue ticks on deep navy.
   static const dark = Palette(
-    ink: Color(0xFF0B0F14),
-    raised: Color(0xFF121821),
-    raised2: Color(0xFF18202B),
-    hairline: Color(0xFF1F2A36),
-    text: Color(0xFFE6EDF3),
-    muted: Color(0xFF7D8B99),
-    faint: Color(0xFF55626F),
-    accent: Color(0xFF7CC4E8),
-    onAccent: Color(0xFF06131C),
-    accentContainer: Color(0xFF1C3646),
-    onAccentContainer: Color(0xFFBFE3F5),
+    ink: Color(0xFF07131F),
+    raised: Color(0xFF0D1F30),
+    raised2: Color(0xFF14304A),
+    hairline: Color(0xFF1B3A56),
+    text: Color(0xFFE6F1F8),
+    muted: Color(0xFF8EA9BD),
+    faint: Color(0xFF4C6A80),
+    accent: Color(0xFFA9D3EC),
+    onAccent: Color(0xFF07131F),
+    accentContainer: Color(0xFF16395A),
+    onAccentContainer: Color(0xFFD6ECF8),
     danger: Color(0xFFF2B8B5),
-    ridge: Color(0xFF243344),
+    ridge: Color(0xFF1E3D59),
   );
 
-  /// Light: the accent is deepened to keep 4.5:1 contrast on white.
+  /// Light: the logo itself, navy on white and frost blue.
   static const light = Palette(
-    ink: Color(0xFFF4F6F9),
+    ink: Color(0xFFF7FBFE),
     raised: Color(0xFFFFFFFF),
-    raised2: Color(0xFFE9EDF2),
-    hairline: Color(0xFFDCE2E9),
-    text: Color(0xFF111821),
-    muted: Color(0xFF5A6774),
-    faint: Color(0xFF94A0AC),
-    accent: Color(0xFF16739E),
+    raised2: Color(0xFFE2F0F8),
+    hairline: Color(0xFFD3E6F1),
+    text: Color(0xFF0B2235),
+    muted: Color(0xFF4F6B80),
+    faint: Color(0xFF9DB6C7),
+    accent: Color(0xFF0E4166),
     onAccent: Color(0xFFFFFFFF),
-    accentContainer: Color(0xFFD6E8F2),
-    onAccentContainer: Color(0xFF0D4A66),
+    accentContainer: Color(0xFFE2F0F8),
+    onAccentContainer: Color(0xFF0E4166),
     danger: Color(0xFFB3261E),
-    ridge: Color(0xFFC9D6E3),
+    ridge: Color(0xFFC9DEEC),
   );
 
   @override
