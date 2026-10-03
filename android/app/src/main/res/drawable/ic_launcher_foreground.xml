@@ -2,11 +2,11 @@
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
     <!-- back ridge -->
-    <path android:fillColor="#FF2E4A6B" android:pathData="M28,74 L50,40 L62,56 L70,46 L84,74 Z" />
+    <path android:fillColor="#FF2C3642" android:pathData="M28,74 L50,40 L62,56 L70,46 L84,74 Z" />
     <!-- main peak -->
-    <path android:fillColor="#FF8FD3FF" android:pathData="M24,74 L46,36 L68,74 Z" />
+    <path android:fillColor="#FFE8ECF0" android:pathData="M24,74 L46,36 L68,74 Z" />
     <!-- snow cap -->
-    <path android:fillColor="#FFFFFFFF" android:pathData="M46,36 L52.5,47.2 L48.5,45 L45,48 L41.3,44.2 Z" />
+    <path android:fillColor="#FF8C96A3" android:pathData="M46,36 L52.5,47.2 L48.5,45 L45,48 L41.3,44.2 Z" />
     <!-- climber marker -->
-    <path android:fillColor="#FFFFB86B" android:pathData="M71,38 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
+    <path android:fillColor="#FFE58A57" android:pathData="M71,38 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0" />
 </vector>

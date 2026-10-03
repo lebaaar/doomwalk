@@ -10,6 +10,7 @@ import '../core/landmarks.dart';
 import '../core/units.dart';
 import '../services/controller.dart';
 import 'altitude_gauge.dart';
+import 'icons.dart';
 import 'theme.dart';
 
 /// "Instagram: 4.2 Eiffel Towers this week" for [pkg].
@@ -68,7 +69,7 @@ class _ShareDialogState extends State<_ShareDialog> {
           const SizedBox(width: 12),
           FilledButton.icon(
             onPressed: _busy ? null : _share,
-            icon: const Icon(Icons.ios_share_rounded),
+            icon: const Icon(Ph.export, size: 18),
             label: const Text('Share'),
           ),
         ]),
@@ -85,21 +86,17 @@ class ShareCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final week = c.weekApps[pkg]?.rawM ?? 0;
-    final today = c.todayApps[pkg]?.rawM ?? 0;
     final label = c.labelFor(pkg);
     final icon = c.appMeta[pkg]?.icon;
     final lm = nearestLandmark(week);
+    final count = (week / lm.heightM).toStringAsFixed(1);
     final t = Theme.of(context).textTheme;
     return AspectRatio(
       aspectRatio: 4 / 5,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF1C3350), Palette.night],
-          ),
+          color: Palette.raised,
+          borderRadius: BorderRadius.circular(Radii.surface),
         ),
         clipBehavior: Clip.antiAlias,
         child: Stack(children: [
@@ -107,43 +104,44 @@ class ShareCard extends StatelessWidget {
             left: 0,
             right: 0,
             bottom: 0,
-            height: 190,
-            child: Opacity(
-              opacity: 0.85,
-              child: AltitudeGauge(
-                fraction: (week / lm.heightM).clamp(0.0, 1.0),
-                frostMaxM: lm.heightM,
-                showScale: false,
-              ),
+            height: 170,
+            child: AltitudeGauge(
+              fraction: (week / lm.heightM).clamp(0.0, 1.0),
+              frostMaxM: lm.heightM,
+              showScale: false,
             ),
           ),
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
-                if (icon != null)
-                  ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.memory(icon, width: 44, height: 44)),
-                if (icon != null) const SizedBox(width: 12),
-                Expanded(
-                  child: Text(label,
-                      style: t.titleLarge?.copyWith(fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
-                ),
-                Text('SCROLL DEBT', style: t.labelSmall?.copyWith(color: Palette.glacier)),
+                if (icon != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(Radii.small),
+                    child: Image.memory(icon, width: 36, height: 36),
+                  ),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(child: Text(label, style: t.titleMedium, overflow: TextOverflow.ellipsis)),
               ]),
-              const SizedBox(height: 28),
-              Text(lm.glyph, style: const TextStyle(fontSize: 40)),
-              const SizedBox(height: 6),
+              const Spacer(),
               Text(
-                lm.count(week),
-                style: t.displaySmall?.copyWith(color: Palette.summit, fontWeight: FontWeight.w400, height: 1.05),
+                count,
+                style: t.displayLarge?.copyWith(fontSize: 88, color: Palette.accent, fontFeatures: tabular),
               ),
-              Text('this week', style: t.titleMedium?.copyWith(color: Palette.mist)),
-              const SizedBox(height: 14),
+              Text(count == '1.0' ? lm.name : lm.plural, style: t.headlineMedium),
+              const SizedBox(height: 8),
               Text(
-                '${formatMetres(week)} of thumb travel in 7 days\n${formatMetres(today)} today',
-                style: t.bodyMedium?.copyWith(color: Palette.snow.withValues(alpha: 0.85), fontFeatures: tabular),
+                'scrolled this week. ${formatMetres(week)} of thumb travel.',
+                style: t.bodyMedium?.copyWith(color: Palette.muted),
               ),
+              const SizedBox(height: 180),
             ]),
+          ),
+          Positioned(
+            right: 24,
+            top: 30,
+            child: Text('Scroll Debt', style: t.bodySmall),
           ),
         ]),
       ),

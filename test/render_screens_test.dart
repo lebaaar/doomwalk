@@ -27,18 +27,18 @@ import 'support/mocks.dart';
 final _write = Platform.environment['RENDER_SCREENS'] == '1';
 
 Future<void> _loadFonts() async {
-  final root = Platform.environment['FLUTTER_ROOT'] ?? '/opt/flutter';
-  final dir = '$root/bin/cache/artifacts/material_fonts';
-  final roboto = FontLoader('Roboto');
-  for (final w in ['Light', 'Regular', 'Medium', 'Bold']) {
-    final f = File('$dir/Roboto-$w.ttf');
-    if (f.existsSync()) roboto.addFont(Future.value(ByteData.sublistView(f.readAsBytesSync())));
+  Future<void> load(String family, List<String> files) async {
+    final l = FontLoader(family);
+    for (final f in files) {
+      final file = File(f);
+      if (file.existsSync()) l.addFont(Future.value(ByteData.sublistView(file.readAsBytesSync())));
+    }
+    await l.load();
   }
-  await roboto.load();
-  final icons = File('$dir/MaterialIcons-Regular.otf');
-  if (icons.existsSync()) {
-    await (FontLoader('MaterialIcons')..addFont(Future.value(ByteData.sublistView(icons.readAsBytesSync())))).load();
-  }
+
+  await load('Geist', [for (final w in ['Light', 'Regular', 'Medium', 'SemiBold']) 'assets/fonts/Geist-$w.ttf']);
+  await load('GeistMono', ['assets/fonts/GeistMono-Regular.ttf', 'assets/fonts/GeistMono-Medium.ttf']);
+  await load('Phosphor', ['assets/fonts/Phosphor-Regular.ttf']);
 }
 
 void main() {

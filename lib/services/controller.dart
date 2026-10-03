@@ -496,17 +496,18 @@ class ScrollDebtController extends ChangeNotifier {
     final endpoint = (target == 0 || target == 1) && target != _lastFrostSent;
     if (!force && !endpoint && (target - _lastFrostSent).abs() < 0.01) return;
     _lastFrostSent = target;
-    final label = '❄  ${formatMetres(debtM)} owed · walk it off';
+    final label = '${formatMetres(debtM)} to walk';
     _log('frost -> ${target.toStringAsFixed(3)} fg=$foreground');
     unawaited(_safe(() => _native.setFrost(target, label: label, animateMs: animateMs)));
   }
 
   void _pushNotification() {
-    final title = debtM < 0.05 ? 'Debt-free · ${formatMetres(allowanceLeftM, decimals: 0)} free scroll left'
-        : '${formatMetres(debtM)} owed';
+    final title = debtM < 0.05
+        ? 'Nothing owed. ${formatMetres(allowanceLeftM, decimals: 0)} of free scrolling left'
+        : '${formatMetres(debtM)} to walk';
     final text = overrideActive
-        ? 'Emergency pass active (3× cost) until ${_hhmm(overrideUntil!)}'
-        : '${formatMetres(state.scrolledTodayM)} scrolled today · ${nearestText(state.scrolledTodayM)}';
+        ? 'Emergency pass on until ${_hhmm(overrideUntil!)}. Scrolling costs ${config.overridePenalty.toStringAsFixed(0)}×.'
+        : '${formatMetres(state.scrolledTodayM)} scrolled today, ${nearestText(state.scrolledTodayM)}';
     final key = '$title|$text|$overridesLeft|$overrideActive';
     if (key == _lastNotif) return;
     _lastNotif = key;
@@ -535,12 +536,11 @@ class ScrollDebtController extends ChangeNotifier {
     unawaited(_safe(() async {
       await Future.wait([
         HomeWidget.saveWidgetData<String>('debt_text', formatMetres(debtM)),
-        HomeWidget.saveWidgetData<String>('caption_text', debtM < 0.05 ? 'debt-free' : 'owed'),
+        HomeWidget.saveWidgetData<String>('caption_text', debtM < 0.05 ? 'nothing owed' : 'to walk'),
         HomeWidget.saveWidgetData<int>('progress', (progressToZero * 100).round()),
         HomeWidget.saveWidgetData<String>(
             'scrolled_text', '${formatMetres(state.scrolledTodayM)} scrolled today'),
-        HomeWidget.saveWidgetData<String>('landmark_text',
-            '${nearestLandmark(state.scrolledTodayM).glyph}  ${nearestText(state.scrolledTodayM)}'),
+        HomeWidget.saveWidgetData<String>('landmark_text', nearestText(state.scrolledTodayM)),
       ]);
       await HomeWidget.updateWidget(qualifiedAndroidName: 'com.lan.scrolldebt.DebtWidgetSmall');
       await HomeWidget.updateWidget(qualifiedAndroidName: 'com.lan.scrolldebt.DebtWidgetLarge');

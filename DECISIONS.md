@@ -84,3 +84,30 @@ Reasonable defaults chosen without asking, as instructed.
   handles `DEBUG_WALK` (inject walked metres), `DEBUG_DUMP` and `DEBUG_RESET`. Dart
   also checks `kDebugMode`.
 * Logs are `SD …` lines under the `flutter` logcat tag, in debug builds only.
+
+## Visual design (taste-skill pass)
+The UI was reworked against the anti-slop rules from
+[tasteskill.dev](https://www.tasteskill.dev/) (source: github.com/Leonxlnx/taste-skill;
+the site itself is blocked by this environment's network policy). The skill targets web
+landing pages, so only its general rules were applied:
+* **One accent** (alpenglow orange `#E58A57`, saturation under 80%) used only for debt
+  and primary actions, on a single cool neutral scale. The previous four accents
+  (blue, orange, green, red) are gone.
+* **Type:** Geist with tabular figures, and Geist Mono for the gauge scale only. Both
+  are bundled under the OFL in `assets/fonts`. No Roboto or Inter default.
+* **Icons:** Phosphor Regular as one family, bundled as a font (MIT). The
+  `phosphor_flutter` package was abandoned in 2024 and no longer compiles, because
+  `IconData` is now a final class. No emoji anywhere.
+* **No eyebrows:** the uppercase wide-tracked labels on every section became
+  sentence-case section titles.
+* **Cards only where elevation means something:** the gauge, the active onboarding
+  step and the "tracking off" alert. Everything else is grouped with hairlines and
+  space, so the three equal stat cards are now a plain figure row.
+* **No progress bars with filled tracks.** Per-app bars are track-less, and landmark
+  progress is written out as text.
+* **No glow halo or decorative stars** in the gauge.
+* **One radius scale:** 16 for surfaces, 8 for small elements, pills for buttons.
+* **Copy pass:** no em or en dashes, middle dots rationed, plain sentences instead of
+  cute lines.
+* **Onboarding** renders the steps only after the first status check, so there is no
+  flash of wrong state.

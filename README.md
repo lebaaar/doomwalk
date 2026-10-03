@@ -69,13 +69,13 @@ adb logcat -s flutter | grep 'SD '
    battery saver is **off** because it disables blur.
 2. Open Scroll Debt → ⚙ → **Demo mode** on → back. The dashboard shows *DEMO*:
    2 m free, 1:1, full frost at 15 m.
-3. Open Instagram and doom-scroll the feed for about 30–45 s (around 60–80 flicks).
-   The frost fades in as you go, with the "❄ x m owed · walk it off" pill. Tap a post
+3. Open Instagram and doom-scroll the feed for about 30-45 s (around 60-80 flicks).
+   The frost fades in as you go, with an "x m to walk" label at the top. Tap a post
    to show that touches still work through the frost.
 4. Pull down the notification: "x m owed", with the **Emergency pass** button (3× cost).
 5. Open Scroll Debt: the climber is at the summit, the debt number is large, Instagram
    is at the top of *By app*, with "0.0x Eiffel Towers today".
-6. Walk about 20–30 steps around the stage. Debt counts down, the climber descends, and
+6. Walk about 20-30 steps around the stage. Debt counts down, the climber descends, and
    back in Instagram the frost melts. (Backup in debug builds: the *Walk +25 m*
    button.)
 7. Tap Instagram in *By app* → **Share** for the "Instagram: … this week" card.

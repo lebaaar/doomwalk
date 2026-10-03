@@ -1,12 +1,11 @@
-import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
 import 'theme.dart';
 
-/// The "climb": debt drawn as altitude on a mountain. The summit is the frost
-/// line (full frost); walking brings the climber back down to base camp.
+/// The "climb": debt drawn as altitude on a ridge profile. The summit is the
+/// full-frost line; walking brings the marker back down to the trailhead.
 class AltitudeGauge extends StatelessWidget {
   const AltitudeGauge({super.key, required this.fraction, required this.frostMaxM, this.showScale = true});
 
@@ -18,132 +17,96 @@ class AltitudeGauge extends StatelessWidget {
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<double>(
         tween: Tween(end: fraction.clamp(0.0, 1.0)),
-        duration: const Duration(milliseconds: 700),
+        duration: const Duration(milliseconds: 900),
         curve: Curves.easeOutCubic,
         builder: (_, v, _) => CustomPaint(
-          painter: _GaugePainter(v, frostMaxM, over: fraction > 1, showScale: showScale),
+          painter: _GaugePainter(v, frostMaxM, showScale: showScale),
           size: Size.infinite,
         ),
       );
 }
 
 class _GaugePainter extends CustomPainter {
-  _GaugePainter(this.f, this.frostMaxM, {required this.over, required this.showScale});
+  _GaugePainter(this.f, this.frostMaxM, {required this.showScale});
   final double f;
   final double frostMaxM;
-  final bool over;
   final bool showScale;
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
-    final base = h * 0.94;
-    final peak = Offset(w * 0.62, h * 0.12);
+    final base = h;
+    final peak = Offset(w * 0.64, h * 0.16);
 
-    // Sky: colder as the climb goes up.
-    final sky = Paint()
-      ..shader = ui.Gradient.linear(Offset.zero, Offset(0, h), [
-        Color.lerp(Palette.night, const Color(0xFF1C3350), f)!,
-        Palette.night,
-      ]);
-    canvas.drawRect(Offset.zero & size, sky);
-
-    // Stars.
-    final star = Paint()..color = Palette.snow.withValues(alpha: 0.35);
-    final rnd = math.Random(7);
-    for (var i = 0; i < 28; i++) {
-      canvas.drawCircle(Offset(rnd.nextDouble() * w, rnd.nextDouble() * h * 0.45), rnd.nextDouble() * 1.1 + 0.2, star);
+    // Own backdrop only when shown standalone; embedded (share card) it
+    // sits directly on the host surface.
+    if (showScale) {
+      canvas.drawRect(
+        Offset.zero & size,
+        Paint()..shader = ui.Gradient.linear(Offset.zero, Offset(0, h), [Palette.raised2, Palette.raised]),
+      );
     }
 
-    // Back ridge.
-    final back = Path()
+    // Far ridge.
+    final far = Path()
       ..moveTo(0, base)
-      ..lineTo(w * 0.18, h * 0.52)
-      ..lineTo(w * 0.30, h * 0.62)
-      ..lineTo(w * 0.42, h * 0.40)
-      ..lineTo(w * 0.86, h * 0.30)
-      ..lineTo(w, h * 0.46)
+      ..lineTo(0, h * 0.62)
+      ..lineTo(w * 0.20, h * 0.48)
+      ..lineTo(w * 0.33, h * 0.58)
+      ..lineTo(w * 0.47, h * 0.38)
+      ..lineTo(w * 0.88, h * 0.34)
+      ..lineTo(w, h * 0.44)
       ..lineTo(w, base)
       ..close();
-    canvas.drawPath(back, Paint()..color = Palette.slate);
+    canvas.drawPath(far, Paint()..color = Palette.hairline.withValues(alpha: 0.55));
 
-    // Main peak.
-    final left = Offset(w * 0.08, base);
-    final right = Offset(w * 1.02, base);
-    final mountain = Path()
-      ..moveTo(left.dx, left.dy)
-      ..lineTo(w * 0.34, h * 0.56)
-      ..lineTo(w * 0.42, h * 0.50)
+    // Main ridge.
+    final ridge = Path()
+      ..moveTo(w * 0.04, base)
+      ..lineTo(w * 0.36, h * 0.60)
+      ..lineTo(w * 0.45, h * 0.53)
       ..lineTo(peak.dx, peak.dy)
-      ..lineTo(w * 0.80, h * 0.48)
-      ..lineTo(right.dx, right.dy)
+      ..lineTo(w * 0.81, h * 0.50)
+      ..lineTo(w * 1.02, base)
       ..close();
     canvas.drawPath(
-      mountain,
+      ridge,
       Paint()
-        ..shader = ui.Gradient.linear(peak, Offset(peak.dx, base), [
-          const Color(0xFF3A5A80),
-          Palette.ridge,
-        ]),
+        ..shader = ui.Gradient.linear(peak, Offset(peak.dx, base), [const Color(0xFF2C3642), Palette.raised]),
     );
 
-    // Frost line + snow cap above it.
-    final frostY = peak.dy + (base - peak.dy) * 0.0;
-    final cap = Path()
-      ..moveTo(peak.dx, peak.dy)
-      ..lineTo(peak.dx + w * 0.055, peak.dy + h * 0.13)
-      ..lineTo(peak.dx + w * 0.02, peak.dy + h * 0.10)
-      ..lineTo(peak.dx - w * 0.01, peak.dy + h * 0.14)
-      ..lineTo(peak.dx - w * 0.045, peak.dy + h * 0.10)
-      ..close();
-    canvas.drawPath(cap, Paint()..color = Palette.snow.withValues(alpha: 0.9));
-
-    // Altitude ticks on the left: 0, 25, 50, 75, 100 % of the frost line.
-    final tick = Paint()
-      ..color = Palette.line.withValues(alpha: 0.6)
-      ..strokeWidth = 1;
-    for (var i = 0; showScale && i <= 4; i++) {
-      final y = base - (base - frostY) * i / 4;
-      canvas.drawLine(Offset(0, y), Offset(w * 0.05, y), tick);
-      final tp = TextPainter(
-        text: TextSpan(
-          text: i == 4 ? 'FROST ${frostMaxM.toStringAsFixed(0)} m' : (frostMaxM * i / 4).toStringAsFixed(0),
-          style: TextStyle(
-            fontFamily: 'Roboto',
-            fontSize: 9,
-            letterSpacing: 1.2,
-            color: i == 4 ? Palette.glacier : Palette.mist.withValues(alpha: 0.7),
-            fontFeatures: tabular,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, Offset(w * 0.06, y - tp.height / 2));
-    }
-
-    // Dashed frost line across.
+    // Frost line at the summit.
+    final frostY = peak.dy;
     final dash = Paint()
-      ..color = Palette.glacier.withValues(alpha: 0.5)
+      ..color = Palette.muted.withValues(alpha: 0.5)
       ..strokeWidth = 1;
-    for (var x = w * 0.30; x < w; x += 8) {
-      canvas.drawLine(Offset(x, frostY), Offset(x + 4, frostY), dash);
+    for (var x = 0.0; x < w; x += 7) {
+      canvas.drawLine(Offset(x, frostY), Offset(x + 3, frostY), dash);
     }
 
-    // Trail from base camp up the left slope to the summit.
+    if (showScale) {
+      _label(canvas, 'Full frost ${frostMaxM.toStringAsFixed(0)} m', Offset(14, frostY - 18), Palette.muted);
+      for (var i = 1; i < 4; i++) {
+        final y = base - (base - frostY) * i / 4;
+        canvas.drawLine(Offset(0, y), Offset(8, y), dash);
+        _label(canvas, (frostMaxM * i / 4).toStringAsFixed(0), Offset(14, y - 7), Palette.faint);
+      }
+    }
+
+    // Trail from the trailhead up the left flank to the summit.
     final trail = Path()
-      ..moveTo(w * 0.16, base)
-      ..lineTo(w * 0.34, h * 0.56)
-      ..lineTo(w * 0.42, h * 0.50)
+      ..moveTo(w * 0.15, base)
+      ..lineTo(w * 0.36, h * 0.60)
+      ..lineTo(w * 0.45, h * 0.53)
       ..lineTo(peak.dx, peak.dy);
     final metric = trail.computeMetrics().first;
-    // Map fraction of altitude to distance along the trail.
+
     double distForAltitude(double frac) {
       final targetY = base - (base - peak.dy) * frac;
       var lo = 0.0, hi = metric.length;
       for (var i = 0; i < 24; i++) {
         final mid = (lo + hi) / 2;
-        final y = metric.getTangentForOffset(mid)!.position.dy;
-        if (y > targetY) {
+        if (metric.getTangentForOffset(mid)!.position.dy > targetY) {
           lo = mid;
         } else {
           hi = mid;
@@ -153,34 +116,40 @@ class _GaugePainter extends CustomPainter {
     }
 
     final at = distForAltitude(f);
-    final climbed = metric.extractPath(0, at);
     canvas.drawPath(
-      metric.extractPath(0, metric.length),
+      metric.extractPath(at, metric.length),
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 1.5
-        ..color = Palette.mist.withValues(alpha: 0.25),
+        ..color = Palette.faint.withValues(alpha: 0.6),
     );
     canvas.drawPath(
-      climbed,
+      metric.extractPath(0, at),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
+        ..strokeWidth = 2.5
         ..strokeCap = StrokeCap.round
-        ..color = Palette.summit,
+        ..strokeJoin = StrokeJoin.round
+        ..color = Palette.accent,
     );
 
-    // Climber.
     final pos = metric.getTangentForOffset(at)!.position;
-    final hot = over ? Palette.alpenglow : Palette.summit;
-    canvas.drawCircle(pos, 13, Paint()..color = hot.withValues(alpha: 0.18));
-    canvas.drawCircle(pos, 6.5, Paint()..color = hot);
-    canvas.drawCircle(pos, 2.5, Paint()..color = Palette.night);
+    canvas.drawCircle(pos, 7, Paint()..color = Palette.ink);
+    canvas.drawCircle(pos, 5, Paint()..color = Palette.accent);
+  }
 
-    // Base camp.
-    canvas.drawCircle(Offset(w * 0.16, base), 4, Paint()..color = Palette.moss);
+  void _label(Canvas canvas, String text, Offset at, Color color) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(fontFamily: 'GeistMono', fontSize: 10, color: color, fontFeatures: tabular),
+      ),
+      textDirection: TextDirection.ltr,
+    )..layout();
+    tp.paint(canvas, at);
   }
 
   @override
-  bool shouldRepaint(_GaugePainter old) => old.f != f || old.over != over || old.frostMaxM != frostMaxM || old.showScale != showScale;
+  bool shouldRepaint(_GaugePainter old) =>
+      old.f != f || old.frostMaxM != frostMaxM || old.showScale != showScale;
 }

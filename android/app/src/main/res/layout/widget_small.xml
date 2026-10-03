@@ -22,7 +22,7 @@
             android:fontFamily="sans-serif-medium"
             android:maxLines="1"
             android:text="0 m"
-            android:textColor="#FFFFB86B"
+            android:textColor="#FFE58A57"
             android:textSize="22sp" />
         <TextView
             android:id="@+id/w_caption"
@@ -31,8 +31,8 @@
             android:layout_marginStart="6dp"
             android:layout_marginBottom="3dp"
             android:maxLines="1"
-            android:text="owed"
-            android:textColor="#FF9FB3C8"
+            android:text="to walk"
+            android:textColor="#FF8C96A3"
             android:textSize="12sp" />
     </LinearLayout>
     <ProgressBar

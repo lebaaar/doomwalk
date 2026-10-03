@@ -4,11 +4,10 @@ library;
 import 'dart:math' as math;
 
 class Landmark {
-  const Landmark(this.name, this.plural, this.heightM, this.glyph);
+  const Landmark(this.name, this.plural, this.heightM);
   final String name;
   final String plural;
   final double heightM;
-  final String glyph;
 
   String count(double metres, {int decimals = 1}) {
     final n = metres / heightM;
@@ -17,10 +16,10 @@ class Landmark {
   }
 }
 
-const eiffel = Landmark('Eiffel Tower', 'Eiffel Towers', 330, '🗼');
-const burj = Landmark('Burj Khalifa', 'Burj Khalifas', 828, '🏙');
-const everest = Landmark('Everest', 'Everests', 8849, '🏔');
-const karman = Landmark('Kármán line', 'Kármán lines', 100000, '🚀');
+const eiffel = Landmark('Eiffel Tower', 'Eiffel Towers', 330);
+const burj = Landmark('Burj Khalifa', 'Burj Khalifas', 828);
+const everest = Landmark('Everest', 'Everests', 8849);
+const karman = Landmark('Kármán line', 'Kármán lines', 100000);
 
 const landmarks = [eiffel, burj, everest, karman];
 
