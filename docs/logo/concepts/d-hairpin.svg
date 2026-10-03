@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title">
+  <title id="title">Hairpin</title>
+  <g transform="translate(-22 0)">
+
+  <path d="M88 44 V168 A40 40 0 0 0 168 168 V100" fill="none" stroke="#000" stroke-width="30" stroke-linecap="round"/>
+  <path d="M168 36 L212 96 H124 Z" fill="#000" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
+  </g>
+</svg>

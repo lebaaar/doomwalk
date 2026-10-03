@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title">
+  <title id="title">Chevron dive</title>
+
+  <path d="M40.0 48 L128 114.9 L216.0 48" fill="none" stroke="#000" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/><path d="M62.0 104 L128 154.2 L194.0 104" fill="none" stroke="#000" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/><path d="M82.0 152 L128 187.0 L174.0 152" fill="none" stroke="#000" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/><path d="M100.0 192 L128 213.3 L156.0 192" fill="none" stroke="#000" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
