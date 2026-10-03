@@ -191,6 +191,13 @@ void main() {
     await shot('tab_activity_light', null);
     tester.view.physicalSize = const Size(1080, 2400);
 
+    // Tapping an app opens its share card in a sheet with the buttons inside.
+    await tester.tap(find.text('Instagram').first);
+    await tester.pump(const Duration(seconds: 1));
+    await shot('share_dialog_light', null);
+    await tester.tap(find.text('Close'));
+    await tester.pump(const Duration(seconds: 1));
+
     // Free scrolling used up exactly, nothing owed yet: "done for the day".
     await tester.runAsync(() async {
       await c.setDeveloperOptions(true);

@@ -58,22 +58,32 @@ class _ShareDialogState extends State<_ShareDialog> {
 
   @override
   Widget build(BuildContext context) {
+    // A solid sheet in the page colour, so the card (raised) stands out and
+    // the buttons never sit over the screen behind.
     return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.all(20),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        RepaintBoundary(key: _boundary, child: ShareCard(c: widget.c, pkg: widget.pkg)),
-        const SizedBox(height: 16),
-        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
-          const SizedBox(width: 12),
-          FilledButton.icon(
-            onPressed: _busy ? null : _share,
-            icon: const Icon(Ph.export, size: 18),
-            label: const Text('Share'),
-          ),
+      backgroundColor: context.colors.ink,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(12),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          RepaintBoundary(key: _boundary, child: ShareCard(c: widget.c, pkg: widget.pkg)),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: OutlinedButton(onPressed: () => Navigator.pop(context), child: const Text('Close')),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: _busy ? null : _share,
+                icon: const Icon(Ph.export, size: 18),
+                label: const Text('Share'),
+              ),
+            ),
+          ]),
         ]),
-      ]),
+      ),
     );
   }
 }
@@ -103,7 +113,7 @@ class ShareCard extends StatelessWidget {
           // The mark, large and faint, sinking off the bottom edge.
           Positioned(
             right: -36,
-            bottom: -48,
+            bottom: -84,
             child: DepthTicks(size: 240, color: context.colors.accent.withValues(alpha: 0.16)),
           ),
           Padding(
