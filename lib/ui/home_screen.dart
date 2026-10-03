@@ -300,8 +300,9 @@ class _Health extends StatelessWidget {
       ),
       const SizedBox(height: 16),
       // Seven days, oldest left. The dashed line is the daily goal.
+      // 72 px of bars + 20 px of day labels + headroom for the goal label.
       SizedBox(
-        height: 96,
+        height: 112,
         child: LayoutBuilder(builder: (context, box) {
           final goalY = peak <= 0 ? 0.0 : 72 * goal / peak;
           return Stack(children: [
