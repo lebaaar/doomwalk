@@ -113,19 +113,45 @@ void main() {
     c.dispose();
   });
 
-  test('debug scroll injection is priced like real scrolling', () async {
+  test('developer tools do nothing until developer options are on', () async {
     final c = await ScrollDebtController.start();
+    await c.updateConfig(const DebtConfig(allowanceM: 0));
+    c.devAddScroll('com.instagram.android', 10);
+    c.devAddSteps(1000);
+    expect(c.state.scrolledTodayM, 0);
+    expect(c.state.walkedTodayM, 0);
+    await c.setDeveloperOptions(true);
+    c.devAddScroll('com.instagram.android', 10);
+    expect(c.state.scrolledTodayM, closeTo(10, 1e-9));
+    c.devAddSteps(1000); // stride 0.75 m
+    expect(c.state.walkedTodayM, closeTo(750, 1e-9));
+    c.dispose();
+  });
+
+  test('turning developer options off also ends demo mode', () async {
+    final c = await ScrollDebtController.start();
+    await c.setDeveloperOptions(true);
+    await c.updateConfig(c.config.copyWith(demoMode: true));
+    await c.setDeveloperOptions(false);
+    expect(c.config.demoMode, isFalse);
+    expect(c.developerOptions, isFalse);
+    c.dispose();
+  });
+
+  test('developer scroll is priced like real scrolling', () async {
+    final c = await ScrollDebtController.start();
+    await c.setDeveloperOptions(true);
     await c.updateConfig(const DebtConfig(allowanceM: 5));
-    c.debugInjectScroll('com.instagram.android', 10); // 5 free, 5 * 2x * ratio 2
+    c.devAddScroll('com.instagram.android', 10); // 5 free, 5 * 2x * ratio 2
     expect(c.debtM, closeTo(20, 1e-9));
     expect(c.todayApps['com.instagram.android']!.rawM, closeTo(10, 1e-9));
-    c.debugInjectScroll('com.android.chrome', 10); // browsers aren't restricted by default
+    c.devAddScroll('com.android.chrome', 10); // browsers aren't restricted by default
     expect(c.debtM, closeTo(20, 1e-9));
     await c.setCategoryRestricted(AppCategory.browser, true);
-    c.debugInjectScroll('com.android.chrome', 10); // now 1x
+    c.devAddScroll('com.android.chrome', 10); // now 1x
     expect(c.debtM, closeTo(40, 1e-9));
-    c.debugInjectScroll('com.google.android.apps.maps', 10); // free app
-    c.debugInjectScroll('com.android.settings', 10); // exempt
+    c.devAddScroll('com.google.android.apps.maps', 10); // free app
+    c.devAddScroll('com.android.settings', 10); // exempt
     expect(c.state.scrolledTodayM, closeTo(20, 1e-9));
     await sendNative('debugInjectScroll', {'pkg': 'com.reddit.frontpage', 'metres': 1.0});
     expect(c.todayApps['com.reddit.frontpage']!.rawM, closeTo(1, 1e-9));

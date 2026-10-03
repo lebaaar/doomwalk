@@ -101,7 +101,7 @@ class _GaugePainter extends CustomPainter {
       for (var m = step; step > 0 && m < frostMaxM * 0.9; m += step) {
         final y = base - (base - frostY) * m / frostMaxM;
         canvas.drawLine(Offset(0, y), Offset(8, y), dash);
-        _label(canvas, m.toStringAsFixed(m % 1 == 0 ? 0 : 1), Offset(14, y - 7), c.faint);
+        _label(canvas, m.toStringAsFixed(m % 1 == 0 ? 0 : 1), Offset(14, y - 7), c.muted);
       }
     }
 
@@ -154,7 +154,7 @@ class _GaugePainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         text: text,
-        style: TextStyle(fontFamily: 'GeistMono', fontSize: 10, color: color, fontFeatures: tabular),
+        style: TextStyle(fontFamily: font, fontSize: 11, color: color, fontFeatures: tabular),
       ),
       textDirection: TextDirection.ltr,
     )..layout();

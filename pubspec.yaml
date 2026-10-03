@@ -61,23 +61,18 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   fonts:
-    # Geist + Geist Mono (SIL OFL 1.1, see assets/fonts/OFL-Geist.txt)
-    - family: Geist
+    # Roboto Flex (SIL OFL 1.1, see assets/fonts/OFL-RobotoFlex.txt), the
+    # Material 3 typeface. Static instances cut from the variable font.
+    - family: RobotoFlex
       fonts:
-        - asset: assets/fonts/Geist-Light.ttf
+        - asset: assets/fonts/RobotoFlex-Light.ttf
           weight: 300
-        - asset: assets/fonts/Geist-Regular.ttf
+        - asset: assets/fonts/RobotoFlex-Regular.ttf
           weight: 400
-        - asset: assets/fonts/Geist-Medium.ttf
+        - asset: assets/fonts/RobotoFlex-Medium.ttf
           weight: 500
-        - asset: assets/fonts/Geist-SemiBold.ttf
+        - asset: assets/fonts/RobotoFlex-SemiBold.ttf
           weight: 600
-    - family: GeistMono
-      fonts:
-        - asset: assets/fonts/GeistMono-Regular.ttf
-          weight: 400
-        - asset: assets/fonts/GeistMono-Medium.ttf
-          weight: 500
     - family: Phosphor
       fonts:
         - asset: assets/fonts/Phosphor-Regular.ttf

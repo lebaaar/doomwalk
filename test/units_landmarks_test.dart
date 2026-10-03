@@ -3,6 +3,12 @@ import 'package:scrolldebt/core/landmarks.dart';
 import 'package:scrolldebt/core/units.dart';
 
 void main() {
+  test('round figures drop needless decimals', () {
+    expect(formatRound(60), '60 m');
+    expect(formatRound(5000), '5 km');
+    expect(formatRound(1500), '1.5 km');
+  });
+
   group('pixels to metres', () {
     test('one inch of pixels is 2.54 cm', () {
       expect(pixelsToMetres(420, 420), closeTo(0.0254, 1e-12));

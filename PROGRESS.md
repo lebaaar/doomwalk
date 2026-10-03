@@ -33,8 +33,8 @@ swipes in Chrome, takes screenshots and greps logcat into `docs/device/`.
 | 3 | Frost overlay (blur-behind / translucent), touch-through, not over exempt apps | partial | `FrostOverlay` compiles; pipeline test checks frost 1 → 0 on dialer → 1 → 0 on override → cleared by walking. Real rendering is **unverified**. |
 | 4 | Onboarding with deep links, live status, auto-advance | partial | `host_onboarding.png` |
 | 5 | Home widget 2×1 / 4×2 | partial | provider + layouts written; pipeline test checks the pushed data. **Not seen on a home screen.** |
-| 6 | Landmarks | partial | `test/units_landmarks_test.dart`, `host_home_full.png` |
-| 7 | Per-app rates + whitelist, editable | partial | `test/scroll_test.dart` (AppCatalog), pipeline "0x and exempt" test, `host_settings.png` |
+| 6 | Landmarks | partial | `test/units_landmarks_test.dart`, `host_tab_activity.png` |
+| 7 | Per-app rates + whitelist, editable | partial | `test/scroll_test.dart` (AppCatalog), pipeline "0x and exempt" test, `host_settings_apps_that_count.png` |
 | 8 | Emergency override | partial | engine + pipeline tests |
 | 9 | Flick-velocity weighting | partial | FlickWeigher tests |
 | 10 | Share card | partial | `host_share_card.png`; the share sheet itself is untested |

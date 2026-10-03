@@ -2,7 +2,7 @@
 // Always a smoke test (no exceptions while building). With
 //   RENDER_SCREENS=1 flutter test test/render_screens_test.dart
 // it also writes PNGs to docs/screenshots/host_*.png for design review.
-// (Host fonts: Roboto from the Flutter SDK; emoji render as boxes here.)
+// (Emoji render as boxes on the host.)
 
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -17,7 +17,6 @@ import 'package:scrolldebt/services/controller.dart';
 import 'package:scrolldebt/ui/home_screen.dart';
 import 'package:scrolldebt/ui/onboarding_screen.dart';
 import 'package:scrolldebt/ui/providers.dart';
-import 'package:scrolldebt/ui/settings_screen.dart';
 import 'package:scrolldebt/ui/share_card.dart';
 import 'package:scrolldebt/ui/theme.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -36,9 +35,11 @@ Future<void> _loadFonts() async {
     await l.load();
   }
 
-  await load('Geist', [for (final w in ['Light', 'Regular', 'Medium', 'SemiBold']) 'assets/fonts/Geist-$w.ttf']);
-  await load('GeistMono', ['assets/fonts/GeistMono-Regular.ttf', 'assets/fonts/GeistMono-Medium.ttf']);
+  await load('RobotoFlex', [for (final w in ['Light', 'Regular', 'Medium', 'SemiBold']) 'assets/fonts/RobotoFlex-$w.ttf']);
   await load('Phosphor', ['assets/fonts/Phosphor-Regular.ttf']);
+  // Back arrows etc. The flutter tool sets FLUTTER_ROOT for test runs.
+  final sdk = Platform.environment['FLUTTER_ROOT'] ?? '';
+  await load('MaterialIcons', ['$sdk/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf']);
   await load('PhosphorFill', ['assets/fonts/Phosphor-Fill.ttf']);
 }
 
@@ -96,8 +97,11 @@ void main() {
 
     Future<void> shot(String name, Widget? child) async {
       if (child != null) screen.value = child;
-      await tester.pump(const Duration(seconds: 2));
-      await tester.pump(const Duration(seconds: 2));
+      // Small steps, like real frames: one big jump skips the end of the
+      // theme animation and leaves buttons in the old theme's colours.
+      for (var i = 0; i < 40; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
       expect(tester.takeException(), isNull);
       if (!_write) return;
       await tester.runAsync(() async {
@@ -109,27 +113,57 @@ void main() {
       });
     }
 
-    await shot('home', const HomeScreen());
-    tester.view.physicalSize = const Size(1080, 7000);
-    await shot('home_full', const HomeScreen());
-    tester.view.physicalSize = const Size(1080, 2400);
-    for (final tab in ['Health', 'Apps', 'Settings']) {
-      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text(tab)));
-      await shot('tab_${tab.toLowerCase()}', null);
+    Future<void> tab(String label) async {
+      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text(label)));
+      await tester.pump(const Duration(seconds: 1));
     }
-    await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text('Today')));
+
+    Future<void> open(String text) async {
+      await tester.tap(find.text(text).first);
+      await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5));
+    }
+
+    Future<void> back() async {
+      await tester.pageBack();
+      await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5));
+    }
+
+    await shot('home', const HomeScreen());
+    await tester.tap(find.textContaining('adds up'));
     await tester.pump(const Duration(seconds: 1));
+    await shot('ledger', null);
+    Navigator.of(tester.element(find.byType(LedgerView))).pop();
+    await tester.pump(const Duration(seconds: 1));
+    tester.view.physicalSize = const Size(1080, 4000);
+    await tab('Activity');
+    await shot('tab_activity', null);
+    await tab('Settings');
+    await shot('tab_settings', null);
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Developer options'));
+    await tester.pump(const Duration(seconds: 1));
+    tester.view.physicalSize = const Size(1080, 5000);
+    await shot('settings_developer', null);
+    await tester.tap(find.widgetWithText(SwitchListTile, 'Developer options'));
+    await tester.pump(const Duration(seconds: 1));
+    tester.view.physicalSize = const Size(1080, 2400);
+    for (final (page, name) in [('Apps that count', 'apps_that_count'), ('Custom rules', 'custom_rules')]) {
+      await tester.drag(find.byType(ListView).last, const Offset(0, 600));
+      await tester.pump();
+      await open(page);
+      await shot('settings_$name', null);
+      await back();
+    }
+    await tab('Today');
     await shot('onboarding', const OnboardingScreen());
-    await shot('settings', const SettingsScreen());
     await shot('share_card', Scaffold(
       body: Center(child: Padding(padding: const EdgeInsets.all(20), child: ShareCard(c: c, pkg: 'com.instagram.android'))),
     ));
 
     brightness.value = Brightness.light;
     await shot('home_light', const HomeScreen());
-    tester.view.physicalSize = const Size(1080, 7000);
-    await shot('home_full_light', const HomeScreen());
-    await shot('settings_full', const SettingsScreen());
+    tester.view.physicalSize = const Size(1080, 4000);
+    await tab('Activity');
+    await shot('tab_activity_light', null);
     tester.view.physicalSize = const Size(1080, 2400);
 
     // Unmounting the scope disposes the controller (and closes the DB).

@@ -28,6 +28,15 @@ abstract final class Ph {
   static const mountains = IconData(0xe7ae, fontFamily: _f);
   static const heartbeat = IconData(0xe2ac, fontFamily: _f);
   static const gear = IconData(0xe272, fontFamily: _f);
+  static const chartBar = IconData(0xe150, fontFamily: _f);
+  static const footprints = IconData(0xea88, fontFamily: _f);
+  static const code = IconData(0xe1bc, fontFamily: _f);
+  static const user = IconData(0xe4c2, fontFamily: _f);
+  static const palette = IconData(0xe6c8, fontFamily: _f);
+  static const shieldCheck = IconData(0xe40c, fontFamily: _f);
+  static const sliders = IconData(0xe432, fontFamily: _f);
+  static const ticket = IconData(0xe490, fontFamily: _f);
+  static const arrowCounterClockwise = IconData(0xe038, fontFamily: _f);
 }
 
 /// Phosphor Fill, same code points, for selected states.
@@ -37,4 +46,5 @@ abstract final class PhFill {
   static const heartbeat = IconData(0xe2ac, fontFamily: _f);
   static const squaresFour = IconData(0xe464, fontFamily: _f);
   static const gear = IconData(0xe272, fontFamily: _f);
+  static const chartBar = IconData(0xe150, fontFamily: _f);
 }

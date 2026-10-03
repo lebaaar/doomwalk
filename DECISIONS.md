@@ -83,6 +83,8 @@ Reasonable defaults chosen without asking, as instructed.
 * The debug-only `DebugReceiver` (in `src/debug`, so it is absent from release)
   handles `DEBUG_WALK` (inject walked metres), `DEBUG_DUMP` and `DEBUG_RESET`. Dart
   also checks `kDebugMode`.
+* In-app testing tools live behind **Settings → Developer options** (see round 4),
+  in any build.
 * Logs are `SD …` lines under the `flutter` logcat tag, in debug builds only.
 
 ## Visual design (taste-skill pass)
@@ -93,8 +95,8 @@ landing pages, so only its general rules were applied:
 * **One accent** (glacier cyan `#7CC4E8`, matching the frost overlay) used only for debt
   and primary actions, on a single cool neutral scale. The previous four accents
   (blue, orange, green, red) are gone.
-* **Type:** Geist with tabular figures, and Geist Mono for the gauge scale only. Both
-  are bundled under the OFL in `assets/fonts`. No Roboto or Inter default.
+* **Type:** Geist with tabular figures, and Geist Mono for the gauge scale only.
+  (Replaced by Roboto Flex in round 4.)
 * **Icons:** Phosphor Regular as one family, bundled as a font (MIT). The
   `phosphor_flutter` package was abandoned in 2024 and no longer compiles, because
   `IconData` is now a final class. No emoji anywhere.
@@ -134,3 +136,35 @@ landing pages, so only its general rules were applied:
   line, kcal today and for the week, and a goal streak. Debt is also shown as
   kcal. Walked metres per day are stored in a new `walk_day` table (DB v2,
   migrated).
+
+## Round 4: Material 3 redesign (direction B)
+An MD3 audit (hamen/material-3-skill, audit mode) scored the previous UI 60/100 and
+the Today screen showed about 20 numbers. Direction B was chosen from three options:
+* **Three tabs:** Today, Activity (the old Health and Apps tabs merged, with a
+  Today / Last 7 days switch) and Settings. The theme toggle left the app bar; it
+  lives in Settings → Appearance.
+* **Today is three cards:** what you owe (number, frost bar, which apps are frozen,
+  the emergency pass as a tonal button that only shows while you owe), walking
+  (goal ring) and the top three apps. The ledger moved to a bottom sheet opened by
+  tapping the debt card. It reads as a sum that ends at the number on the card.
+* **Settings is a short list:** a Gentle / Balanced / Strict preset
+  (`lib/core/presets.dart`; Balanced is the default config) sets free scrolling,
+  the walking ratio, full-frost debt and overnight growth at once. Individual
+  sliders moved to sub-pages (Apps that count, Emergency passes, Custom rules, You,
+  Appearance, Privacy and data).
+* **Developer options** is a persisted switch (`dev_options`). Only while it is on
+  does Settings show demo mode, *Add steps to today*, *Add scrolling* to a chosen
+  app, *Refill emergency passes* and *Show setup again*. Every controller method
+  behind them (`devAddSteps`, `devAddScroll`, ...) checks the flag again, and
+  turning the switch off also ends demo mode, so nothing fake stays active
+  unseen. The adb hooks used by `tool/device_test.sh` still need a debug build.
+* **Type:** Roboto Flex, the Material 3 typeface, as four static weights cut from
+  the variable font with fontTools (OFL, `assets/fonts/OFL-RobotoFlex.txt`). Its
+  digits are tabular by default. The Glacier palette stays; dynamic colour is off
+  on purpose.
+* **Audit fixes:** MD3 corner scale (cards 12, sheets and dialogs 28), 16 dp
+  margins, a separate `danger` colour for problems (it used to equal the accent),
+  `faint` no longer used for text (it was 2.5 to 3.1:1), 48 dp touch targets on
+  buttons and sliders, `Semantics` labels on the debt number, goal ring and week
+  chart, a fade between tabs that respects reduced motion, and predictive back
+  (`enableOnBackInvokedCallback`).

@@ -248,7 +248,7 @@ class _StepRow extends StatelessWidget {
           Icon(
             done ? Ph.checkCircle : Ph.circle,
             size: 20,
-            color: done ? context.colors.text : context.colors.faint,
+            color: done ? context.colors.text : context.colors.muted,
           ),
           const SizedBox(width: 14),
           Expanded(

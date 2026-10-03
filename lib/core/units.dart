@@ -29,3 +29,12 @@ String formatMetres(double m, {int decimals = 1}) {
   if (m.abs() >= 1000) return '${(m / 1000).toStringAsFixed(2)} km';
   return '${m.toStringAsFixed(decimals)} m';
 }
+
+/// Round figures for settings and goals: "60 m", "5 km", "1.5 km".
+String formatRound(double m) {
+  if (m.abs() >= 1000) {
+    final km = m / 1000;
+    return '${km == km.roundToDouble() ? km.toStringAsFixed(0) : km.toStringAsFixed(1)} km';
+  }
+  return '${m.round()} m';
+}

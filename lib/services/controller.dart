@@ -56,6 +56,10 @@ class ScrollDebtController extends ChangeNotifier {
   /// 'system' | 'light' | 'dark'.
   String themeMode = 'system';
 
+  /// Settings > Developer options. Gates every tool that fakes data
+  /// (adding steps or scrolling, demo mode), in any build.
+  bool developerOptions = false;
+
   /// Walked metres per previous day, newest first (today is live in state).
   List<(String, double)> walkHistory = [];
   bool onboardingDone = false;
@@ -121,6 +125,7 @@ class ScrollDebtController extends ChangeNotifier {
       ),
     );
     c.themeMode = kv['theme_mode'] ?? 'system';
+    c.developerOptions = kv['dev_options'] == 'true';
     c._openGapStartMs = int.tryParse(kv['gap.open_start'] ?? '');
     c._openGapReason = kv['gap.open_reason'];
     c.onboardingDone = kv['onboarding.done'] == 'true';
@@ -207,6 +212,7 @@ class ScrollDebtController extends ChangeNotifier {
         await _onServiceState((args as Map<Object?, Object?>)['connected'] == true);
       case 'onOverrideRequested':
         startOverride();
+      // adb hooks for tool/device_test.sh; debug builds only.
       case 'debugInjectWalk':
         if (kDebugMode) {
           final m = ((args as Map<Object?, Object?>)['metres'] as num).toDouble();
@@ -215,7 +221,7 @@ class ScrollDebtController extends ChangeNotifier {
       case 'debugInjectScroll':
         if (kDebugMode) {
           final a = args as Map<Object?, Object?>;
-          debugInjectScroll(a['pkg'] as String, (a['metres'] as num).toDouble());
+          _fakeScroll(a['pkg'] as String, (a['metres'] as num).toDouble());
         }
       case 'debugDump':
         if (kDebugMode) {
@@ -330,21 +336,57 @@ class ScrollDebtController extends ChangeNotifier {
     _changed();
   }
 
-  /// Debug builds only: simulate walking (the real path is the pedometer).
-  void debugInjectWalk(double metres) {
-    if (kDebugMode) _applyWalk(metres, source: 'debug');
+  // ------------------------------------------------------ developer tools
+  // All of these do nothing unless developer options are on.
+
+  Future<void> setDeveloperOptions(bool on) async {
+    developerOptions = on;
+    _dirty = true;
+    notifyListeners();
+    // Nothing fake stays active behind a switch the user can't see.
+    if (!on && config.demoMode) {
+      await updateConfig(config.copyWith(demoMode: false));
+    } else {
+      await flush();
+    }
   }
 
-  /// Debug builds only: add [metres] of scrolling to [pkg], priced exactly
-  /// like real scrolling (allowance, app rate, ratio, pass penalty) at weight 1.
-  /// Exempt and free (0x) apps are ignored, as they would be for real.
-  void debugInjectScroll(String pkg, double metres) {
-    if (!kDebugMode) return;
+  /// Adds [steps] to today as if the pedometer had counted them.
+  void devAddSteps(int steps) {
+    if (developerOptions) _applyWalk(steps * config.strideM, source: 'dev');
+  }
+
+  /// Adds [metres] of scrolling to [pkg], priced like real scrolling.
+  void devAddScroll(String pkg, double metres) {
+    if (developerOptions) _fakeScroll(pkg, metres);
+  }
+
+  /// Gives back today's emergency passes.
+  void devRefillPasses() {
+    if (!developerOptions) return;
+    state.overridesUsedToday = 0;
+    _dirty = true;
+    _changed();
+  }
+
+  /// Shows the setup flow again from the start.
+  Future<void> devReplayOnboarding() async {
+    if (!developerOptions) return;
+    onboardingDone = false;
+    _dirty = true;
+    await flush();
+    notifyListeners();
+  }
+
+  /// Adds [metres] of scrolling to [pkg], priced exactly like real scrolling
+  /// (allowance, app rate, ratio, pass penalty) at weight 1. Exempt and
+  /// free (0x) apps are ignored, as they would be for real.
+  void _fakeScroll(String pkg, double metres) {
     if (catalog.isExempt(pkg)) {
       _log('debug scroll ignored: $pkg is exempt');
       return;
     }
-    _chargeScroll(pkg, metres, DateTime.now(), source: 'debug');
+    _chargeScroll(pkg, metres, DateTime.now(), source: 'fake');
   }
 
   // -------------------------------------------------------------- override
@@ -495,6 +537,7 @@ class ScrollDebtController extends ChangeNotifier {
       if (_walk.baseline != null) 'walk.sensor_baseline': _walk.baseline.toString(),
       'restricted_categories': catalog.restricted.map((c) => c.name).join(','),
       'theme_mode': themeMode,
+      'dev_options': developerOptions.toString(),
     };
     try {
       await _store.flush(kv: kv, appDeltas: deltas, walkedToday: (state.dayKey, state.walkedTodayM));
@@ -739,6 +782,12 @@ class ScrollDebtController extends ChangeNotifier {
     _log('reset');
     notifyListeners();
   }
+
+  /// Restricted apps used today: the ones the frost is on when debt is owed.
+  List<String> get frostedAppsToday => [
+        for (final r in ranked(todayApps))
+          if (!catalog.isExempt(r.pkg) && catalog.rateFor(r.pkg) > 0) r.pkg,
+      ];
 
   /// Per-app rows for a period, sorted by distance.
   List<AppTotals> ranked(Map<String, AppTotals> m) =>
