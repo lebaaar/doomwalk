@@ -254,9 +254,10 @@ class ScrollDebtController extends ChangeNotifier {
   }
 
   /// The single charging path for scrolled distance (real or injected).
-  void _chargeScroll(String pkg, double metres, DateTime at, {double weight = 1, required String source}) {
+  /// Returns the milestone this scroll passed, if any.
+  Milestone? _chargeScroll(String pkg, double metres, DateTime at, {double weight = 1, required String source}) {
     final rate = catalog.rateFor(pkg);
-    if (rate <= 0 || metres <= 0) return;
+    if (rate <= 0 || metres <= 0) return null;
     _syncDay(at);
     final before = state.scrolledTodayM;
     final charge = _engine.applyScroll(metres: metres, appRate: rate, at: at, velocityWeight: weight);
@@ -265,18 +266,24 @@ class ScrollDebtController extends ChangeNotifier {
     _log('scroll pkg=$pkg src=$source m=${metres.toStringAsFixed(3)} w=${weight.toStringAsFixed(2)} '
         'cost=${charge.costM.toStringAsFixed(3)} debt=${debtM.toStringAsFixed(2)} '
         'today=${todayApps[pkg]!.rawM.toStringAsFixed(2)}');
-    _celebrate(before, state.scrolledTodayM);
+    final hit = _celebrate(before, state.scrolledTodayM);
     _changed();
+    return hit;
   }
 
   /// Pops up a milestone over the open app when today's scrolling has just
   /// passed one. Each fires once a day, since today's total only grows.
-  void _celebrate(double before, double after) {
-    if (!milestoneToasts || !status.serviceConnected) return;
+  /// While Scroll Debt itself is open (developer tools) there is no banner:
+  /// the caller shows it in its own single message instead.
+  Milestone? _celebrate(double before, double after) {
+    if (!milestoneToasts) return null;
     final m = milestoneCrossed(before, after);
-    if (m == null) return;
+    if (m == null) return null;
     _log('milestone ${m.metres}');
-    unawaited(_safe(() => _native.showNotice(m.title, m.body, ms: 3500)));
+    if (status.serviceConnected && foreground != selfPackage) {
+      unawaited(_safe(() => _native.showNotice(m.title, m.body, ms: 3500)));
+    }
+    return m;
   }
 
   Future<void> setMilestoneToasts(bool on) async {
@@ -409,9 +416,8 @@ class ScrollDebtController extends ChangeNotifier {
   }
 
   /// Adds [metres] of scrolling to [pkg], priced like real scrolling.
-  void devAddScroll(String pkg, double metres) {
-    if (developerOptions) _fakeScroll(pkg, metres);
-  }
+  /// Returns the milestone it passed, if any.
+  Milestone? devAddScroll(String pkg, double metres) => developerOptions ? _fakeScroll(pkg, metres) : null;
 
   /// Gives back today's emergency passes.
   void devRefillPasses() {
@@ -439,12 +445,12 @@ class ScrollDebtController extends ChangeNotifier {
   /// Adds [metres] of scrolling to [pkg], priced exactly like real scrolling
   /// (allowance, app rate, ratio, pass penalty) at weight 1. Exempt and
   /// free (0x) apps are ignored, as they would be for real.
-  void _fakeScroll(String pkg, double metres) {
+  Milestone? _fakeScroll(String pkg, double metres) {
     if (catalog.isExempt(pkg)) {
       _log('debug scroll ignored: $pkg is exempt');
-      return;
+      return null;
     }
-    _chargeScroll(pkg, metres, DateTime.now(), source: 'fake');
+    return _chargeScroll(pkg, metres, DateTime.now(), source: 'fake');
   }
 
   // -------------------------------------------------------------- override

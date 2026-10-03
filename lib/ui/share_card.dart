@@ -10,12 +10,16 @@ import '../core/landmarks.dart';
 import '../core/units.dart';
 import '../services/controller.dart';
 import 'icons.dart';
+import 'landmark_art.dart';
 import 'logo.dart';
 import 'theme.dart';
 
-/// "Instagram: 4.2 Eiffel Towers this week" for [pkg].
+/// The landmark a week of scrolling reads best against, from a giraffe up.
+Landmark shareLandmark(double weekMetres) => nearestLandmark(weekMetres, ladder: climb);
+
+/// "Instagram: 1.1 Statues of Liberty this week" for [pkg].
 String shareHeadline(String label, double weekMetres) =>
-    '$label: ${nearestText(weekMetres)} this week';
+    '$label: ${shareLandmark(weekMetres).count(weekMetres)} this week';
 
 Future<void> showShareCard(BuildContext context, ScrollDebtController c, String pkg) {
   return showDialog<void>(
@@ -35,11 +39,16 @@ class _ShareDialog extends StatefulWidget {
 
 class _ShareDialogState extends State<_ShareDialog> {
   final _boundary = GlobalKey();
+  final _opened = DateTime.now();
   bool _busy = false;
 
   Future<void> _share() async {
     setState(() => _busy = true);
     try {
+      // The silhouette fills in when the card opens; capture it finished.
+      final wait = LandmarkArt.fillDuration - DateTime.now().difference(_opened);
+      if (wait > Duration.zero) await Future<void>.delayed(wait);
+      if (!mounted) return;
       final ro = _boundary.currentContext!.findRenderObject()! as RenderRepaintBoundary;
       final image = await ro.toImage(pixelRatio: 3);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
@@ -98,56 +107,87 @@ class ShareCard extends StatelessWidget {
     final week = c.weekApps[pkg]?.rawM ?? 0;
     final label = c.labelFor(pkg);
     final icon = c.appMeta[pkg]?.icon;
-    final lm = nearestLandmark(week);
-    final count = (week / lm.heightM).toStringAsFixed(1);
+    final lm = shareLandmark(week);
+    final n = week / lm.heightM;
+    final count = n.toStringAsFixed(1);
     final t = Theme.of(context).textTheme;
+    final col = context.colors;
+    final glow = Theme.of(context).brightness == Brightness.dark ? 0.16 : 0.08;
     return AspectRatio(
       aspectRatio: 4 / 5,
       child: Container(
         decoration: BoxDecoration(
-          color: context.colors.raised,
+          color: col.raised,
           borderRadius: BorderRadius.circular(Radii.surface),
         ),
         clipBehavior: Clip.antiAlias,
-        child: Stack(children: [
-          // The mark, large and faint, sinking off the bottom edge.
-          Positioned(
-            right: -36,
-            bottom: -84,
-            child: DepthTicks(size: 240, color: context.colors.accent.withValues(alpha: 0.16)),
+        // The same soft frost glow as the Today card, from the top corner,
+        // over the card colour (a gradient in the same decoration would
+        // replace the colour instead of lighting it).
+        foregroundDecoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(Radii.surface), // not clipped by clipBehavior
+          gradient: RadialGradient(
+            center: const Alignment(1.0, -1.1),
+            radius: 1.1,
+            colors: [col.accent.withValues(alpha: glow), col.accent.withValues(alpha: 0)],
           ),
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                if (icon != null) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(Radii.small),
-                    child: Image.memory(icon, width: 36, height: 36),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 22, 24, 24),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            if (icon != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(Radii.small),
+                child: Image.memory(icon, width: 32, height: 32),
+              ),
+              const SizedBox(width: 10),
+            ],
+            Expanded(child: Text(label, style: t.titleMedium, overflow: TextOverflow.ellipsis)),
+            // In the row, not floated over it, so long app names
+            // ellipsise before the brand instead of running under it.
+            const SizedBox(width: 12),
+            DepthTicks(size: 16, small: true, color: col.muted),
+            const SizedBox(width: 6),
+            Text('Scroll Debt', style: t.bodySmall),
+          ]),
+          // The landmark, filled up to how much of it the week covers.
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: LayoutBuilder(
+                builder: (_, box) => Align(
+                  alignment: Alignment.bottomCenter,
+                  child: LandmarkArt(
+                    landmark: lm,
+                    fraction: n.clamp(0.0, 1.0),
+                    color: col.accent,
+                    track: col.faint,
+                    height: box.maxHeight,
+                    maxWidth: box.maxWidth,
                   ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(child: Text(label, style: t.titleMedium, overflow: TextOverflow.ellipsis)),
-                // In the row, not floated over it, so long app names
-                // ellipsise before the brand instead of running under it.
-                const SizedBox(width: 12),
-                DepthTicks(size: 16, small: true, color: context.colors.muted),
-                const SizedBox(width: 6),
-                Text('Scroll Debt', style: t.bodySmall),
-              ]),
-              const Spacer(),
-              Text(
-                count,
-                style: t.displayLarge?.copyWith(fontSize: 88, color: context.colors.accent, fontFeatures: tabular),
+                ),
               ),
-              Text(count == '1.0' ? lm.name : lm.plural, style: t.headlineMedium),
-              const SizedBox(height: 8),
-              Text(
-                'scrolled this week. ${formatMetres(week)} of thumb travel.',
-                style: t.bodyMedium?.copyWith(color: context.colors.muted),
+            ),
+          ),
+          Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
+            Text(
+              count,
+              style: t.displayLarge?.copyWith(fontSize: 64, height: 1, color: col.accent, fontFeatures: tabular),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                count == '1.0' ? lm.name : lm.plural,
+                style: t.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 120),
-            ]),
+            ),
+          ]),
+          const SizedBox(height: 6),
+          Text(
+            '${lm.emoji} scrolled this week. ${formatMetres(week)} of thumb travel.',
+            style: t.bodyMedium?.copyWith(color: col.muted),
           ),
         ]),
       ),

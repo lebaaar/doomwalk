@@ -82,13 +82,13 @@ extension LandmarkTierX on LandmarkTier {
 String describeTier(double metres, LandmarkTier tier) =>
     '${tier.yardstick.count(metres)} ${tier.label}';
 
-/// Landmark whose height is closest to [metres] on a log scale, so 200 m reads
-/// as "0.6 Eiffel Towers" and 5 km as "0.6 Everests".
-Landmark nearestLandmark(double metres) {
-  if (metres <= 0) return eiffel;
-  var best = landmarks.first;
+/// Landmark of [ladder] whose height is closest to [metres] on a log scale,
+/// so 200 m reads as "0.6 Eiffel Towers" and 5 km as "0.6 Everests".
+Landmark nearestLandmark(double metres, {List<Landmark> ladder = landmarks}) {
+  if (metres <= 0) return ladder == landmarks ? eiffel : ladder.first;
+  var best = ladder.first;
   var bestD = double.infinity;
-  for (final l in landmarks) {
+  for (final l in ladder) {
     final d = (math.log(metres / l.heightM)).abs();
     if (d < bestD) {
       bestD = d;

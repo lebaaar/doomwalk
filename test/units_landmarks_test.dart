@@ -77,6 +77,13 @@ void main() {
         expect(climb[i].heightM, greaterThan(climb[i - 1].heightM));
       }
     });
+    test('nearest on the climb picks small things for small distances', () {
+      expect(nearestLandmark(0, ladder: climb), giraffe);
+      expect(nearestLandmark(6, ladder: climb), giraffe);
+      expect(nearestLandmark(28, ladder: climb), whale);
+      expect(nearestLandmark(106.7, ladder: climb), liberty);
+      expect(nearestLandmark(400, ladder: climb), eiffel);
+    });
     test('milestones fire when passed, the biggest of several', () {
       expect(milestoneCrossed(0, 0.9), isNull);
       expect(milestoneCrossed(0.9, 1.0)!.metres, 1);

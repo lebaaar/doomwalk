@@ -427,9 +427,11 @@ class _DeveloperToolsState extends State<DeveloperTools> {
     _apps = widget.c.launchableApps().catchError((Object _) => <AppMeta>[]);
   }
 
+  /// One message at a time: a new one drops the queue and replaces whatever
+  /// is showing, so fast taps never line up a backlog.
   void _done(String msg) {
     ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
+      ..clearSnackBars()
       ..showSnackBar(SnackBar(content: Text(msg), duration: const Duration(seconds: 2)));
   }
 
@@ -510,8 +512,9 @@ class _DeveloperToolsState extends State<DeveloperTools> {
                     onPressed: pkg == null
                         ? null
                         : () {
-                            c.devAddScroll(pkg, m);
-                            _done('Added ${formatRound(m)} of scrolling to ${c.labelFor(pkg)}');
+                            final hit = c.devAddScroll(pkg, m);
+                            _done('Added ${formatRound(m)} of scrolling to ${c.labelFor(pkg)}'
+                                '${hit == null ? '' : '\n${hit.title}'}');
                           },
                     child: Text('+${m.toStringAsFixed(0)} m'),
                   ),

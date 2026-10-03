@@ -834,7 +834,7 @@ class _AppRow extends StatelessWidget {
   final AppTotals row;
   final double max;
 
-  /// Today card: no bar, no share action.
+  /// Today card: no bar, the rate instead.
   final bool compact;
 
   @override
@@ -848,7 +848,7 @@ class _AppRow extends StatelessWidget {
     return MergeSemantics(
       child: InkWell(
         borderRadius: BorderRadius.circular(Radii.small),
-        onTap: compact ? null : () => showShareCard(context, c, row.pkg),
+        onTap: () => showShareCard(context, c, row.pkg),
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 56),
           child: Padding(

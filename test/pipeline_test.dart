@@ -264,6 +264,17 @@ void main() {
     c2.dispose();
   });
 
+  test('inside Scroll Debt a milestone comes back to the caller, not as a banner', () async {
+    final c = await ScrollDebtController.start();
+    await c.setDeveloperOptions(true);
+    await sendNative('onWindow', {'pkg': 'com.lan.scrolldebt', 'cls': 'com.lan.scrolldebt.MainActivity', 't': 0});
+    expect(c.devAddScroll('com.instagram.android', 0.5), isNull);
+    expect(c.devAddScroll('com.instagram.android', 30)!.title, contains('whale'));
+    await Future<void>.delayed(Duration.zero);
+    expect(notices, isEmpty);
+    c.dispose();
+  });
+
   test('turning developer options off also ends demo mode', () async {
     final c = await ScrollDebtController.start();
     await c.setDeveloperOptions(true);

@@ -299,7 +299,7 @@ class _StoppedCard extends StatelessWidget {
                 onTap: () {
                   Clipboard.setData(const ClipboardData(text: _grantCommand));
                   ScaffoldMessenger.of(context)
-                    ..hideCurrentSnackBar()
+                    ..clearSnackBars()
                     ..showSnackBar(const SnackBar(content: Text('Command copied')));
                 },
                 child: Padding(
