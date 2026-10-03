@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'services/controller.dart';
@@ -10,6 +11,8 @@ import 'ui/providers.dart';
 /// controller below lives as long as the process, with or without UI.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Draw behind the status and navigation bars (see overlayStyle).
+  await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   final controller = await ScrollDebtController.start();
   runApp(ProviderScope(
     overrides: [controllerProvider.overrideWith((ref) => controller)],

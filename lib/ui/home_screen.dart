@@ -84,14 +84,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           ],
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: _go,
-        destinations: const [
-          NavigationDestination(icon: DepthTicks(small: true), label: 'Today'),
-          NavigationDestination(icon: Icon(Ph.chartBar), selectedIcon: Icon(PhFill.chartBar), label: 'Activity'),
-          NavigationDestination(icon: Icon(Ph.gear), selectedIcon: Icon(PhFill.gear), label: 'Settings'),
-        ],
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(border: Border(top: BorderSide(color: context.colors.hairline))),
+        child: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: _go,
+          destinations: const [
+            NavigationDestination(icon: DepthTicks(small: true), label: 'Today'),
+            NavigationDestination(icon: Icon(Ph.chartBar), selectedIcon: Icon(PhFill.chartBar), label: 'Activity'),
+            NavigationDestination(icon: Icon(Ph.gear), selectedIcon: Icon(PhFill.gear), label: 'Settings'),
+          ],
+        ),
       ),
     );
   }
@@ -107,7 +110,7 @@ Widget _page(List<Widget> children) => ListView(
       ],
     );
 
-/// A filled Material card with 16 dp padding (20 at the sides).
+/// A hairline-bordered card with 18 dp padding (20 at the sides).
 class _Panel extends StatelessWidget {
   const _Panel({required this.child});
   final Widget child;
@@ -115,7 +118,7 @@ class _Panel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
         clipBehavior: Clip.antiAlias,
-        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), child: child),
+        child: Padding(padding: const EdgeInsets.fromLTRB(20, 18, 20, 18), child: child),
       );
 }
 
@@ -175,24 +178,27 @@ class _Notice extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(Gaps.margin, 0, Gaps.margin, Gaps.card),
       child: Card(
-        color: Color.alphaBlend(col.danger.withValues(alpha: 0.12), col.raised),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () => Navigator.of(context)
               .push(MaterialPageRoute<void>(builder: (_) => const OnboardingScreen(standalone: true))),
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(children: [
-              IconBadge(icon: Ph.warningCircle, background: col.danger.withValues(alpha: 0.16), foreground: col.danger),
-              const SizedBox(width: 14),
+            padding: const EdgeInsets.fromLTRB(16, 14, 14, 14),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 1),
+                child: Icon(Ph.warningCircle, size: 20, color: col.danger),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(title, style: t.titleSmall),
                   const SizedBox(height: 2),
                   Text(body, style: t.bodyMedium?.copyWith(color: col.muted)),
+                  const SizedBox(height: 8),
+                  Text('Fix in setup', style: t.labelLarge?.copyWith(color: col.text)),
                 ]),
               ),
-              Icon(Ph.caretRight, size: 18, color: col.muted),
             ]),
           ),
         ),
@@ -261,8 +267,8 @@ class _TodayCardState extends State<_TodayCard> {
                 ? _Verdict.limit
                 : (allowance > 0 && left / allowance <= 0.25 ? _Verdict.low : _Verdict.free);
 
-    // Owing turns the card navy (frost blue in dark mode); otherwise it is
-    // the pale frost of the icon background.
+    // Owing turns the card deep navy in both modes; otherwise it is a plain
+    // card.
     final fg = owed ? col.onHero : col.text;
     final muted = owed ? col.onHeroMuted : col.muted;
     final strong = owed ? col.onHero : col.accent;
@@ -290,30 +296,32 @@ class _TodayCardState extends State<_TodayCard> {
       _Verdict.low || _Verdict.free => 'of free scrolling left today, out of ${formatRound(allowance)}.',
     };
 
+    // A flat fill lit from the top corner by a soft glow: strong navy while
+    // you owe, a plain card with a hint of frost while scrolling is free.
+    final glow = owed ? col.heroTo : col.calmTo;
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Radii.surface + 4),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: owed ? [col.heroFrom, col.heroTo] : [col.calmFrom, col.calmTo],
-        ),
-        border: owed ? null : Border.all(color: col.hairline),
+        color: owed ? col.heroFrom : col.calmFrom,
+        border: Border.all(color: owed ? col.heroTo.withValues(alpha: 0.22) : col.hairline),
       ),
       child: Material(
         type: MaterialType.transparency,
-        child: InkWell(
-          onTap: () => showLedgerSheet(context, c),
-          child: Stack(children: [
-            // The logo, large and faint, bleeding off the corner.
-            Positioned(
-              right: -36,
-              top: -20,
-              child: ExcludeSemantics(child: DepthTicks(size: 190, color: fg.withValues(alpha: 0.07))),
+        // The glow sits on the fill; a gradient in the same decoration
+        // would replace the colour instead of lighting it.
+        child: Ink(
+          decoration: BoxDecoration(
+            gradient: RadialGradient(
+              center: const Alignment(1.0, -1.1),
+              radius: 1.25,
+              colors: [glow.withValues(alpha: owed ? 0.34 : 0.10), glow.withValues(alpha: 0)],
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          ),
+          child: InkWell(
+            onTap: () => showLedgerSheet(context, c),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 22, 22, 10),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 250),
@@ -321,9 +329,9 @@ class _TodayCardState extends State<_TodayCard> {
                     alignment: AlignmentDirectional.centerStart,
                     children: [...previous, ?current],
                   ),
-                  child: _StatusPill(key: ValueKey(verdict), icon: icon, text: status, color: strong),
+                  child: _Status(key: ValueKey(verdict), icon: icon, text: status, color: strong),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 22),
                 Semantics(
                   label: '$status. ${formatMetres(value)} $sentence',
                   excludeSemantics: true,
@@ -342,58 +350,61 @@ class _TodayCardState extends State<_TodayCard> {
                           children: [
                             Text(
                               km ? (v / 1000).toStringAsFixed(2) : v.toStringAsFixed(owed ? 1 : 0),
-                              style: t.displayLarge?.copyWith(color: fg, fontSize: 64, fontFeatures: tabular),
+                              style: t.displayLarge
+                                  ?.copyWith(color: fg, fontSize: 72, letterSpacing: -3.6, fontFeatures: tabular),
                             ),
                             const SizedBox(width: 6),
-                            Text(km ? 'km' : 'm', style: t.headlineSmall?.copyWith(color: muted)),
+                            Text(km ? 'km' : 'm',
+                                style: t.headlineSmall?.copyWith(color: muted, fontWeight: FontWeight.w500)),
                           ],
                         );
                       },
                     ),
-                    const SizedBox(height: 6),
-                    Text(sentence, style: t.bodyLarge?.copyWith(color: muted, height: 1.4)),
+                    const SizedBox(height: 10),
+                    Text(sentence, style: t.bodyLarge?.copyWith(color: muted, height: 1.45)),
                   ]),
                 ),
                 if (!owed) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   // Drains like a battery as the free scrolling is used.
                   ExcludeSemantics(
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(3),
                       child: TweenAnimationBuilder<double>(
                         tween: Tween(end: allowance <= 0 ? 0.0 : (left / allowance).clamp(0.0, 1.0)),
                         duration: const Duration(milliseconds: 700),
                         curve: Curves.easeOutCubic,
                         builder: (_, v, _) => LinearProgressIndicator(
                           value: v,
-                          minHeight: 10,
+                          minHeight: 6,
                           color: col.accent,
-                          backgroundColor: col.accent.withValues(alpha: 0.12),
+                          backgroundColor: col.raised2,
                         ),
                       ),
                     ),
                   ),
                 ],
-                const SizedBox(height: 20),
+                const SizedBox(height: 22),
                 _Tally(c: c, fg: fg, muted: muted, onOpenActivity: widget.onOpenActivity),
                 if (owed || pass) ...[
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
                   _PassButton(c: c, fg: fg, muted: muted),
                 ],
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 TextButton.icon(
                   style: TextButton.styleFrom(
-                    foregroundColor: strong,
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    foregroundColor: fg,
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    textStyle: t.labelLarge?.copyWith(fontSize: 14),
                   ),
                   iconAlignment: IconAlignment.end,
-                  icon: const Icon(Ph.caretRight, size: 14),
+                  icon: Icon(Ph.caretRight, size: 14, color: muted),
                   onPressed: () => showLedgerSheet(context, c),
                   label: Text(owed ? 'How ${formatMetres(debt)} adds up' : 'How it works'),
                 ),
               ]),
             ),
-          ]),
+          ),
         ),
       ),
     );
@@ -405,25 +416,25 @@ String _countdown(ScrollDebtController c) {
   return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
 }
 
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({super.key, required this.icon, required this.text, required this.color});
+/// The verdict as a small label above the number.
+class _Status extends StatelessWidget {
+  const _Status({super.key, required this.icon, required this.text, required this.color});
   final IconData icon;
   final String text;
   final Color color;
 
   @override
-  Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.fromLTRB(10, 6, 14, 6),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(99)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 8),
-          Text(text, style: Theme.of(context).textTheme.labelLarge?.merge(numeric).copyWith(color: color)),
-        ]),
-      );
+  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: Theme.of(context).textTheme.labelLarge?.merge(numeric).copyWith(color: color, fontSize: 14),
+        ),
+      ]);
 }
 
-/// Walked and scrolled today, as two plain rows.
+/// Walked and scrolled today, side by side between two hairlines.
 class _Tally extends StatelessWidget {
   const _Tally({required this.c, required this.fg, required this.muted, required this.onOpenActivity});
   final ScrollDebtController c;
@@ -436,55 +447,45 @@ class _Tally extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final s = c.state;
     final over = s.scrolledTodayM - s.allowanceUsedM;
-    Widget row(Widget badge, String label, String sub, String value) => MergeSemantics(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            child: Row(children: [
-              badge,
-              const SizedBox(width: 14),
-              Expanded(
+    final line = fg.withValues(alpha: 0.10);
+    Widget stat(String label, String value, String sub, {VoidCallback? onTap, bool first = false}) => Expanded(
+          child: MergeSemantics(
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(first ? 0 : 16, 14, 8, 14),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(label, style: t.titleSmall?.copyWith(color: fg)),
+                  Text(label, style: t.bodySmall?.copyWith(color: muted)),
+                  const SizedBox(height: 4),
+                  Text(value, style: t.titleLarge?.merge(numeric).copyWith(color: fg)),
+                  const SizedBox(height: 2),
                   Text(sub, style: t.bodySmall?.merge(numeric).copyWith(color: muted)),
                 ]),
               ),
-              const SizedBox(width: 12),
-              Text(value, style: t.titleMedium?.merge(numeric).copyWith(color: fg)),
-            ]),
+            ),
           ),
         );
-    IconBadge badge({IconData? icon, Widget? child}) => IconBadge(
-          icon: icon,
-          size: 36,
-          background: fg.withValues(alpha: 0.08),
-          foreground: fg,
-          child: child,
-        );
-    return Container(
-      decoration: BoxDecoration(color: fg.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(18)),
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Column(children: [
-        InkWell(
-          borderRadius: BorderRadius.circular(18),
-          onTap: onOpenActivity,
-          child: row(
-            badge(icon: Ph.footprints),
+    return DecoratedBox(
+      decoration: BoxDecoration(border: Border.symmetric(horizontal: BorderSide(color: line))),
+      child: IntrinsicHeight(
+        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          stat(
             'Walked today',
-            c.walkError != null
-                ? 'Steps aren\'t being counted'
-                : '${(c.goalProgress * 100).round()}% of your ${formatRound(c.config.walkGoalM)} goal',
             formatMetres(s.walkedTodayM),
+            c.walkError != null
+                ? 'Steps aren\'t counted'
+                : '${(c.goalProgress * 100).round()}% of ${formatRound(c.config.walkGoalM)}',
+            onTap: onOpenActivity,
+            first: true,
           ),
-        ),
-        row(
-          badge(child: const DepthTicks(small: true)),
-          'Scrolled today',
-          over >= 0.05
-              ? '${formatRound(s.allowanceUsedM)} free, ${formatMetres(over)} over'
-              : 'All within your free scrolling',
-          formatMetres(s.scrolledTodayM),
-        ),
-      ]),
+          VerticalDivider(width: 1, thickness: 1, color: line),
+          stat(
+            'Scrolled today',
+            formatMetres(s.scrolledTodayM),
+            over >= 0.05 ? '${formatMetres(over)} over the limit' : 'All within free',
+          ),
+        ]),
+      ),
     );
   }
 }
@@ -514,22 +515,23 @@ class _PassButton extends StatelessWidget {
       // Tonal: a way out, not the main thing to do (that's walking).
       FilledButton.tonalIcon(
         style: FilledButton.styleFrom(
-          backgroundColor: fg.withValues(alpha: 0.12),
+          backgroundColor: fg.withValues(alpha: 0.10),
           foregroundColor: fg,
-          disabledBackgroundColor: fg.withValues(alpha: 0.06),
+          disabledBackgroundColor: fg.withValues(alpha: 0.05),
           disabledForegroundColor: muted,
+          side: BorderSide(color: fg.withValues(alpha: 0.08)),
         ),
         onPressed: left > 0 ? c.startOverride : null,
         icon: const Icon(Ph.lifebuoy, size: 20),
         label: Text('Unfreeze for ${c.config.overrideMinutes} min'),
       ),
-      const SizedBox(height: 6),
+      const SizedBox(height: 8),
       Text(
         left > 0
             ? 'Scrolling costs $penalty while unfrozen. $left ${left == 1 ? 'pass' : 'passes'} left today.'
             : 'No passes left today.',
         textAlign: TextAlign.center,
-        style: t.bodySmall?.copyWith(color: muted),
+        style: t.bodySmall?.merge(numeric).copyWith(color: muted),
       ),
     ]);
   }
@@ -669,14 +671,10 @@ class _ActivityTabState extends State<_ActivityTab> {
   Widget build(BuildContext context) {
     final c = widget.c;
     return _page([
-      SegmentedButton<bool>(
-        showSelectedIcon: false,
-        segments: const [
-          ButtonSegment(value: false, label: Text('Today')),
-          ButtonSegment(value: true, label: Text('Last 7 days')),
-        ],
-        selected: {_week},
-        onSelectionChanged: (s) => setState(() => _week = s.first),
+      Segmented<bool>(
+        options: const [(false, 'Today'), (true, 'Last 7 days')],
+        selected: _week,
+        onChanged: (v) => setState(() => _week = v),
       ),
       _WalkingPanel(c: c, week: _week),
       _AppsPanel(c: c, week: _week),
@@ -703,19 +701,20 @@ class _WalkingPanel extends StatelessWidget {
     final goalY = peak <= 0 ? 0.0 : barMax * goal / peak;
     Widget fact(String value, String label) => Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(value, style: t.titleMedium?.merge(numeric)),
-            Text(label, style: t.bodyMedium?.copyWith(color: col.muted)),
+            Text(value, style: t.titleLarge?.merge(numeric)),
+            const SizedBox(height: 2),
+            Text(label, style: t.bodySmall),
           ]),
         );
     return _Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Walking', style: t.titleMedium),
-        const SizedBox(height: 8),
+        Text('Walking', style: t.labelLarge?.copyWith(color: col.muted)),
+        const SizedBox(height: 6),
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Text(formatMetres(week ? c.weekWalkedM : c.state.walkedTodayM), style: t.headlineMedium?.merge(numeric)),
+            Text(formatMetres(week ? c.weekWalkedM : c.state.walkedTodayM), style: t.headlineLarge?.merge(numeric)),
             const SizedBox(width: 8),
             Flexible(
               child: Text(week ? 'in 7 days' : 'of ${formatRound(goal)} today',
@@ -765,7 +764,9 @@ class _WalkingPanel extends StatelessWidget {
             ]),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
+        const Divider(),
+        const SizedBox(height: 14),
         Row(children: [
           fact('${(week ? c.kcalWeek : c.kcalToday).round()} kcal', 'burned walking'),
           fact('${c.streakDays} ${c.streakDays == 1 ? 'day' : 'days'}', 'goal streak'),
@@ -791,13 +792,13 @@ class _AppsPanel extends StatelessWidget {
     final rows = c.ranked(week ? c.weekApps : c.todayApps);
     return _Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Scrolling by app', style: t.titleMedium),
+        Text('Scrolling by app', style: t.labelLarge?.copyWith(color: context.colors.muted)),
         const SizedBox(height: 2),
         Text(
           rows.isEmpty ? 'Nothing counted yet.' : 'Tap an app to share its card.',
           style: t.bodyMedium?.copyWith(color: context.colors.muted),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         for (final r in rows.take(12)) _AppRow(c: c, row: r, max: rows.first.rawM),
       ]),
     );
@@ -841,10 +842,10 @@ class _AppRow extends StatelessWidget {
                         child: Icon(Ph.squaresFour, size: 18, color: col.muted),
                       ),
               ),
-              const SizedBox(width: 16),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(label, style: t.bodyLarge, overflow: TextOverflow.ellipsis),
+                  Text(label, style: t.bodyLarge?.copyWith(fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
                   if (compact)
                     Text('${rateLabel(rate)} rate', style: t.bodySmall)
                   else ...[
@@ -854,7 +855,7 @@ class _AppRow extends StatelessWidget {
                         alignment: Alignment.centerLeft,
                         widthFactor: max <= 0 ? 0 : (row.rawM / max).clamp(0.02, 1.0),
                         child: Container(
-                          height: 4,
+                          height: 3,
                           decoration: BoxDecoration(color: col.accent, borderRadius: BorderRadius.circular(2)),
                         ),
                       ),
@@ -864,7 +865,7 @@ class _AppRow extends StatelessWidget {
               ),
               const SizedBox(width: 16),
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                Text(formatMetres(row.rawM), style: t.bodyLarge?.merge(numeric)),
+                Text(formatMetres(row.rawM), style: t.bodyLarge?.merge(numeric).copyWith(fontWeight: FontWeight.w500)),
                 Text(
                   free ? 'within free' : '+${formatMetres(row.chargedM)} owed',
                   style: t.bodySmall?.merge(numeric).copyWith(color: free ? col.muted : col.accent),
@@ -891,14 +892,17 @@ class _LandmarksPanel extends StatelessWidget {
     final tier = week ? LandmarkTier.week : LandmarkTier.today;
     return _Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('How far that is', style: t.titleMedium),
-        const SizedBox(height: 8),
-        Text(tier.yardstick.count(metres), style: t.headlineMedium),
+        Text('How far that is', style: t.labelLarge?.copyWith(color: col.muted)),
+        const SizedBox(height: 6),
+        Text(tier.yardstick.count(metres), style: t.headlineLarge),
+        const SizedBox(height: 4),
         Text(
           '${formatMetres(metres)} scrolled ${week ? 'in 7 days' : 'today'}.',
           style: t.bodyMedium?.copyWith(color: col.muted),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
+        const Divider(),
+        const SizedBox(height: 14),
         Text(
           'All time: ${LandmarkTier.lifetime.yardstick.count(c.lifetimeRawM)}, '
           '${(c.lifetimeRawM / karman.heightM * 100).toStringAsFixed(c.lifetimeRawM < 1000 ? 2 : 1)}% of the way to space.',

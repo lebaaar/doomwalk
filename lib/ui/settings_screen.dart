@@ -31,14 +31,10 @@ class SettingsScreen extends ConsumerWidget {
         const SectionTitle('How strict'),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
-          child: SegmentedButton<Strictness>(
-            showSelectedIcon: false,
-            emptySelectionAllowed: true,
-            segments: [for (final s in Strictness.values) ButtonSegment(value: s, label: Text(s.label))],
-            selected: {?preset},
-            onSelectionChanged: (s) {
-              if (s.isNotEmpty) c.updateConfig(s.first.applyTo(cfg));
-            },
+          child: Segmented<Strictness>(
+            options: [for (final s in Strictness.values) (s, s.label)],
+            selected: preset,
+            onChanged: (s) => c.updateConfig(s.applyTo(cfg)),
           ),
         ),
         Padding(
@@ -55,7 +51,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         const SectionTitle('Rules'),
-        TileGroup(children: [
+        TileGroup(dividerIndent: 64, children: [
           _NavTile(
             icon: Ph.squaresFour,
             title: 'Apps that count',
@@ -76,11 +72,11 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ]),
         const SectionTitle('General'),
-        TileGroup(children: [
+        TileGroup(dividerIndent: 64, children: [
           _NavTile(
             icon: Ph.user,
             title: 'You',
-            subtitle: '${cfg.weightKg.toStringAsFixed(0)} kg · ${formatRound(cfg.walkGoalM)} goal · '
+            subtitle: '${cfg.weightKg.toStringAsFixed(0)} kg, ${formatRound(cfg.walkGoalM)} goal, '
                 '${cfg.strideM.toStringAsFixed(2)} m stride',
             page: const _YouPage(),
           ),
@@ -104,7 +100,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ]),
         const SectionTitle('Developer'),
-        TileGroup(children: [
+        TileGroup(dividerIndent: 64, children: [
           SwitchListTile(
             secondary: const IconBadge(icon: Ph.code),
             title: const Text('Developer options'),

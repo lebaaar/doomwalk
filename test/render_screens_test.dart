@@ -35,7 +35,7 @@ Future<void> _loadFonts() async {
     await l.load();
   }
 
-  await load('RobotoFlex', [for (final w in ['Light', 'Regular', 'Medium', 'SemiBold']) 'assets/fonts/RobotoFlex-$w.ttf']);
+  await load('Geist', [for (final w in ['Regular', 'Medium', 'SemiBold', 'Bold']) 'assets/fonts/Geist-$w.ttf']);
   await load('Phosphor', ['assets/fonts/Phosphor-Regular.ttf']);
   // Back arrows etc. The flutter tool sets FLUTTER_ROOT for test runs.
   final sdk = Platform.environment['FLUTTER_ROOT'] ?? '';

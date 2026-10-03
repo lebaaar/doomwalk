@@ -42,6 +42,7 @@ abstract final class Ph {
 abstract final class PhFill {
   static const _f = 'PhosphorFill';
   static const heartbeat = IconData(0xe2ac, fontFamily: _f);
+  static const checkCircle = IconData(0xe184, fontFamily: _f);
   static const squaresFour = IconData(0xe464, fontFamily: _f);
   static const gear = IconData(0xe272, fontFamily: _f);
   static const chartBar = IconData(0xe150, fontFamily: _f);
