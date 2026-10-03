@@ -148,6 +148,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     await _refresh();
   }
 
+  Future<void> _finish() async {
+    await _c.completeOnboarding();
+    if (widget.standalone && mounted) Navigator.of(context).pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
@@ -163,13 +168,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
           children: [
             if (!widget.standalone) ...[
               Row(children: [
-                DepthTicks(size: 28, color: context.colors.accent),
+                IconBadge(
+                  size: 36,
+                  background: context.colors.accentContainer,
+                  child: DepthTicks(size: 20, color: context.colors.onAccentContainer),
+                ),
                 const SizedBox(width: 10),
-                Text('Scroll Debt', style: t.titleMedium?.copyWith(color: context.colors.muted)),
+                Text('Scroll Debt', style: t.titleMedium),
               ]),
-              const SizedBox(height: 20),
-              Text('Every metre you scroll, you walk back.', style: t.headlineMedium?.copyWith(fontSize: 32)),
-              const SizedBox(height: 12),
+              const SizedBox(height: 36),
+              Text('Every metre you scroll, you walk back.',
+                  style: t.headlineLarge?.copyWith(fontSize: 34, letterSpacing: -1.4)),
+              const SizedBox(height: 14),
               Text(
                 'Scrolling past your daily allowance turns into walking you owe. Social apps frost over until '
                 'you walk it off, and every metre counts toward your daily movement goal.',
@@ -177,8 +187,32 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
               ),
               const SizedBox(height: 32),
             ],
-            Text(_loaded ? '$doneCount of ${steps.length} done' : 'Checking permissions', style: t.bodySmall),
-            const SizedBox(height: 8),
+            Row(children: [
+              Text('Setup', style: t.titleSmall),
+              const Spacer(),
+              Text(_loaded ? '$doneCount of ${steps.length} done' : 'Checking permissions',
+                  style: t.bodySmall?.merge(numeric)),
+            ]),
+            const SizedBox(height: 10),
+            // One segment per step, filled as each is done.
+            ExcludeSemantics(
+              child: Row(children: [
+                for (var i = 0; i < steps.length; i++) ...[
+                  if (i > 0) const SizedBox(width: 4),
+                  Expanded(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: _loaded && _done[steps[i].id] == true ? context.colors.accent : context.colors.raised2,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                ],
+              ]),
+            ),
+            const SizedBox(height: 12),
             for (final s in _loaded ? steps : const <_Step>[])
               AnimatedSize(
                 duration: const Duration(milliseconds: 250),
@@ -190,14 +224,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
             const SizedBox(height: 24),
             if (!_loaded)
               const SizedBox.shrink()
+            else if (canFinish && current == null)
+              FilledButton(onPressed: _finish, child: const Text('Start'))
             else if (canFinish)
-              FilledButton(
-                onPressed: () async {
-                  await _c.completeOnboarding();
-                  if (widget.standalone && context.mounted) Navigator.of(context).pop();
-                },
-                child: Text(current == null ? 'Start' : 'Continue without the rest'),
-              )
+              // The open step is the main action; skipping it is secondary.
+              OutlinedButton(onPressed: _finish, child: const Text('Continue without the rest'))
             else
               Text('Scroll measuring is the one step you can\'t skip.', style: t.bodySmall),
           ],
@@ -224,11 +255,14 @@ class _ActiveStep extends StatelessWidget {
         borderRadius: BorderRadius.circular(Radii.surface),
         border: Border.all(color: context.colors.hairline),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(step.title, style: t.titleMedium),
-        const SizedBox(height: 8),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        Row(children: [
+          Expanded(child: Text(step.title, style: t.titleMedium)),
+          if (step.optional) Text('Optional', style: t.bodySmall),
+        ]),
+        const SizedBox(height: 6),
         Text(step.why, style: t.bodyMedium?.copyWith(color: context.colors.muted)),
-        const SizedBox(height: 16),
+        const SizedBox(height: 18),
         FilledButton(onPressed: onAct, child: Text(step.action)),
       ]),
     );
@@ -251,15 +285,15 @@ class _StepRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Row(children: [
           Icon(
-            done ? Ph.checkCircle : Ph.circle,
-            size: 20,
-            color: done ? context.colors.text : context.colors.muted,
+            done ? PhFill.checkCircle : Ph.circle,
+            size: 22,
+            color: done ? context.colors.accent : context.colors.faint,
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Text(step.title, style: t.bodyLarge?.copyWith(color: done ? context.colors.muted : context.colors.text)),
           ),
-          if (step.optional && !done) Text('optional', style: t.bodySmall),
+          if (step.optional && !done) Text('Optional', style: t.bodySmall),
         ]),
       ),
     );

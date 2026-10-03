@@ -203,3 +203,27 @@ the Today screen showed about 20 numbers. Direction B was chosen from three opti
   segmented buttons are pills, the navigation bar shares the page colour. Settings
   rows sit in rounded groups with tonal icon badges (`TileGroup`, `IconBadge` in
   `lib/ui/theme.dart`), and warnings are tinted cards instead of outlined ones.
+
+## Round 7: startup-style visual pass
+Audited against the taste-skill anti-slop rules (Leonxlnx/taste-skill).
+* **Type:** Geist replaces Roboto Flex (OFL, `assets/fonts/OFL-Geist.txt`),
+  four static weights cut from the variable font with fontTools. Headings and
+  figures are tracked tighter; the Today number is 72 sp.
+* **Neutrals:** the page is a cool near-black (`#0A0C0F`) or off-white
+  (`#F5F6F8`) instead of navy or frost tint. Frost blue / navy stays as the
+  single accent. Cards are separated by a 1 px hairline, not by tinting.
+* **One corner scale:** cards 20, sheets 28, buttons and inputs 12, tags 8.
+  Buttons are no longer pills.
+* **Today card:** flat navy fill lit by a radial glow instead of a linear
+  gradient and the faint logo watermark. The status is a plain icon + label,
+  not a pill; walked and scrolled sit side by side between hairlines instead
+  of in a nested rounded box.
+* **Components:** a sliding segmented control (`Segmented`) replaces the
+  outlined Material one; the nav bar has no indicator blob, just a hairline
+  on top and full-ink selected icons; setting rows are split by inset
+  hairlines with small neutral icon badges; warnings are a neutral card with
+  a red icon instead of a pink block; onboarding shows a segmented progress
+  bar, and skipping steps is an outlined (secondary) button.
+* **System bars:** edge-to-edge with transparent status and navigation bars
+  and Android's contrast scrim off, so the area behind the back / home /
+  recents buttons is the app's own colour in light and dark mode.

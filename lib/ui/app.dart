@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'home_screen.dart';
@@ -22,6 +23,11 @@ class ScrollDebtApp extends ConsumerWidget {
         'dark' => ThemeMode.dark,
         _ => ThemeMode.system,
       },
+      // Screens without an app bar (onboarding) still need the bar style.
+      builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+        value: overlayStyle(Theme.of(context).brightness),
+        child: child!,
+      ),
       home: const _Root(),
     );
   }
