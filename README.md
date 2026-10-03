@@ -74,8 +74,8 @@ adb logcat -s flutter | grep 'SD '
    The frost fades in as you go, with an "x m to walk" label at the top. Tap a post
    to show that touches still work through the frost.
 4. Pull down the notification: "x m owed", with the **Emergency pass** button (3× cost).
-5. Open Scroll Debt: *Today* shows the debt as a large number with the frost bar
-   full, and Instagram at the top of *Most scrolled today*.
+5. Open Scroll Debt: the *Today* card turns navy with "Time for a walk" and the
+   debt as a large number, and Instagram is at the top of *Most scrolled today*.
 6. Walk about 20-30 steps around the stage. Debt counts down and back in Instagram
    the frost melts. (Backup: Settings → Developer options → *Add steps to today*.)
 7. *Activity* → *Scrolling by app* → tap Instagram → **Share** for the

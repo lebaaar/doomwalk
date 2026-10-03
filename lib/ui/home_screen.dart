@@ -111,19 +111,15 @@ Widget _page(List<Widget> children) => ListView(
       ],
     );
 
-/// A filled Material card with 16 dp padding.
+/// A filled Material card with 16 dp padding (20 at the sides).
 class _Panel extends StatelessWidget {
-  const _Panel({required this.child, this.onTap});
+  const _Panel({required this.child});
   final Widget child;
-  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) => Card(
         clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(padding: const EdgeInsets.all(16), child: child),
-        ),
+        child: Padding(padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16), child: child),
       );
 }
 
@@ -135,21 +131,34 @@ class _TodayTab extends StatelessWidget {
   final VoidCallback onOpenActivity;
 
   @override
-  Widget build(BuildContext context) => _page([
-        if (!c.status.accessibilityEnabled)
-          const _Notice(
-            title: 'Scroll measuring is off',
-            body: 'Time without tracking is charged at your average scroll rate. Tap to turn it on.',
+  Widget build(BuildContext context) => ListView(
+        padding: const EdgeInsets.only(top: 4, bottom: 24),
+        children: [
+          if (!c.status.accessibilityEnabled)
+            const _Notice(
+              title: 'Scroll measuring is off',
+              body: 'Time without tracking is charged at your average scroll rate. Tap to turn it on.',
+            ),
+          if (c.walkError != null)
+            const _Notice(
+              title: 'Step counting is off',
+              body: 'Walking won\'t pay your debt down until physical activity access is allowed.',
+            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
+            child: _TodayCard(c: c, onOpenActivity: onOpenActivity),
           ),
-        if (c.walkError != null)
-          const _Notice(
-            title: 'Step counting is off',
-            body: 'Walking won\'t pay your debt down until physical activity access is allowed.',
+          SectionTitle(
+            'Most scrolled today',
+            action: c.todayApps.isEmpty ? null : 'See all',
+            onAction: onOpenActivity,
           ),
-        _DebtCard(c: c),
-        _WalkCard(c: c, onTap: onOpenActivity),
-        _TopAppsCard(c: c, onSeeAll: onOpenActivity),
-      ]);
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
+            child: _TopAppsCard(c: c),
+          ),
+        ],
+      );
 }
 
 /// A problem that blocks part of the loop. Opens setup to fix it.
@@ -162,30 +171,29 @@ class _Notice extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final col = context.colors;
-    return Card(
-      color: col.raised,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(Radii.surface),
-        side: BorderSide(color: col.danger.withValues(alpha: 0.6)),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => Navigator.of(context)
-            .push(MaterialPageRoute<void>(builder: (_) => const OnboardingScreen(standalone: true))),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(children: [
-            Icon(Ph.warningCircle, color: col.danger),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: t.titleSmall),
-                const SizedBox(height: 2),
-                Text(body, style: t.bodyMedium?.copyWith(color: col.muted)),
-              ]),
-            ),
-            Icon(Ph.caretRight, size: 18, color: col.muted),
-          ]),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Gaps.margin, 0, Gaps.margin, Gaps.card),
+      child: Card(
+        color: Color.alphaBlend(col.danger.withValues(alpha: 0.12), col.raised),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => Navigator.of(context)
+              .push(MaterialPageRoute<void>(builder: (_) => const OnboardingScreen(standalone: true))),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(children: [
+              IconBadge(icon: Ph.warningCircle, background: col.danger.withValues(alpha: 0.16), foreground: col.danger),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: t.titleSmall),
+                  const SizedBox(height: 2),
+                  Text(body, style: t.bodyMedium?.copyWith(color: col.muted)),
+                ]),
+              ),
+              Icon(Ph.caretRight, size: 18, color: col.muted),
+            ]),
+          ),
         ),
       ),
     );
@@ -202,10 +210,15 @@ String _appList(ScrollDebtController c, List<String> pkgs) {
   return '${names[0]}, ${names[1]} and ${names.length - 2} more';
 }
 
-/// The one question the app answers: how far do I have to walk?
-class _DebtCard extends StatelessWidget {
-  const _DebtCard({required this.c});
+/// Where today stands, from most to least urgent.
+enum _Verdict { walk, unfrozen, limit, low, free }
+
+/// The one card that answers "what now?": a verdict, the number behind it,
+/// and the two things it comes from, walked and scrolled today.
+class _TodayCard extends StatelessWidget {
+  const _TodayCard({required this.c, required this.onOpenActivity});
   final ScrollDebtController c;
+  final VoidCallback onOpenActivity;
 
   @override
   Widget build(BuildContext context) {
@@ -213,66 +226,222 @@ class _DebtCard extends StatelessWidget {
     final col = context.colors;
     final debt = c.debtM;
     final owed = debt >= 0.05;
-    final active = c.overrideActive;
     final allowance = c.config.effective.allowanceM;
+    final left = c.allowanceLeftM;
+    final verdict = owed
+        ? (c.overrideActive ? _Verdict.unfrozen : _Verdict.walk)
+        : left < 0.5
+            ? _Verdict.limit
+            : (allowance > 0 && left / allowance <= 0.25 ? _Verdict.low : _Verdict.free);
 
-    final value = owed ? debt : c.allowanceLeftM;
+    // Owing turns the card navy (frost blue in dark mode); otherwise it is
+    // the pale frost of the icon background.
+    final fg = owed ? col.onHero : col.text;
+    final muted = owed ? col.onHeroMuted : col.muted;
+    final strong = owed ? col.onHero : col.accent;
+    final penalty = c.config.overridePenalty.toStringAsFixed(0);
+    final frostPct = (c.frostLevel * 100).round();
+
+    final (IconData icon, String status) = switch (verdict) {
+      _Verdict.walk => (Ph.walk, 'Time for a walk'),
+      _Verdict.unfrozen => (Ph.lifebuoy, 'Unfrozen for ${_countdown(c)}'),
+      _Verdict.limit => (Ph.lockSimple, 'Free scrolling used up'),
+      _Verdict.low => (Ph.warningCircle, 'Almost at your limit'),
+      _Verdict.free => (Ph.checkCircle, 'You\'re good to scroll'),
+    };
+    final value = owed ? debt : left;
+    final sentence = switch (verdict) {
+      _Verdict.walk => 'to walk off. Until then, frost covers ${_appList(c, c.frostedAppsToday)} ($frostPct%).',
+      _Verdict.unfrozen => 'still to walk off. Scrolling costs $penalty× until the pass ends.',
+      _Verdict.limit => 'of free scrolling left. Anything more you scroll has to be walked off.',
+      _Verdict.low || _Verdict.free => 'of free scrolling left today, out of ${formatRound(allowance)}.',
+    };
     final km = value >= 1000;
-    final label = owed ? 'To walk' : 'Free scrolling left today';
-    final progress = owed
-        ? c.frostLevel
-        : (allowance <= 0 ? 0.0 : (c.allowanceLeftM / allowance).clamp(0.0, 1.0));
-    final apps = c.frostedAppsToday;
-    final caption = owed
-        ? (active
-            ? 'Frost lifted by your emergency pass.'
-            : 'Frost ${(c.frostLevel * 100).round()}% on ${_appList(c, apps)}. Full at ${formatRound(c.frostMaxDebtM)}.')
-        : 'of ${formatRound(allowance)}. After that, scrolling turns into walking.';
 
-    return _Panel(
-      onTap: () => showLedgerSheet(context, c),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: t.titleSmall?.copyWith(color: col.muted)),
-        const SizedBox(height: 8),
-        Semantics(
-          label: owed
-              ? '${formatMetres(debt)} to walk. Frost ${(c.frostLevel * 100).round()} percent.'
-              : '${formatRound(c.allowanceLeftM)} of free scrolling left today.',
-          excludeSemantics: true,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween(end: value),
-                duration: const Duration(milliseconds: 700),
-                curve: Curves.easeOutCubic,
-                builder: (_, v, _) => Text(
-                  km ? (v / 1000).toStringAsFixed(2) : v.toStringAsFixed(owed ? 1 : 0),
-                  style: t.displayLarge?.copyWith(color: owed ? col.accent : col.text, fontFeatures: tabular),
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(Radii.surface + 4),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: owed ? [col.heroFrom, col.heroTo] : [col.calmFrom, col.calmTo],
+        ),
+        border: owed ? null : Border.all(color: col.hairline),
+      ),
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkWell(
+          onTap: () => showLedgerSheet(context, c),
+          child: Stack(children: [
+            // The logo, large and faint, bleeding off the corner.
+            Positioned(
+              right: -36,
+              top: -20,
+              child: ExcludeSemantics(child: DepthTicks(size: 190, color: fg.withValues(alpha: 0.07))),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: _StatusPill(key: ValueKey(verdict), icon: icon, text: status, color: strong),
                 ),
+                const SizedBox(height: 18),
+                Semantics(
+                  label: '$status. ${formatMetres(value)} $sentence',
+                  excludeSemantics: true,
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        TweenAnimationBuilder<double>(
+                          tween: Tween(end: value),
+                          duration: const Duration(milliseconds: 700),
+                          curve: Curves.easeOutCubic,
+                          builder: (_, v, _) => Text(
+                            km ? (v / 1000).toStringAsFixed(2) : v.toStringAsFixed(owed ? 1 : 0),
+                            style: t.displayLarge?.copyWith(color: fg, fontSize: 64, fontFeatures: tabular),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(km ? 'km' : 'm', style: t.headlineSmall?.copyWith(color: muted)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(sentence, style: t.bodyLarge?.copyWith(color: muted, height: 1.4)),
+                  ]),
+                ),
+                if (!owed) ...[
+                  const SizedBox(height: 16),
+                  // Drains like a battery as the free scrolling is used.
+                  ExcludeSemantics(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(end: allowance <= 0 ? 0.0 : (left / allowance).clamp(0.0, 1.0)),
+                        duration: const Duration(milliseconds: 700),
+                        curve: Curves.easeOutCubic,
+                        builder: (_, v, _) => LinearProgressIndicator(
+                          value: v,
+                          minHeight: 10,
+                          color: col.accent,
+                          backgroundColor: col.accent.withValues(alpha: 0.12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 20),
+                _Tally(c: c, fg: fg, muted: muted, onOpenActivity: onOpenActivity),
+                if (owed) ...[
+                  const SizedBox(height: 16),
+                  _PassButton(c: c, fg: fg, muted: muted),
+                ],
+                const SizedBox(height: 4),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: strong,
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                  ),
+                  iconAlignment: IconAlignment.end,
+                  icon: const Icon(Ph.caretRight, size: 14),
+                  onPressed: () => showLedgerSheet(context, c),
+                  label: Text(owed ? 'How ${formatMetres(debt)} adds up' : 'How it works'),
+                ),
+              ]),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+String _countdown(ScrollDebtController c) {
+  final s = c.overrideUntil!.difference(DateTime.now()).inSeconds.clamp(0, 99999);
+  return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({super.key, required this.icon, required this.text, required this.color});
+  final IconData icon;
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(10, 6, 14, 6),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(99)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Text(text, style: Theme.of(context).textTheme.labelLarge?.merge(numeric).copyWith(color: color)),
+        ]),
+      );
+}
+
+/// Walked and scrolled today, as two plain rows.
+class _Tally extends StatelessWidget {
+  const _Tally({required this.c, required this.fg, required this.muted, required this.onOpenActivity});
+  final ScrollDebtController c;
+  final Color fg;
+  final Color muted;
+  final VoidCallback onOpenActivity;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final s = c.state;
+    final over = s.scrolledTodayM - s.allowanceUsedM;
+    Widget row(Widget badge, String label, String sub, String value) => MergeSemantics(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(children: [
+              badge,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(label, style: t.titleSmall?.copyWith(color: fg)),
+                  Text(sub, style: t.bodySmall?.merge(numeric).copyWith(color: muted)),
+                ]),
               ),
-              const SizedBox(width: 6),
-              Text(km ? 'km' : 'm', style: t.headlineSmall?.copyWith(color: col.muted)),
-            ],
+              const SizedBox(width: 12),
+              Text(value, style: t.titleMedium?.merge(numeric).copyWith(color: fg)),
+            ]),
+          ),
+        );
+    IconBadge badge({IconData? icon, Widget? child}) => IconBadge(
+          icon: icon,
+          size: 36,
+          background: fg.withValues(alpha: 0.08),
+          foreground: fg,
+          child: child,
+        );
+    return Container(
+      decoration: BoxDecoration(color: fg.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(18)),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(children: [
+        InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onOpenActivity,
+          child: row(
+            badge(icon: Ph.footprints),
+            'Walked today',
+            c.walkError != null
+                ? 'Steps aren\'t being counted'
+                : '${(c.goalProgress * 100).round()}% of your ${formatRound(c.config.walkGoalM)} goal',
+            formatMetres(s.walkedTodayM),
           ),
         ),
-        const SizedBox(height: 16),
-        ExcludeSemantics(child: LinearProgressIndicator(value: progress)),
-        const SizedBox(height: 10),
-        Text(caption, style: t.bodyMedium?.copyWith(color: col.muted)),
-        if (owed) ...[
-          const SizedBox(height: 16),
-          _PassButton(c: c),
-        ],
-        const SizedBox(height: 4),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: TextButton(
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            onPressed: () => showLedgerSheet(context, c),
-            child: Text(owed ? 'How ${formatMetres(debt)} adds up' : 'How it works'),
-          ),
+        row(
+          badge(child: const DepthTicks(small: true)),
+          'Scrolled today',
+          over >= 0.05
+              ? '${formatRound(s.allowanceUsedM)} free, ${formatMetres(over)} over'
+              : 'All within your free scrolling',
+          formatMetres(s.scrolledTodayM),
         ),
       ]),
     );
@@ -280,32 +449,34 @@ class _DebtCard extends StatelessWidget {
 }
 
 class _PassButton extends StatelessWidget {
-  const _PassButton({required this.c});
+  const _PassButton({required this.c, required this.fg, required this.muted});
   final ScrollDebtController c;
+  final Color fg;
+  final Color muted;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final penalty = c.config.overridePenalty.toStringAsFixed(0);
     if (c.overrideActive) {
-      final s = c.overrideUntil!.difference(DateTime.now()).inSeconds.clamp(0, 99999);
-      final left = '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
-      return Row(children: [
-        Expanded(
-          child: Text('Unfrozen for $left. Scrolling costs $penalty× until then.',
-              style: t.bodyMedium?.merge(numeric)),
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton(
+          style: OutlinedButton.styleFrom(foregroundColor: fg, side: BorderSide(color: fg.withValues(alpha: 0.4))),
+          onPressed: c.endOverride,
+          child: const Text('End pass now'),
         ),
-        const SizedBox(width: 12),
-        OutlinedButton(onPressed: c.endOverride, child: const Text('End now')),
-      ]);
+      );
     }
     final left = c.overridesLeft;
+    final penalty = c.config.overridePenalty.toStringAsFixed(0);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       // Tonal: a way out, not the main thing to do (that's walking).
       FilledButton.tonalIcon(
         style: FilledButton.styleFrom(
-          backgroundColor: context.colors.accentContainer,
-          foregroundColor: context.colors.onAccentContainer,
+          backgroundColor: fg.withValues(alpha: 0.12),
+          foregroundColor: fg,
+          disabledBackgroundColor: fg.withValues(alpha: 0.06),
+          disabledForegroundColor: muted,
         ),
         onPressed: left > 0 ? c.startOverride : null,
         icon: const Icon(Ph.lifebuoy, size: 20),
@@ -317,81 +488,30 @@ class _PassButton extends StatelessWidget {
             ? 'Scrolling costs $penalty× while unfrozen. $left ${left == 1 ? 'pass' : 'passes'} left today.'
             : 'No passes left today.',
         textAlign: TextAlign.center,
-        style: t.bodySmall,
+        style: t.bodySmall?.copyWith(color: muted),
       ),
     ]);
   }
 }
 
-class _WalkCard extends StatelessWidget {
-  const _WalkCard({required this.c, required this.onTap});
-  final ScrollDebtController c;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
-    final goal = c.config.walkGoalM;
-    return _Panel(
-      onTap: onTap,
-      child: Row(children: [
-        Semantics(
-          label: '${(c.goalProgress * 100).round()} percent of your walking goal',
-          child: SizedBox.square(
-            dimension: 56,
-            child: Stack(fit: StackFit.expand, children: [
-              CircularProgressIndicator(value: c.goalProgress, strokeWidth: 6, strokeCap: StrokeCap.round),
-              Center(child: Icon(Ph.footprints, size: 22, color: context.colors.accent)),
-            ]),
-          ),
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Walked ${formatMetres(c.state.walkedTodayM)}', style: t.titleMedium?.merge(numeric)),
-            const SizedBox(height: 2),
-            Text(
-              c.walkError != null
-                  ? 'Steps aren\'t being counted'
-                  : 'of ${formatRound(goal)} goal · ${c.kcalToday.round()} kcal',
-              style: t.bodyMedium?.copyWith(color: context.colors.muted),
-            ),
-          ]),
-        ),
-        Icon(Ph.caretRight, size: 18, color: context.colors.muted),
-      ]),
-    );
-  }
-}
-
 class _TopAppsCard extends StatelessWidget {
-  const _TopAppsCard({required this.c, required this.onSeeAll});
+  const _TopAppsCard({required this.c});
   final ScrollDebtController c;
-  final VoidCallback onSeeAll;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final rows = c.ranked(c.todayApps);
     return _Panel(
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Most scrolled today', style: t.titleMedium),
-        const SizedBox(height: 4),
-        if (rows.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text('Nothing yet. Scrolling in other apps shows up here.',
-                style: t.bodyMedium?.copyWith(color: context.colors.muted)),
-          )
-        else
-          for (final r in rows.take(3)) _AppRow(c: c, row: r, max: rows.first.rawM, compact: true),
-        if (rows.isNotEmpty)
-          TextButton(
-            style: TextButton.styleFrom(padding: EdgeInsets.zero),
-            onPressed: onSeeAll,
-            child: const Text('See all apps'),
-          ),
-      ]),
+      child: rows.isEmpty
+          ? Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text('Nothing yet. Scrolling in other apps shows up here.',
+                  style: t.bodyMedium?.copyWith(color: context.colors.muted)),
+            )
+          : Column(children: [
+              for (final r in rows.take(3)) _AppRow(c: c, row: r, max: rows.first.rawM, compact: true),
+            ]),
     );
   }
 }
@@ -670,10 +790,10 @@ class _AppRow extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(Radii.small),
                 child: icon != null
-                    ? Image.memory(icon, width: 36, height: 36, gaplessPlayback: true)
+                    ? Image.memory(icon, width: 40, height: 40, gaplessPlayback: true)
                     : Container(
-                        width: 36,
-                        height: 36,
+                        width: 40,
+                        height: 40,
                         color: col.raised2,
                         child: Icon(Ph.squaresFour, size: 18, color: col.muted),
                       ),
@@ -692,7 +812,7 @@ class _AppRow extends StatelessWidget {
                         widthFactor: max <= 0 ? 0 : (row.rawM / max).clamp(0.02, 1.0),
                         child: Container(
                           height: 4,
-                          decoration: BoxDecoration(color: col.muted, borderRadius: BorderRadius.circular(2)),
+                          decoration: BoxDecoration(color: col.accent, borderRadius: BorderRadius.circular(2)),
                         ),
                       ),
                     ),

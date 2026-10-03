@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 /// "Frost", taken from the app icon: navy on white and frost blue, and the
-/// same mark inverted for dark mode. The accent marks debt and primary
-/// actions only. Read colours through `context.colors` so widgets follow the
-/// active theme.
+/// same mark inverted for dark mode. The page is tinted frost so plain cards
+/// lift off it; the accent marks debt and primary actions only. Read colours
+/// through `context.colors` so widgets follow the active theme.
 @immutable
 class Palette extends ThemeExtension<Palette> {
   const Palette({
@@ -20,6 +20,12 @@ class Palette extends ThemeExtension<Palette> {
     required this.onAccentContainer,
     required this.danger,
     required this.ridge,
+    required this.heroFrom,
+    required this.heroTo,
+    required this.onHero,
+    required this.onHeroMuted,
+    required this.calmFrom,
+    required this.calmTo,
   });
 
   final Color ink;
@@ -44,11 +50,22 @@ class Palette extends ThemeExtension<Palette> {
   /// Upper slope of the gauge's main ridge.
   final Color ridge;
 
+  /// The Today card while you owe: the icon's strongest colour as a
+  /// gradient, so "go walk" is the loudest thing on screen.
+  final Color heroFrom;
+  final Color heroTo;
+  final Color onHero;
+  final Color onHeroMuted;
+
+  /// The Today card while scrolling is still free: the icon's background.
+  final Color calmFrom;
+  final Color calmTo;
+
   /// Dark: the logo inverted, frost-blue ticks on deep navy.
   static const dark = Palette(
     ink: Color(0xFF07131F),
-    raised: Color(0xFF0D1F30),
-    raised2: Color(0xFF14304A),
+    raised: Color(0xFF0E1F30),
+    raised2: Color(0xFF173350),
     hairline: Color(0xFF1B3A56),
     text: Color(0xFFE6F1F8),
     muted: Color(0xFF8EA9BD),
@@ -59,23 +76,35 @@ class Palette extends ThemeExtension<Palette> {
     onAccentContainer: Color(0xFFD6ECF8),
     danger: Color(0xFFF2B8B5),
     ridge: Color(0xFF1E3D59),
+    heroFrom: Color(0xFFBFE0F3),
+    heroTo: Color(0xFF86BCDD),
+    onHero: Color(0xFF07131F),
+    onHeroMuted: Color(0xFF1F4462),
+    calmFrom: Color(0xFF173A5A),
+    calmTo: Color(0xFF0E1F30),
   );
 
   /// Light: the logo itself, navy on white and frost blue.
   static const light = Palette(
-    ink: Color(0xFFF7FBFE),
+    ink: Color(0xFFEEF4F9),
     raised: Color(0xFFFFFFFF),
     raised2: Color(0xFFE2F0F8),
-    hairline: Color(0xFFD3E6F1),
+    hairline: Color(0xFFD3E3EE),
     text: Color(0xFF0B2235),
     muted: Color(0xFF4F6B80),
     faint: Color(0xFF9DB6C7),
     accent: Color(0xFF0E4166),
     onAccent: Color(0xFFFFFFFF),
-    accentContainer: Color(0xFFE2F0F8),
+    accentContainer: Color(0xFFD2E6F4),
     onAccentContainer: Color(0xFF0E4166),
     danger: Color(0xFFB3261E),
     ridge: Color(0xFFC9DEEC),
+    heroFrom: Color(0xFF15527E),
+    heroTo: Color(0xFF0A2E4A),
+    onHero: Color(0xFFFFFFFF),
+    onHeroMuted: Color(0xFFB4D3E8),
+    calmFrom: Color(0xFFD6EAF7),
+    calmTo: Color(0xFFFFFFFF),
   );
 
   @override
@@ -99,6 +128,12 @@ class Palette extends ThemeExtension<Palette> {
       onAccentContainer: l(onAccentContainer, other.onAccentContainer),
       danger: l(danger, other.danger),
       ridge: l(ridge, other.ridge),
+      heroFrom: l(heroFrom, other.heroFrom),
+      heroTo: l(heroTo, other.heroTo),
+      onHero: l(onHero, other.onHero),
+      onHeroMuted: l(onHeroMuted, other.onHeroMuted),
+      calmFrom: l(calmFrom, other.calmFrom),
+      calmTo: l(calmTo, other.calmTo),
     );
   }
 }
@@ -107,12 +142,12 @@ extension PaletteContext on BuildContext {
   Palette get colors => Theme.of(this).extension<Palette>()!;
 }
 
-/// Material 3 corner scale: cards 12 (medium), sheets 28 (extra large),
-/// small elements 8, buttons are pills.
+/// Material 3 expressive corner scale: cards 24 (extra large), sheets 32,
+/// small elements 12, buttons are pills.
 abstract final class Radii {
-  static const surface = 12.0;
-  static const sheet = 28.0;
-  static const small = 8.0;
+  static const surface = 24.0;
+  static const sheet = 32.0;
+  static const small = 12.0;
 }
 
 /// 8 dp spacing grid: screen margin 16, gaps between cards 12.
@@ -157,13 +192,16 @@ ThemeData buildTheme(Brightness brightness) {
   return base.copyWith(
     scaffoldBackgroundColor: p.ink,
     splashFactory: InkSparkle.splashFactory,
+    // Heavy, tightly tracked figures and headings; light body text.
     textTheme: t.copyWith(
-      displayLarge: t.displayLarge?.copyWith(fontWeight: FontWeight.w300, letterSpacing: -1.5, height: 1),
-      displayMedium: t.displayMedium?.copyWith(fontWeight: FontWeight.w300, letterSpacing: -1, height: 1),
-      headlineMedium: t.headlineMedium?.copyWith(fontWeight: FontWeight.w400, height: 1.15),
-      titleLarge: t.titleLarge?.copyWith(fontWeight: FontWeight.w500),
-      titleMedium: t.titleMedium?.copyWith(fontWeight: FontWeight.w500),
-      titleSmall: t.titleSmall?.copyWith(fontWeight: FontWeight.w500),
+      displayLarge: t.displayLarge?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -2.5, height: 1),
+      displayMedium: t.displayMedium?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -2, height: 1),
+      headlineMedium: t.headlineMedium?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.5, height: 1.15),
+      headlineSmall: t.headlineSmall?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.3, height: 1.2),
+      titleLarge: t.titleLarge?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.2),
+      titleMedium: t.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+      titleSmall: t.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+      labelLarge: t.labelLarge?.copyWith(fontWeight: FontWeight.w600),
       bodyMedium: t.bodyMedium?.copyWith(height: 1.45),
       bodySmall: t.bodySmall?.copyWith(color: p.muted, height: 1.4),
       labelSmall: t.labelSmall?.copyWith(color: p.muted, letterSpacing: 0.2),
@@ -174,7 +212,10 @@ ThemeData buildTheme(Brightness brightness) {
       foregroundColor: p.text,
       surfaceTintColor: Colors.transparent,
       centerTitle: false,
-      titleTextStyle: TextStyle(fontFamily: font, fontSize: 22, fontWeight: FontWeight.w400, color: p.text),
+      toolbarHeight: 72,
+      titleSpacing: Gaps.margin + 4,
+      titleTextStyle:
+          TextStyle(fontFamily: font, fontSize: 30, fontWeight: FontWeight.w600, letterSpacing: -0.8, color: p.text),
     ),
     cardTheme: CardThemeData(
       color: p.raised,
@@ -214,7 +255,9 @@ ThemeData buildTheme(Brightness brightness) {
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
-        side: WidgetStatePropertyAll(BorderSide(color: p.faint)),
+        shape: const WidgetStatePropertyAll(pill),
+        minimumSize: const WidgetStatePropertyAll(Size(64, 44)),
+        side: WidgetStatePropertyAll(BorderSide(color: p.hairline)),
         backgroundColor: WidgetStateProperty.resolveWith(
             (s) => s.contains(WidgetState.selected) ? p.accentContainer : Colors.transparent),
         foregroundColor: WidgetStateProperty.resolveWith(
@@ -241,7 +284,7 @@ ThemeData buildTheme(Brightness brightness) {
     listTileTheme: ListTileThemeData(
       iconColor: p.muted,
       contentPadding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
-      titleTextStyle: TextStyle(fontFamily: font, fontSize: 16, color: p.text),
+      titleTextStyle: TextStyle(fontFamily: font, fontSize: 16, fontWeight: FontWeight.w500, color: p.text),
       subtitleTextStyle: TextStyle(fontFamily: font, fontSize: 14, height: 1.4, color: p.muted),
       minVerticalPadding: 12,
     ),
@@ -267,15 +310,18 @@ ThemeData buildTheme(Brightness brightness) {
       ),
       hintStyle: TextStyle(color: p.muted),
     ),
+    // Same colour as the page, so the bar reads as part of it rather than a
+    // separate slab; the pill indicator carries the selection.
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: p.raised,
+      backgroundColor: p.ink,
       surfaceTintColor: Colors.transparent,
       indicatorColor: p.accentContainer,
-      height: 80,
+      indicatorShape: const StadiumBorder(),
+      height: 72,
       labelTextStyle: WidgetStateProperty.resolveWith((s) => TextStyle(
             fontFamily: font,
             fontSize: 12,
-            fontWeight: s.contains(WidgetState.selected) ? FontWeight.w500 : FontWeight.w400,
+            fontWeight: s.contains(WidgetState.selected) ? FontWeight.w600 : FontWeight.w500,
             color: s.contains(WidgetState.selected) ? p.text : p.muted,
           )),
       iconTheme: WidgetStateProperty.resolveWith(
@@ -291,21 +337,88 @@ ThemeData buildTheme(Brightness brightness) {
   );
 }
 
-/// Group heading in a list, Material style: small, accent coloured, sitting
-/// on the margin above the group it names.
+/// Group heading in a list: small, muted, sitting on the margin above the
+/// group it names.
 class SectionTitle extends StatelessWidget {
-  const SectionTitle(this.text, {super.key});
+  const SectionTitle(this.text, {super.key, this.action, this.onAction});
   final String text;
+
+  /// Optional link at the end of the row, like "See all".
+  final String? action;
+  final VoidCallback? onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(Gaps.margin + 4, 24, action == null ? Gaps.margin : 4, 8),
+      child: Row(children: [
+        Expanded(
+          child: Semantics(
+            header: true,
+            child: Text(text, style: t.titleSmall?.copyWith(color: context.colors.muted, letterSpacing: 0.1)),
+          ),
+        ),
+        if (action != null)
+          TextButton(
+            style: TextButton.styleFrom(minimumSize: const Size(48, 32), visualDensity: VisualDensity.compact),
+            onPressed: onAction,
+            child: Text(action!),
+          ),
+      ]),
+    );
+  }
+}
+
+/// Rows grouped into one rounded container on the page margin, the way
+/// current Android settings lay out related options.
+class TileGroup extends StatelessWidget {
+  const TileGroup({super.key, required this.children, this.margin = true});
+  final List<Widget> children;
+
+  /// False when the parent already pads to the page margin.
+  final bool margin;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(Gaps.margin, 24, Gaps.margin, 8),
-        child: Semantics(
-          header: true,
-          child: Text(
-            text,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(color: context.colors.accent),
+        padding: EdgeInsets.symmetric(horizontal: margin ? Gaps.margin : 0),
+        child: Card(
+          clipBehavior: Clip.antiAlias,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
           ),
         ),
       );
+}
+
+/// An icon on a tonal rounded square, as list leading or stat marker.
+class IconBadge extends StatelessWidget {
+  const IconBadge({super.key, this.icon, this.child, this.size = 40, this.background, this.foreground});
+  final IconData? icon;
+
+  /// Drawn instead of [icon] (the logo ticks, for example).
+  final Widget? child;
+  final double size;
+  final Color? background;
+  final Color? foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    final col = context.colors;
+    final fg = foreground ?? col.onAccentContainer;
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: background ?? col.accentContainer,
+        borderRadius: BorderRadius.circular(size * 0.32),
+      ),
+      child: IconTheme(
+        data: IconThemeData(color: fg, size: size * 0.5),
+        child: child ?? Icon(icon),
+      ),
+    );
+  }
 }

@@ -184,3 +184,22 @@ the Today screen showed about 20 numbers. Direction B was chosen from three opti
 * **Launcher icon:** adaptive (white to frost-blue gradient background, navy
   vector ticks) with a monochrome layer for Android 13 themed icons. The
   vector is flat; the soft shadow exists only in the PNG and store artwork.
+
+## Round 6: one-card Today and a modern pass
+* **Today is one card that answers "what now?"** A status pill gives the verdict
+  (*Time for a walk*, *Unfrozen for 3:12*, *Free scrolling used up*, *Almost at your
+  limit* at 25 % or less, *You're good to scroll*), one big number backs it (metres
+  to walk, or free scrolling left) with a plain sentence, and two rows below show
+  what it comes from: *Walked today* and *Scrolled today*. While you owe, the card
+  turns navy in light mode and frost blue in dark mode; otherwise it stays pale
+  frost with a bar that drains like a battery. No columns or charts. The separate
+  walking card left Today (its goal ring lives on as "x % of your goal" under
+  *Walked today*, and the full chart is in Activity). *Most scrolled today* is
+  unchanged apart from its heading moving above the card with a *See all* link.
+* **Modern pass, same Material 3 rules:** the logo colours stay; the page is tinted
+  frost (`#EEF4F9`) so white cards lift off it without shadows. Headings and
+  figures are SemiBold with tight tracking instead of Light, the app bar title is
+  30 sp. Corners follow the expressive scale (cards 24, sheets 32, small 12),
+  segmented buttons are pills, the navigation bar shares the page colour. Settings
+  rows sit in rounded groups with tonal icon badges (`TileGroup`, `IconBadge` in
+  `lib/ui/theme.dart`), and warnings are tinted cards instead of outlined ones.

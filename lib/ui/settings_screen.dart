@@ -45,7 +45,7 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(Gaps.margin, 10, Gaps.margin, 0),
+          padding: const EdgeInsets.fromLTRB(Gaps.margin + 4, 10, Gaps.margin + 4, 0),
           child: Text(
             cfg.demoMode
                 ? 'Demo mode is on and replaces these rules. Turn it off in Developer options.'
@@ -58,59 +58,65 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         const SectionTitle('Rules'),
-        _NavTile(
-          icon: Ph.squaresFour,
-          title: 'Apps that count',
-          subtitle: restricted.isEmpty ? 'None' : restricted.join(', '),
-          page: const _AppsThatCountPage(),
-        ),
-        _NavTile(
-          icon: Ph.lifebuoy,
-          title: 'Emergency passes',
-          subtitle: '${cfg.overridesPerDay} a day, scrolling costs ${_x(cfg.overridePenalty)}× while unfrozen',
-          page: const _PassesPage(),
-        ),
-        _NavTile(
-          icon: Ph.sliders,
-          title: 'Custom rules',
-          subtitle: 'Free scrolling, walking, frost, overnight growth',
-          page: const _CustomRulesPage(),
-        ),
+        TileGroup(children: [
+          _NavTile(
+            icon: Ph.squaresFour,
+            title: 'Apps that count',
+            subtitle: restricted.isEmpty ? 'None' : restricted.join(', '),
+            page: const _AppsThatCountPage(),
+          ),
+          _NavTile(
+            icon: Ph.lifebuoy,
+            title: 'Emergency passes',
+            subtitle: '${cfg.overridesPerDay} a day, scrolling costs ${_x(cfg.overridePenalty)}× while unfrozen',
+            page: const _PassesPage(),
+          ),
+          const _NavTile(
+            icon: Ph.sliders,
+            title: 'Custom rules',
+            subtitle: 'Free scrolling, walking, frost, overnight growth',
+            page: _CustomRulesPage(),
+          ),
+        ]),
         const SectionTitle('General'),
-        _NavTile(
-          icon: Ph.user,
-          title: 'You',
-          subtitle: '${cfg.weightKg.toStringAsFixed(0)} kg · ${formatRound(cfg.walkGoalM)} goal · '
-              '${cfg.strideM.toStringAsFixed(2)} m stride',
-          page: const _YouPage(),
-        ),
-        _NavTile(
-          icon: Ph.palette,
-          title: 'Appearance',
-          subtitle: _themeLabel(c.themeMode),
-          page: const _AppearancePage(),
-        ),
-        _NavTile(
-          icon: Ph.listChecks,
-          title: 'Permissions',
-          subtitle: c.status.accessibilityEnabled ? 'Scroll measuring is on' : 'Scroll measuring is off',
-          page: const OnboardingScreen(standalone: true),
-        ),
-        const _NavTile(
-          icon: Ph.shieldCheck,
-          title: 'Privacy and data',
-          subtitle: 'Everything stays on this phone',
-          page: _PrivacyPage(),
-        ),
+        TileGroup(children: [
+          _NavTile(
+            icon: Ph.user,
+            title: 'You',
+            subtitle: '${cfg.weightKg.toStringAsFixed(0)} kg · ${formatRound(cfg.walkGoalM)} goal · '
+                '${cfg.strideM.toStringAsFixed(2)} m stride',
+            page: const _YouPage(),
+          ),
+          _NavTile(
+            icon: Ph.palette,
+            title: 'Appearance',
+            subtitle: _themeLabel(c.themeMode),
+            page: const _AppearancePage(),
+          ),
+          _NavTile(
+            icon: Ph.listChecks,
+            title: 'Permissions',
+            subtitle: c.status.accessibilityEnabled ? 'Scroll measuring is on' : 'Scroll measuring is off',
+            page: const OnboardingScreen(standalone: true),
+          ),
+          const _NavTile(
+            icon: Ph.shieldCheck,
+            title: 'Privacy and data',
+            subtitle: 'Everything stays on this phone',
+            page: _PrivacyPage(),
+          ),
+        ]),
         const SectionTitle('Developer'),
-        SwitchListTile(
-          secondary: const Icon(Ph.code),
-          title: const Text('Developer options'),
-          subtitle: const Text('Testing tools: add steps or scrolling, demo mode'),
-          value: c.developerOptions,
-          onChanged: c.setDeveloperOptions,
-        ),
-        if (c.developerOptions) DeveloperTools(c: c),
+        TileGroup(children: [
+          SwitchListTile(
+            secondary: const IconBadge(icon: Ph.code),
+            title: const Text('Developer options'),
+            subtitle: const Text('Testing tools: add steps or scrolling, demo mode'),
+            value: c.developerOptions,
+            onChanged: c.setDeveloperOptions,
+          ),
+          if (c.developerOptions) DeveloperTools(c: c),
+        ]),
       ],
     );
     return embedded ? list : Scaffold(appBar: AppBar(title: const Text('Settings')), body: list);
@@ -134,7 +140,7 @@ class _NavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-        leading: Icon(icon),
+        leading: IconBadge(icon: icon),
         title: Text(title),
         subtitle: Text(subtitle),
         trailing: Icon(Ph.caretRight, size: 18, color: context.colors.muted),
@@ -162,7 +168,7 @@ class _Help extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(Gaps.margin, 8, Gaps.margin, 8),
+        padding: const EdgeInsets.fromLTRB(Gaps.margin + 4, 8, Gaps.margin + 4, 12),
         child: Text(text, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: context.colors.muted)),
       );
 }
@@ -178,19 +184,23 @@ class _AppsThatCountPage extends ConsumerWidget {
     return _SubPage(title: 'Apps that count', children: [
       const _Help('Scrolling in these apps counts toward debt, and they freeze over when you owe. '
           'Everything else, like banking, calls and maps, is never touched.'),
-      for (final cat in AppCategory.values)
-        SwitchListTile(
-          title: Text(cat.label),
-          subtitle: Text(c.catalog.restricted.contains(cat) ? 'Counts at ${rateLabel(cat.rate)} rate' : 'Doesn\'t count'),
-          value: c.catalog.restricted.contains(cat),
-          onChanged: (v) => c.setCategoryRestricted(cat, v),
-        ),
+      TileGroup(children: [
+        for (final cat in AppCategory.values)
+          SwitchListTile(
+            title: Text(cat.label),
+            subtitle: Text(c.catalog.restricted.contains(cat) ? 'Counts at ${rateLabel(cat.rate)} rate' : 'Doesn\'t count'),
+            value: c.catalog.restricted.contains(cat),
+            onChanged: (v) => c.setCategoryRestricted(cat, v),
+          ),
+      ]),
       const SectionTitle('Single apps'),
       const _Help('Change the rule for one app. "Default" follows its category above.'),
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
-        child: _RatesEditor(c: c),
-      ),
+      TileGroup(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(Gaps.margin, 10, Gaps.margin, 4),
+          child: _RatesEditor(c: c),
+        ),
+      ]),
     ]);
   }
 }
@@ -206,24 +216,26 @@ class _PassesPage extends ConsumerWidget {
     return _SubPage(title: 'Emergency passes', children: [
       _Help('A pass unfreezes your apps for ${cfg.overrideMinutes} minutes when you really need them. '
           'Scrolling still counts, at a higher cost.'),
-      _SliderRow(
-        label: 'Passes per day',
-        value: cfg.overridesPerDay.toDouble(),
-        min: 0,
-        max: 10,
-        divisions: 10,
-        format: (v) => v.toStringAsFixed(0),
-        onChanged: (v) => set(cfg.copyWith(overridesPerDay: v.round())),
-      ),
-      _SliderRow(
-        label: 'Cost while unfrozen',
-        value: cfg.overridePenalty,
-        min: 1,
-        max: 5,
-        divisions: 8,
-        format: (v) => '${_x(v)}×',
-        onChanged: (v) => set(cfg.copyWith(overridePenalty: v)),
-      ),
+      TileGroup(children: [
+        _SliderRow(
+          label: 'Passes per day',
+          value: cfg.overridesPerDay.toDouble(),
+          min: 0,
+          max: 10,
+          divisions: 10,
+          format: (v) => v.toStringAsFixed(0),
+          onChanged: (v) => set(cfg.copyWith(overridesPerDay: v.round())),
+        ),
+        _SliderRow(
+          label: 'Cost while unfrozen',
+          value: cfg.overridePenalty,
+          min: 1,
+          max: 5,
+          divisions: 8,
+          format: (v) => '${_x(v)}×',
+          onChanged: (v) => set(cfg.copyWith(overridePenalty: v)),
+        ),
+      ]),
     ]);
   }
 }
@@ -240,42 +252,44 @@ class _CustomRulesPage extends ConsumerWidget {
       _Help(cfg.demoMode
           ? 'Demo mode is on and replaces these rules until you turn it off.'
           : 'Changing any of these switches How strict to custom.'),
-      _SliderRow(
-        label: 'Free scrolling per day',
-        value: cfg.allowanceM,
-        min: 0,
-        max: 1000,
-        divisions: 40,
-        format: (v) => '${v.toStringAsFixed(0)} m',
-        onChanged: (v) => set(cfg.copyWith(allowanceM: v)),
-      ),
-      _SliderRow(
-        label: 'Metres to walk per metre scrolled',
-        value: cfg.ratio,
-        min: 0.5,
-        max: 5,
-        divisions: 9,
-        format: (v) => '${_x(v)} m',
-        onChanged: (v) => set(cfg.copyWith(ratio: v)),
-      ),
-      _SliderRow(
-        label: 'Apps freeze completely at',
-        value: cfg.frostMaxDebtM,
-        min: 10,
-        max: 500,
-        divisions: 49,
-        format: (v) => '${v.toStringAsFixed(0)} m owed',
-        onChanged: (v) => set(cfg.copyWith(frostMaxDebtM: v)),
-      ),
-      _SliderRow(
-        label: 'Overnight growth of unpaid debt',
-        value: cfg.interestRate * 100,
-        min: 0,
-        max: 20,
-        divisions: 40,
-        format: (v) => '${v.toStringAsFixed(1)}%',
-        onChanged: (v) => set(cfg.copyWith(interestRate: v / 100)),
-      ),
+      TileGroup(children: [
+        _SliderRow(
+          label: 'Free scrolling per day',
+          value: cfg.allowanceM,
+          min: 0,
+          max: 1000,
+          divisions: 40,
+          format: (v) => '${v.toStringAsFixed(0)} m',
+          onChanged: (v) => set(cfg.copyWith(allowanceM: v)),
+        ),
+        _SliderRow(
+          label: 'Metres to walk per metre scrolled',
+          value: cfg.ratio,
+          min: 0.5,
+          max: 5,
+          divisions: 9,
+          format: (v) => '${_x(v)} m',
+          onChanged: (v) => set(cfg.copyWith(ratio: v)),
+        ),
+        _SliderRow(
+          label: 'Apps freeze completely at',
+          value: cfg.frostMaxDebtM,
+          min: 10,
+          max: 500,
+          divisions: 49,
+          format: (v) => '${v.toStringAsFixed(0)} m owed',
+          onChanged: (v) => set(cfg.copyWith(frostMaxDebtM: v)),
+        ),
+        _SliderRow(
+          label: 'Overnight growth of unpaid debt',
+          value: cfg.interestRate * 100,
+          min: 0,
+          max: 20,
+          divisions: 40,
+          format: (v) => '${v.toStringAsFixed(1)}%',
+          onChanged: (v) => set(cfg.copyWith(interestRate: v / 100)),
+        ),
+      ]),
     ]);
   }
 }
@@ -290,33 +304,35 @@ class _YouPage extends ConsumerWidget {
     void set(DebtConfig n) => c.updateConfig(n);
     return _SubPage(title: 'You', children: [
       const _Help('Used for calorie estimates and to turn steps into metres.'),
-      _SliderRow(
-        label: 'Daily walking goal',
-        value: cfg.walkGoalM / 1000,
-        min: 1,
-        max: 15,
-        divisions: 28,
-        format: (v) => '${v.toStringAsFixed(1)} km',
-        onChanged: (v) => set(cfg.copyWith(walkGoalM: v * 1000)),
-      ),
-      _SliderRow(
-        label: 'Body weight',
-        value: cfg.weightKg,
-        min: 40,
-        max: 150,
-        divisions: 110,
-        format: (v) => '${v.toStringAsFixed(0)} kg',
-        onChanged: (v) => set(cfg.copyWith(weightKg: v)),
-      ),
-      _SliderRow(
-        label: 'Stride length',
-        value: cfg.strideM,
-        min: 0.4,
-        max: 1.2,
-        divisions: 16,
-        format: (v) => '${v.toStringAsFixed(2)} m',
-        onChanged: (v) => set(cfg.copyWith(strideM: v)),
-      ),
+      TileGroup(children: [
+        _SliderRow(
+          label: 'Daily walking goal',
+          value: cfg.walkGoalM / 1000,
+          min: 1,
+          max: 15,
+          divisions: 28,
+          format: (v) => '${v.toStringAsFixed(1)} km',
+          onChanged: (v) => set(cfg.copyWith(walkGoalM: v * 1000)),
+        ),
+        _SliderRow(
+          label: 'Body weight',
+          value: cfg.weightKg,
+          min: 40,
+          max: 150,
+          divisions: 110,
+          format: (v) => '${v.toStringAsFixed(0)} kg',
+          onChanged: (v) => set(cfg.copyWith(weightKg: v)),
+        ),
+        _SliderRow(
+          label: 'Stride length',
+          value: cfg.strideM,
+          min: 0.4,
+          max: 1.2,
+          divisions: 16,
+          format: (v) => '${v.toStringAsFixed(2)} m',
+          onChanged: (v) => set(cfg.copyWith(strideM: v)),
+        ),
+      ]),
     ]);
   }
 }
@@ -328,13 +344,16 @@ class _AppearancePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(controllerProvider);
     return _SubPage(title: 'Appearance', children: [
-      RadioGroup<String>(
-        groupValue: c.themeMode,
-        onChanged: (v) => c.setThemeMode(v ?? 'system'),
-        child: Column(children: [
-          for (final m in ['system', 'light', 'dark']) RadioListTile<String>(value: m, title: Text(_themeLabel(m))),
-        ]),
-      ),
+      const SizedBox(height: 8),
+      TileGroup(children: [
+        RadioGroup<String>(
+          groupValue: c.themeMode,
+          onChanged: (v) => c.setThemeMode(v ?? 'system'),
+          child: Column(children: [
+            for (final m in ['system', 'light', 'dark']) RadioListTile<String>(value: m, title: Text(_themeLabel(m))),
+          ]),
+        ),
+      ]),
     ]);
   }
 }
@@ -349,30 +368,36 @@ class _PrivacyPage extends ConsumerWidget {
       const _Help('Scroll Debt has no internet permission and no analytics. It sees how far you scroll and '
           'which app is open, never what is on the screen. All data stays on this phone.'),
       const SizedBox(height: 8),
-      ListTile(
-        leading: Icon(Ph.trash, color: context.colors.danger),
-        title: Text('Erase all data', style: TextStyle(color: context.colors.danger)),
-        subtitle: const Text('Debt, history and tracking gaps. Settings are kept.'),
-        onTap: () async {
-          final ok = await showDialog<bool>(
-            context: context,
-            builder: (d) => AlertDialog(
-              title: const Text('Erase all data?'),
-              content: const Text('Debt, history and tracking gaps are deleted. Settings are kept. '
-                  'This can\'t be undone.'),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
-                TextButton(
-                  style: TextButton.styleFrom(foregroundColor: context.colors.danger),
-                  onPressed: () => Navigator.pop(d, true),
-                  child: const Text('Erase'),
-                ),
-              ],
-            ),
-          );
-          if (ok == true) await c.resetAll();
-        },
-      ),
+      TileGroup(children: [
+        ListTile(
+          leading: IconBadge(
+            icon: Ph.trash,
+            background: context.colors.danger.withValues(alpha: 0.14),
+            foreground: context.colors.danger,
+          ),
+          title: Text('Erase all data', style: TextStyle(color: context.colors.danger)),
+          subtitle: const Text('Debt, history and tracking gaps. Settings are kept.'),
+          onTap: () async {
+            final ok = await showDialog<bool>(
+              context: context,
+              builder: (d) => AlertDialog(
+                title: const Text('Erase all data?'),
+                content: const Text('Debt, history and tracking gaps are deleted. Settings are kept. '
+                    'This can\'t be undone.'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
+                  TextButton(
+                    style: TextButton.styleFrom(foregroundColor: context.colors.danger),
+                    onPressed: () => Navigator.pop(d, true),
+                    child: const Text('Erase'),
+                  ),
+                ],
+              ),
+            );
+            if (ok == true) await c.resetAll();
+          },
+        ),
+      ]),
     ]);
   }
 }
