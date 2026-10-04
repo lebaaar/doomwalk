@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo/final/png/icon-256.png" width="128" alt="DoomWalk icon">
+  <img src="docs/logo/final/png/icon-rounded-512.png" width="128" alt="DoomWalk icon">
 </p>
 
 <h1 align="center">DoomWalk</h1>
