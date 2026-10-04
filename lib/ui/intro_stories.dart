@@ -230,13 +230,13 @@ List<_Slide> _buildSlides(WalletConfig c) {
   return [
     const _Slide(
       title: 'Want to scroll?\nTake a walk first.',
-      body: 'DoomWalk turns walking into scrolling. No walk, no feed.',
+      body: 'DoomWalk turns walking into scrolling. No walk, no scroll.',
       visual: _LogoVisual(),
     ),
     const _Slide(
       title: 'Your scrolling, in metres',
       body:
-          'Every swipe in Instagram, TikTok and the like is measured in real metres. '
+          'Every swipe on Instagram, TikTok or any other app is measured in real metres. '
           'A long evening on the feed easily passes a few hundred.',
       visual: _CountUp(
         to: 100,
@@ -265,7 +265,7 @@ List<_Slide> _buildSlides(WalletConfig c) {
     _Slide(
       title: 'Bank empty? The app locks',
       body:
-          'Keep scrolling with an empty bank and the app locks behind a blur until you walk. '
+          'Keep scrolling with an empty bank and the app locks until you walk. '
           'Calls, maps, banking and emergency apps are never touched.',
       visual: _FrostVisual(steps: fillSteps, unlocks: cap),
     ),
@@ -415,27 +415,14 @@ class _PrivacyVisual extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 168,
-            height: 168,
+            width: 140,
+            height: 140,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: col.onHero.withValues(alpha: 0.08),
-              border: Border.all(
-                color: col.onHero.withValues(alpha: 0.16),
-                width: 1.5,
-              ),
+              color: col.onHero.withValues(alpha: 0.12),
             ),
             alignment: Alignment.center,
-            child: Container(
-              width: 112,
-              height: 112,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: col.onHero.withValues(alpha: 0.12),
-              ),
-              alignment: Alignment.center,
-              child: Icon(Ph.shieldCheck, size: 60, color: col.onHero),
-            ),
+            child: Icon(Ph.shieldCheck, size: 72, color: col.onHero),
           ),
           const SizedBox(height: 28),
           Wrap(

@@ -125,7 +125,7 @@ class SettingsScreen extends ConsumerWidget {
             const _NavTile(
               icon: Ph.lightning,
               title: 'How DoomWalk works',
-              subtitle: 'The intro stories again',
+              subtitle: 'Show intro stories again',
               page: _IntroReplay(),
             ),
             _NavTile(
@@ -362,12 +362,12 @@ class _CustomRulesPage extends ConsumerWidget {
               onChanged: (v) => set(cfg.copyWith(priceStepM: v)),
             ),
             _SliderRow(
-              label: 'Apps lock completely after',
+              label: 'Apps fully lock after owing',
               value: cfg.frostAtM,
               min: 5,
               max: 100,
               divisions: 19,
-              format: (v) => '${v.toStringAsFixed(0)} m unpaid',
+              format: (v) => '${v.toStringAsFixed(0)} m',
               onChanged: (v) => set(cfg.copyWith(frostAtM: v)),
             ),
           ],
@@ -488,7 +488,7 @@ class _PrivacyPage extends ConsumerWidget {
                 style: TextStyle(color: context.colors.danger),
               ),
               subtitle: const Text(
-                'Everything, settings included. DoomWalk starts over as if just installed.',
+                'Delete all data and starts over as if the app was just installed.',
               ),
               onTap: () async {
                 final ok = await showDialog<bool>(
