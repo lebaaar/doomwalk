@@ -93,7 +93,7 @@ class ExitRecord {
         11 => 'Android turned it off for this user',
         12 => 'a process it depended on died',
         13 => 'Android ended it',
-        14 => 'it was frozen in the background',
+        14 => 'Android paused it in the background',
         15 => 'its package changed',
         16 => 'the app was updated',
         _ => 'an unknown reason',

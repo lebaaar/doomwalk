@@ -352,7 +352,7 @@ class _TodayCardState extends State<_TodayCard> {
                 _BankBlock(c: c, verdict: verdict, fg: fg, muted: muted),
                 const SizedBox(height: 18),
                 _Tally(c: c, fg: fg, muted: muted, onOpenActivity: widget.onOpenActivity),
-                if (owed || verdict == _Verdict.empty || pass) ...[
+                if (owed || pass) ...[
                   const SizedBox(height: 18),
                   _PassButton(c: c, fg: fg, muted: muted),
                 ],
@@ -406,10 +406,10 @@ class _BankBlock extends StatelessWidget {
     final which = apps.isEmpty ? 'your restricted apps' : _appList(c, apps);
     final line = switch (verdict) {
       _Verdict.walk => c.status.serviceConnected
-          ? '$which ${apps.length == 1 ? 'is' : 'are'} frozen. ${stepsText(unlockWalk, stride)} '
+          ? '$which ${apps.length == 1 ? 'is' : 'are'} locked. ${stepsText(unlockWalk, stride)} '
               '(${walkMinutes(unlockWalk)}) unlock ${formatRound(unlockM)}.'
           : '${stepsText(unlockWalk, stride)} unlock ${formatRound(unlockM)}. '
-              'Freezing is paused while scroll measuring is off.',
+              'Locking is paused while scroll measuring is off.',
       _Verdict.unfrozen => 'Unlocked for ${_countdown(c)}. Scrolling during the pass is free.',
       _Verdict.empty =>
         'Take a walk: ${stepsText(unlockWalk, stride)} (${walkMinutes(unlockWalk)}) put ${formatRound(unlockM)} in.',
@@ -644,12 +644,13 @@ class LedgerView extends StatelessWidget {
     final owed = c.overdraftM >= 0.05;
     return ListView(
       controller: scroll,
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+      // Edge to edge: clear the navigation bar (three-button nav is tall).
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 32 + MediaQuery.viewPaddingOf(context).bottom),
       children: [
         Text('How it works', style: t.titleLarge),
         const SizedBox(height: 8),
         rule(Ph.footprints, 'Walking fills your bank. It starts empty each day and holds up to ${formatRound(cfg.bankCapM)}.'),
-        rule(Ph.squaresFour, 'Scrolling spends it. When it\'s empty, apps freeze until you walk.'),
+        rule(Ph.squaresFour, 'Scrolling spends it. When it\'s empty, apps lock until you walk.'),
         rule(Ph.lightning, 'The more you scroll today, the more walking each metre costs:'),
         const SizedBox(height: 4),
         PriceTable(config: c.config, currentPrice: c.priceNow),

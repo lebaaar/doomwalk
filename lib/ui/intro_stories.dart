@@ -250,9 +250,9 @@ List<_Slide> _buildSlides(WalletConfig c) {
       visual: _TableVisual(config: c),
     ),
     _Slide(
-      title: 'Bank empty? The app freezes',
+      title: 'Bank empty? The app locks',
       body:
-          'Keep scrolling with an empty bank and the app frosts over until you walk. '
+          'Keep scrolling with an empty bank and the app locks behind a blur until you walk. '
           'Calls, maps, banking and emergency apps are never touched.',
       visual: _FrostVisual(steps: fillSteps, unlocks: cap),
     ),

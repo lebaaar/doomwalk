@@ -93,7 +93,7 @@ class SettingsScreen extends ConsumerWidget {
           const _NavTile(
             icon: Ph.sliders,
             title: 'Custom rules',
-            subtitle: 'How fast walking gets harder, freezing',
+            subtitle: 'How fast walking gets harder, locking',
             page: _CustomRulesPage(),
           ),
         ]),
@@ -224,7 +224,7 @@ class _AppsThatCountPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(controllerProvider);
     return _SubPage(title: 'Apps that count', children: [
-      const _Help('Scrolling in these apps spends your bank, and they freeze '
+      const _Help('Scrolling in these apps spends your bank, and they lock '
           'when it runs out. Everything else, like banking, calls and maps, is never touched.'),
       TileGroup(children: [
         for (final cat in AppCategory.values)
@@ -295,7 +295,7 @@ class _CustomRulesPage extends ConsumerWidget {
           onChanged: (v) => set(cfg.copyWith(priceStepM: v)),
         ),
         _SliderRow(
-          label: 'Apps freeze completely after',
+          label: 'Apps lock completely after',
           value: cfg.frostAtM,
           min: 5,
           max: 100,
@@ -317,7 +317,8 @@ class _YouPage extends ConsumerWidget {
     final cfg = c.config;
     void set(WalletConfig n) => c.updateConfig(n);
     return _SubPage(title: 'You', children: [
-      const _Help('Your daily step goal, and what turns steps into metres and calories.'),
+      const _Help('Your daily step goal, and what turns steps into metres and calories. Stride length is how far '
+          'one step takes you; steps × stride is the distance you walked. Most adults are between 0.65 and 0.8 m.'),
       TileGroup(children: [
         _SliderRow(
           label: 'Daily step goal',

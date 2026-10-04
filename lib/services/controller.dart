@@ -712,7 +712,7 @@ class DoomWalkController extends ChangeNotifier {
     );
     final text = overrideActive
         ? 'Emergency pass on until ${_hhmm(overrideUntil!)}. Scrolling is free until then.'
-        : '${formatMetres(state.scrolledTodayM)} scrolled today, ${nearestText(state.scrolledTodayM)}';
+        : '${formatMetres(state.scrolledTodayM)} scrolled today';
     final key = '$title|$text|$overridesLeft|$overrideActive';
     if (key == _lastNotif) return;
     _lastNotif = key;
@@ -985,7 +985,7 @@ class DoomWalkController extends ChangeNotifier {
 /// seed), so the card doesn't change text while it's up.
 const walkNudges = [
   'A short walk beats another hour of feed.',
-  'Your legs have been waiting all day.',
+  'Go touch some grass!',
   'Every step clears the blur a little.',
   'The feed will still be here. The sun might not.',
   'Fresh air first, then back to it. Deal?',
@@ -1036,7 +1036,7 @@ String walletHeadline({
   required double strideM,
 }) {
   final walk = stepsText(walkToUnlockM, strideM);
-  if (overdraftM >= 0.05) return 'Frozen. Walk $walk to unlock ${formatRound(unlocksM)}';
+  if (overdraftM >= 0.05) return 'Locked. Walk $walk to unlock ${formatRound(unlocksM)}';
   if (full) return 'Bank full: ${formatRound(bankM)} to scroll';
   if (bankM >= 0.5) return '${formatRound(bankM)} in the bank';
   return 'Bank empty. Walk $walk for ${formatRound(unlocksM)}';
