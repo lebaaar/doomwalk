@@ -467,9 +467,9 @@ class _DeveloperToolsState extends State<DeveloperTools> {
               icon: const Icon(Ph.footprints, size: 18),
               onPressed: () {
                 c.devAddSteps(n);
-                _done('Added ${_thousands(n)} steps (${formatMetres(n * c.config.strideM)})');
+                _done('Added ${formatCount(n)} steps (${formatMetres(n * c.config.strideM)})');
               },
-              label: Text('+${_thousands(n)}'),
+              label: Text('+${formatCount(n)}'),
             ),
         ]),
       ),
@@ -574,8 +574,6 @@ class _DeveloperToolsState extends State<DeveloperTools> {
     ]);
   }
 }
-
-String _thousands(int n) => n >= 1000 ? '${n ~/ 1000},${(n % 1000).toString().padLeft(3, '0')}' : '$n';
 
 // --------------------------------------------------------------- widgets
 

@@ -835,6 +835,12 @@ class DoomWalkController extends ChangeNotifier {
 
   double get kcalToday => kcalForWalk(state.walkedTodayM, config.weightKg);
 
+  /// Steps are only ever walked metres over the stride.
+  int _stepsFor(double metres) => config.strideM <= 0 ? 0 : (metres / config.strideM).round();
+  int get stepsToday => _stepsFor(state.walkedTodayM);
+  int get stepsLifetime => _stepsFor(state.lifetimeWalkedM);
+  int get stepGoal => _stepsFor(config.walkGoalM);
+
   /// Walked metres over the last 7 days, today included.
   double get weekWalkedM =>
       state.walkedTodayM + walkHistory.take(6).fold<double>(0, (s, d) => s + d.$2);
@@ -997,7 +1003,7 @@ String walkMinutes(double metres) {
 /// Steps for [metres] at [strideM]: "133 steps".
 String stepsText(double metres, double strideM) {
   final n = strideM <= 0 ? 0 : (metres / strideM).ceil();
-  return '$n ${n == 1 ? 'step' : 'steps'}';
+  return '${formatCount(n)} ${n == 1 ? 'step' : 'steps'}';
 }
 
 /// The card over an app once the bank is empty: what happened, how many
@@ -1048,5 +1054,5 @@ String walletHeadline({
 }) {
   if (overdraftM < 0.05 && bankM >= 0.5) return (formatRound(bankM), full ? 'bank full' : 'in the bank');
   final n = strideM <= 0 ? 0 : (walkToUnlockM / strideM).ceil();
-  return ('$n', 'steps for ${formatRound(unlocksM)}');
+  return (formatCount(n), 'steps for ${formatRound(unlocksM)}');
 }

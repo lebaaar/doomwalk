@@ -23,6 +23,14 @@ void main() {
     expect(formatTimes(1.5), '1.5×');
   });
 
+  test('counts get thousands separators', () {
+    expect(formatCount(0), '0');
+    expect(formatCount(999), '999');
+    expect(formatCount(1133), '1,133');
+    expect(formatCount(182340), '182,340');
+    expect(formatCount(1234567), '1,234,567');
+  });
+
   group('pixels to metres', () {
     test('one inch of pixels is 2.54 cm', () {
       expect(pixelsToMetres(420, 420), closeTo(0.0254, 1e-12));

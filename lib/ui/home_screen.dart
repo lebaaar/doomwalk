@@ -226,8 +226,9 @@ String _appList(DoomWalkController c, List<String> pkgs) {
 /// Where today stands, from most to least urgent.
 enum _Verdict { walk, unfrozen, empty, full, low, ok }
 
-/// The one card that answers "what now?": a verdict, the number behind it,
-/// and the two things it comes from, walked and scrolled today.
+/// The one card that answers "what now?": today's steps up top, and under
+/// them the bank they filled, how full it is, what a step buys right now and
+/// what to do next.
 class _TodayCard extends StatefulWidget {
   const _TodayCard({required this.c, required this.onOpenActivity});
   final DoomWalkController c;
@@ -262,64 +263,34 @@ class _TodayCardState extends State<_TodayCard> {
     final col = context.colors;
     final owed = c.overdraftM >= 0.05;
     final pass = c.overrideActive;
-    final bank = c.bankM;
-    final cap = c.bankCapM;
-    final unlockM = c.unlockChunkM;
-    final unlockWalk = c.walkToUnlock(unlockM);
-    final fillWalk = c.walkToUnlock(cap);
-    final stride = c.config.strideM;
     final verdict = pass
         ? _Verdict.unfrozen
         : owed
             ? _Verdict.walk
-            : bank < 0.5
+            : c.bankM < 0.5
                 ? _Verdict.empty
                 : c.bankFull
                     ? _Verdict.full
-                    : (bank / cap <= 0.25 ? _Verdict.low : _Verdict.ok);
+                    : (c.bankM / c.bankCapM <= 0.25 ? _Verdict.low : _Verdict.ok);
 
     // Frozen turns the card deep navy in both modes; otherwise it is a plain
     // card.
     final fg = owed ? col.onHero : col.text;
     final muted = owed ? col.onHeroMuted : col.muted;
-    final strong = owed ? col.onHero : col.accent;
-    final apps = c.frostedAppsToday;
-    final which = apps.isEmpty ? 'your restricted apps' : 'apps like ${_appList(c, apps)}';
-
-    final (IconData icon, String status) = switch (verdict) {
-      _Verdict.walk => (Ph.walk, 'Time for a walk'),
-      _Verdict.unfrozen => (Ph.lifebuoy, 'Unlocked for ${_countdown(c)}'),
-      _Verdict.empty => (Ph.lockSimple, 'Take a walk first'),
-      _Verdict.full => (Ph.checkCircle, 'Bank full'),
-      _Verdict.low => (Ph.warningCircle, 'Running low'),
-      _Verdict.ok => (Ph.checkCircle, 'In the bank'),
-    };
-    // Walking asks are in steps; the bank is in metres.
-    final inSteps = verdict == _Verdict.walk || verdict == _Verdict.empty;
-    final value = inSteps ? (stride <= 0 ? 0.0 : (unlockWalk / stride).ceilToDouble()) : bank;
-    final unlocks = formatRound(unlockM);
-    final sentence = switch (verdict) {
-      _Verdict.walk => c.status.serviceConnected
-          ? 'to unlock $unlocks of scrolling (${walkMinutes(unlockWalk)}). Until then, $which stay frozen.'
-          : 'to unlock $unlocks of scrolling. Freezing is paused while scroll measuring is off.',
-      _Verdict.unfrozen => 'in the bank. Scrolling during the pass is free and doesn\'t use it.',
-      _Verdict.empty => 'put $unlocks of scrolling in the bank (${walkMinutes(unlockWalk)}). '
-          'It starts empty every day and fills as you walk.',
-      _Verdict.full => 'to scroll, as much as the bank holds. Walking more adds nothing until you scroll some.',
-      _Verdict.low || _Verdict.ok => 'to scroll. ${stepsText(fillWalk, stride)} would fill it to ${formatRound(cap)}.',
-    };
+    final steps = c.stepsToday;
+    final goalSub = c.walkError != null
+        ? 'Steps aren\'t counted yet'
+        : '${(c.goalProgress * 100).round()}% of ${formatCount(c.stepGoal)} goal · ${formatMetres(c.state.walkedTodayM)}';
 
     // A flat fill lit from the top corner by a soft glow: strong navy while
-    // you owe, a plain card with a hint of frost while scrolling is free.
+    // frozen, a plain card with a hint of frost otherwise.
     final glow = owed ? col.heroTo : col.calmTo;
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Radii.surface + 4),
         color: owed ? col.heroFrom : col.calmFrom,
-        border: Border.all(
-          color: owed ? col.heroTo.withValues(alpha: 0.22) : col.hairline,
-        ),
+        border: Border.all(color: owed ? col.heroTo.withValues(alpha: 0.22) : col.hairline),
       ),
       child: Material(
         type: MaterialType.transparency,
@@ -338,74 +309,34 @@ class _TodayCardState extends State<_TodayCard> {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(22, 22, 22, 10),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 250),
-                  layoutBuilder: (current, previous) => Stack(
-                    alignment: AlignmentDirectional.centerStart,
-                    children: [...previous, ?current],
-                  ),
-                  child: _Status(key: ValueKey(verdict), icon: icon, text: status, color: strong),
-                ),
-                const SizedBox(height: 22),
                 Semantics(
-                  label: inSteps
-                      ? '$status. ${value.round()} steps $sentence'
-                      : '$status. ${formatMetres(value)} $sentence',
+                  label: '${formatCount(steps)} steps today. $goalSub',
                   excludeSemantics: true,
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Ph.footprints, size: 18, color: owed ? fg : col.accent),
+                      const SizedBox(width: 8),
+                      Text('Steps today',
+                          style: t.labelLarge?.copyWith(color: owed ? fg : col.accent, fontSize: 14)),
+                    ]),
+                    const SizedBox(height: 14),
                     TweenAnimationBuilder<double>(
-                        tween: Tween(end: value),
-                        duration: const Duration(milliseconds: 700),
-                        curve: Curves.easeOutCubic,
-                        // Unit follows the animated value, so crossing 1 km
-                        // never shows metres formatted as kilometres.
-                        builder: (_, v, _) {
-                          final km = !inSteps && v >= 999.95;
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,
-                            textBaseline: TextBaseline.alphabetic,
-                            children: [
-                              Text(
-                                km ? (v / 1000).toStringAsFixed(2) : v.toStringAsFixed(0),
-                                style: t.displayLarge?.copyWith(
-                                    color: fg,
-                                    fontSize: 72,
-                                    letterSpacing: -3.6,
-                                    fontFeatures: tabular),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(inSteps ? 'steps' : (km ? 'km' : 'm'),
-                                  style: t.headlineSmall?.copyWith(color: muted, fontWeight: FontWeight.w500)),
-                            ],
-                          );
-                        },
-                      ),
-                    const SizedBox(height: 10),
-                    Text(sentence, style: t.bodyLarge?.copyWith(color: muted, height: 1.45)),
-                  ]),
-                ),
-                if (!inSteps) ...[
-                  const SizedBox(height: 18),
-                  // The bank as a battery: fills as you walk, drains as you
-                  // scroll.
-                  ExcludeSemantics(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(3),
-                      child: TweenAnimationBuilder<double>(
-                        tween: Tween(end: cap <= 0 ? 0.0 : (bank / cap).clamp(0.0, 1.0)),
-                        duration: const Duration(milliseconds: 700),
-                        curve: Curves.easeOutCubic,
-                        builder: (_, v, _) => LinearProgressIndicator(
-                          value: v,
-                          minHeight: 6,
-                          color: col.accent,
-                          backgroundColor: col.raised2,
-                        ),
+                      tween: Tween(end: steps.toDouble()),
+                      duration: const Duration(milliseconds: 700),
+                      curve: Curves.easeOutCubic,
+                      builder: (_, v, _) => Text(
+                        formatCount(v.round()),
+                        style: t.displayLarge
+                            ?.copyWith(color: fg, fontSize: 72, letterSpacing: -3.6, fontFeatures: tabular),
                       ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 2),
+                    Text(goalSub, style: t.bodyMedium?.merge(numeric).copyWith(color: muted)),
+                  ]),
+                ),
                 const SizedBox(height: 22),
+                _BankBlock(c: c, verdict: verdict, fg: fg, muted: muted),
+                const SizedBox(height: 18),
                 _Tally(c: c, fg: fg, muted: muted, onOpenActivity: widget.onOpenActivity),
                 if (owed || verdict == _Verdict.empty || pass) ...[
                   const SizedBox(height: 18),
@@ -437,25 +368,103 @@ String _countdown(DoomWalkController c) {
   return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
 }
 
-/// The verdict as a small label above the number.
-class _Status extends StatelessWidget {
-  const _Status({super.key, required this.icon, required this.text, required this.color});
-  final IconData icon;
-  final String text;
-  final Color color;
+/// The bank under today's steps: what a step buys now, how full it is, how
+/// far you can scroll and what to do next.
+class _BankBlock extends StatelessWidget {
+  const _BankBlock({required this.c, required this.verdict, required this.fg, required this.muted});
+  final DoomWalkController c;
+  final _Verdict verdict;
+  final Color fg;
+  final Color muted;
 
   @override
-  Widget build(BuildContext context) => Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: Theme.of(context).textTheme.labelLarge?.merge(numeric).copyWith(color: color, fontSize: 14),
+  Widget build(BuildContext context) {
+    final t = Theme.of(context).textTheme;
+    final col = context.colors;
+    final owed = verdict == _Verdict.walk;
+    final bank = c.bankM;
+    final cap = c.bankCapM;
+    final stride = c.config.strideM;
+    final price = c.priceNow;
+    final unlockM = c.unlockChunkM;
+    final unlockWalk = c.walkToUnlock(unlockM);
+    final apps = c.frostedAppsToday;
+    final which = apps.isEmpty ? 'your restricted apps' : _appList(c, apps);
+    final line = switch (verdict) {
+      _Verdict.walk => c.status.serviceConnected
+          ? '$which ${apps.length == 1 ? 'is' : 'are'} frozen. ${stepsText(unlockWalk, stride)} '
+              '(${walkMinutes(unlockWalk)}) unlock ${formatRound(unlockM)}.'
+          : '${stepsText(unlockWalk, stride)} unlock ${formatRound(unlockM)}. '
+              'Freezing is paused while scroll measuring is off.',
+      _Verdict.unfrozen => 'Unlocked for ${_countdown(c)}. Scrolling during the pass is free.',
+      _Verdict.empty =>
+        'Take a walk: ${stepsText(unlockWalk, stride)} (${walkMinutes(unlockWalk)}) put ${formatRound(unlockM)} in.',
+      _Verdict.full => 'Bank full. Walking adds nothing until you scroll some.',
+      _Verdict.low || _Verdict.ok =>
+        'You can scroll ${formatRound(bank)}. ${stepsText(c.walkToUnlock(cap), stride)} fill it up.',
+    };
+    // The multiplier: tinted once walking costs more than 1:1.
+    final dear = price > 1;
+    final chipFg = owed ? fg : (dear ? col.onAccent : col.onAccentContainer);
+    final chipBg = owed ? fg.withValues(alpha: 0.14) : (dear ? col.accent : col.accentContainer);
+    final per = formatMetres(1 / price, decimals: price == 1 ? 0 : 2);
+    return Semantics(
+      label: 'In the bank: ${formatRound(bank)} of ${formatRound(cap)}. Walking costs ${formatTimes(price)}. $line',
+      excludeSemantics: true,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+          Text('In the bank', style: t.titleSmall?.copyWith(color: fg)),
+          const Spacer(),
+          Tooltip(
+            triggerMode: TooltipTriggerMode.tap,
+            showDuration: const Duration(seconds: 5),
+            message: 'Right now 1 m walked adds $per of scrolling. '
+                'Every ${formatRound(c.config.effective.priceStepM)} you scroll today, it takes 1 m more.',
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: chipBg, borderRadius: BorderRadius.circular(999)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Ph.footprints, size: 14, color: chipFg),
+                const SizedBox(width: 6),
+                Text('${formatTimes(price)} walk',
+                    style: t.labelMedium?.merge(numeric).copyWith(color: chipFg, fontWeight: FontWeight.w600)),
+              ]),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 10),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(end: cap <= 0 ? 0.0 : (bank / cap).clamp(0.0, 1.0)),
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.easeOutCubic,
+            builder: (_, v, _) => LinearProgressIndicator(
+              value: v,
+              minHeight: 10,
+              color: owed ? fg : col.accent,
+              backgroundColor: owed ? fg.withValues(alpha: 0.14) : col.raised2,
+            ),
+          ),
         ),
-      ]);
+        const SizedBox(height: 8),
+        Row(crossAxisAlignment: CrossAxisAlignment.baseline, textBaseline: TextBaseline.alphabetic, children: [
+          Text(formatRound(bank), style: t.titleLarge?.merge(numeric).copyWith(color: fg)),
+          const SizedBox(width: 4),
+          Text('of ${formatRound(cap)}', style: t.bodyMedium?.merge(numeric).copyWith(color: muted)),
+          if (owed) ...[
+            const Spacer(),
+            Text('${formatRound(c.overdraftM)} owed', style: t.bodyMedium?.merge(numeric).copyWith(color: fg)),
+          ],
+        ]),
+        const SizedBox(height: 6),
+        Text(line, style: t.bodyLarge?.copyWith(color: muted, height: 1.45)),
+      ]),
+    );
+  }
 }
 
-/// Walked and scrolled today, side by side between two hairlines.
+/// All-time steps and scrolled today, side by side between two hairlines.
 class _Tally extends StatelessWidget {
   const _Tally({required this.c, required this.fg, required this.muted, required this.onOpenActivity});
   final DoomWalkController c;
@@ -490,20 +499,14 @@ class _Tally extends StatelessWidget {
       child: IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           stat(
-            'Walked today',
-            formatMetres(s.walkedTodayM),
-            c.walkError != null
-                ? 'Steps aren\'t counted'
-                : '${(c.goalProgress * 100).round()}% of ${formatRound(c.config.walkGoalM)}',
+            'All-time steps',
+            formatCount(c.stepsLifetime),
+            formatMetres(s.lifetimeWalkedM),
             onTap: onOpenActivity,
             first: true,
           ),
           VerticalDivider(width: 1, thickness: 1, color: line),
-          stat(
-            'Scrolled today',
-            formatMetres(s.scrolledTodayM),
-            'Walking costs ${formatTimes(c.priceNow)} now',
-          ),
+          stat('Scrolled today', formatMetres(s.scrolledTodayM), nearestText(s.scrolledTodayM)),
         ]),
       ),
     );

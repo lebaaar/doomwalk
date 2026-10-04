@@ -381,3 +381,16 @@ are gone).
   red: it's how every day starts), "Time for a walk" when frozen.
 * **Migration:** a state saved by an older model keeps today's and lifetime
   totals but not its bank (it was in metres walked) or debt.
+
+## Round 13: steps first on Today
+* **The big number is today's steps**, with the walking goal (in steps) and the
+  distance under it. Walking is the thing to do more of, so it leads.
+* **The bank sits right under it as one block:** "In the bank", a bar of how
+  full it is against the cap, "133 m of 250 m", and one line saying what to do
+  (scroll, fill it up, take a walk, or what's frozen). The **multiplier chip**
+  ("1× walk", filled once it's above 1×) sits on the bank's header, where it
+  applies; tapping it explains what a metre walked adds right now.
+* **Bottom row:** all-time steps (and metres) next to scrolled today.
+* Steps are always walked metres over the stride (`DoomWalkController.stepsToday`,
+  `stepsLifetime`, `stepGoal`), so changing the stride re-reads history.
+* `formatCount` replaces the settings-only `_thousands`, which broke past a million.
