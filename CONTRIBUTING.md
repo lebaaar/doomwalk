@@ -70,7 +70,7 @@ adb shell am broadcast -n com.lebaaar.doomwalk/.DebugReceiver -a com.lebaaar.doo
 adb logcat -s flutter | grep 'SD '
 ```
 
-## Releasing to Google Play
+## Releasing the app
 
 Release builds must be signed with the uploaded `key.properties` (see `android/example-key.properties` for structure).
 Release build fails without `android/key.properties`, so that debug-signed APK can never be shipped to production by accident.
@@ -111,3 +111,27 @@ Release build fails without `android/key.properties`, so that debug-signed APK c
 8. Play: Console → Testing or Production → *Create new release* → upload the `.aab`, add release notes and roll out. For a first release, run a closed test first if your account type requires it.
 
 A sideloaded APK needs *Allow restricted settings* (App info → ⋮) before Android lets you turn on the accessibility service. Play installs don't.
+
+### Releasing on Google Play (.aab)
+1. Build the app bundle:
+   ```bash
+   flutter build appbundle --release
+   ```
+   Output lands in `build/app/outputs/bundle/release/app-release.aab`. This is the only file Play accepts for the app itself. Upload it in Play Console → Testing → Closed testing → Create release.
+
+
+### Releasing on GitHub (.apk)
+
+1. Build the APK:
+   ```bash
+   flutter build apk --release
+   ```
+   Output lands in `build/app/outputs/flutter-apk/app-release.apk`.
+2. Commit the version bump and push:
+   ```bash
+   git tag v0.1.0 && git push origin main v0.1.0
+   ```
+3. Publish the APK to GitHub releases:
+   ```bash
+   gh release create v0.1.0 build/app/outputs/flutter-apk/app-release.apk --title "DoomWalk 0.1.0" --generate-notes
+   ```
