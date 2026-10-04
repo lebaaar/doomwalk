@@ -12,7 +12,7 @@ void main() {
     final c = Strictness.strict.applyTo(const WalletConfig(weightKg: 82, overridesPerDay: 1, bankCapM: 80));
     expect(Strictness.of(c), Strictness.strict);
     expect(c.priceTiers, [5, 7, 10, 15, 20]);
-    expect(c.priceStepM, 25);
+    expect(c.priceStepM, 50);
     expect(c.bankCapM, 80);
     expect(c.weightKg, 82);
     expect(c.overridesPerDay, 1);
@@ -30,5 +30,22 @@ void main() {
     expect(Strictness.of(const WalletConfig(bankCapM: 100)), Strictness.balanced);
     expect(Strictness.of(const WalletConfig(priceTiers: [3, 5])), isNull);
     expect(Strictness.of(const WalletConfig(priceStepM: 60)), isNull);
+  });
+
+  test('every preset lets you scroll longer per tier than before', () {
+    expect([for (final s in Strictness.values) s.priceStepM], [100, 75, 50]);
+    for (final s in Strictness.values) {
+      expect(s.priceStepM, greaterThan(s.oldPriceStepM));
+    }
+  });
+
+  test('a model 4 config on a preset moves to its new tiers; custom rules stay', () {
+    final oldStrict = const WalletConfig(priceTiers: [5, 7, 10, 15, 20], priceStepM: 25, bankCapM: 80);
+    final up = Strictness.upgradeFromModel4(oldStrict);
+    expect(Strictness.of(up), Strictness.strict);
+    expect(up.bankCapM, 80);
+    expect(Strictness.of(Strictness.upgradeFromModel4(const WalletConfig(priceStepM: 50))), Strictness.balanced);
+    const custom = WalletConfig(priceStepM: 125);
+    expect(Strictness.upgradeFromModel4(custom).priceStepM, 125);
   });
 }

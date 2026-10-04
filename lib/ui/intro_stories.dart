@@ -197,14 +197,7 @@ class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderSt
                       ),
                     )
                   else
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 20),
-                      child: Text(
-                        'Tap to go on · hold to pause',
-                        textAlign: TextAlign.center,
-                        style: t.bodySmall?.copyWith(color: col.onHeroMuted),
-                      ),
-                    ),
+                    const SizedBox(height: 20),
                 ],
             ),
           ),
@@ -236,7 +229,7 @@ List<_Slide> _buildSlides(WalletConfig c) {
       body:
           'Every swipe in Instagram, TikTok and the like is measured in real metres. '
           'A long evening on the feed easily passes a few hundred.',
-      visual: _BigFigure(value: '347 m', caption: 'scrolled today', icon: Ph.squaresFour),
+      visual: _CountUp(to: 100, caption: 'scrolled today', icon: Ph.squaresFour),
     ),
     _Slide(
       title: 'Walking fills a small bank',
@@ -278,7 +271,7 @@ List<_Slide> _buildSlides(WalletConfig c) {
       body:
           'No internet permission, no accounts, no analytics. DoomWalk measures how far you scroll, '
           'never what\'s on screen.',
-      visual: _BigFigure(value: '0', caption: 'bytes sent anywhere', icon: Ph.shieldCheck),
+      visual: _PrivacyVisual(),
     ),
   ];
 }
@@ -339,6 +332,73 @@ class _BigFigure extends StatelessWidget {
             style: t.displayLarge?.copyWith(color: col.onHero, fontSize: 88, letterSpacing: -4, fontFeatures: tabular),
           ),
           Text(caption, style: t.titleMedium?.copyWith(color: col.onHeroMuted)),
+        ],
+      ),
+    );
+  }
+}
+
+/// A metre count running up from 0 to [to], like a feed being scrolled.
+class _CountUp extends StatelessWidget {
+  const _CountUp({required this.to, required this.caption, required this.icon});
+  final double to;
+  final String caption;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: to),
+        duration: const Duration(milliseconds: 3000),
+        curve: Curves.easeOutCubic,
+        builder: (context, v, _) => _BigFigure(value: '${v.round()} m', caption: caption, icon: icon),
+      );
+}
+
+/// A shield in a soft halo, over what DoomWalk never has.
+class _PrivacyVisual extends StatelessWidget {
+  const _PrivacyVisual();
+
+  @override
+  Widget build(BuildContext context) {
+    final col = context.colors;
+    final t = Theme.of(context).textTheme;
+    Widget pill(String text) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: col.onHero.withValues(alpha: 0.28)),
+          ),
+          child: Text(text, style: t.bodyMedium?.copyWith(color: col.onHero)),
+        );
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 168,
+            height: 168,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: col.onHero.withValues(alpha: 0.08),
+              border: Border.all(color: col.onHero.withValues(alpha: 0.16), width: 1.5),
+            ),
+            alignment: Alignment.center,
+            child: Container(
+              width: 112,
+              height: 112,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: col.onHero.withValues(alpha: 0.12)),
+              alignment: Alignment.center,
+              child: Icon(Ph.shieldCheck, size: 60, color: col.onHero),
+            ),
+          ),
+          const SizedBox(height: 28),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: [pill('No internet'), pill('No accounts'), pill('No analytics')],
+          ),
         ],
       ),
     );

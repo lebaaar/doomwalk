@@ -9,11 +9,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('price table', () {
-    test('Balanced: a tier per 50 m, steps to fill a 50 m bank', () {
+    test('Balanced: a tier per 75 m, steps to fill a 50 m bank', () {
       final rows = priceRows(const WalletConfig());
       expect(rows.map((r) => r.price), [3, 5, 7, 10, 15]);
-      expect(rows.map((r) => r.fromM), [0, 50, 100, 150, 200]);
-      expect(rows.last.toM, isNull); // 200 m and up
+      expect(rows.map((r) => r.fromM), [0, 75, 150, 225, 300]);
+      expect(rows.last.toM, isNull); // 300 m and up
       // 50 m at 3x = 150 m walked = 200 steps at 0.75 m.
       expect(rows.map((r) => r.stepsToFill), [200, 334, 467, 667, 1000]);
     });
@@ -21,7 +21,7 @@ void main() {
     test('follows the preset, the bank size and the stride', () {
       final gentle = priceRows(Strictness.gentle.applyTo(const WalletConfig(strideM: 0.8, bankCapM: 100)));
       expect(gentle.map((r) => r.price), [2, 3, 5, 7, 10]);
-      expect(gentle.map((r) => r.fromM), [0, 50, 100, 150, 200]);
+      expect(gentle.map((r) => r.fromM), [0, 100, 200, 300, 400]);
       expect(gentle.first.stepsToFill, 250);
     });
   });

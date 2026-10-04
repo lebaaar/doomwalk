@@ -116,34 +116,3 @@ LandmarkProgress progressToward(double metres, {List<Landmark> ladder = landmark
   final frac = metres < next.heightM ? metres / next.heightM : (metres / next.heightM) % 1;
   return LandmarkProgress(next, frac.clamp(0.0, 1.0), passed);
 }
-
-/// A pop-up over the open app the moment today's scrolling passes [metres].
-class Milestone {
-  const Milestone(this.metres, this.title, this.body);
-  final double metres;
-  final String title;
-  final String body;
-}
-
-final milestones = [
-  const Milestone(1, '1 metre scrolled', 'Your thumb has officially left the building.'),
-  Milestone(giraffe.heightM, 'Taller than a giraffe 🦒', '5.5 m already. Well above average, and not in a good way.'),
-  Milestone(bus.heightM, 'Longer than a double-decker bus 🚌', 'Mind the gap. And the time.'),
-  Milestone(whale.heightM, 'You scrolled a blue whale 🐋', 'The biggest animal that ever lived, nose to tail.'),
-  Milestone(liberty.heightM, 'Statue of Liberty climbed 🗽', 'Give me your tired, your poor, your doomscrolling.'),
-  Milestone(eiffel.heightM, 'You scaled the Eiffel Tower 🗼', 'Paris is proud. Your thumb is exhausted.'),
-  Milestone(burj.heightM, 'Burj Khalifa conquered 🏙️', 'The tallest building on Earth, and it isn\'t even dinner time.'),
-  Milestone(triglav.heightM, 'On top of Triglav ⛰️', 'Every Slovene should climb it once. Not like this.'),
-  Milestone(everest.heightM, 'Everest summit 🏔️', 'No oxygen, no sherpas, just reels.'),
-  Milestone(karman.heightM, 'You scrolled to space 🚀', '100 km. Your thumb is officially an astronaut.'),
-];
-
-/// The biggest milestone that scrolling from [before] to [after] metres
-/// passed, or null. Several at once (a big jump) show only the last.
-Milestone? milestoneCrossed(double before, double after) {
-  Milestone? hit;
-  for (final m in milestones) {
-    if (before < m.metres && after >= m.metres) hit = m;
-  }
-  return hit;
-}

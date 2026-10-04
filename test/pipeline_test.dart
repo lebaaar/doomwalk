@@ -229,7 +229,6 @@ void main() {
   test('an empty bank says so as it runs out, then once per app on opening', () async {
     final c = await DoomWalkController.start();
     await c.setDeveloperOptions(true);
-    await c.setMilestoneToasts(false); // only the empty-bank notice here
     c.devAddSteps(100); // 75 m walked at 3x: 25 m in the bank
     await sendNative('onWindow', {'pkg': 'com.reddit.frontpage', 'cls': 'X', 't': 0});
     expect(notices, isEmpty); // scrolling left
@@ -249,38 +248,12 @@ void main() {
     c.dispose();
   });
 
-  test('passing a milestone pops up once, and can be switched off', () async {
+  test('scrolling past a landmark pops nothing up', () async {
     final c = await DoomWalkController.start();
     await c.setDeveloperOptions(true);
     c.devAddSteps(1000); // a full bank, so no empty-bank notice
     await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
-    c.devAddScroll('com.instagram.android', 0.5);
-    expect(notices, isEmpty);
-    c.devAddScroll('com.instagram.android', 5.5); // past 1 m and the giraffe at once
-    await Future<void>.delayed(Duration.zero);
-    expect(notices, hasLength(1));
-    expect(notices.last['title'], contains('giraffe'));
-    c.devAddScroll('com.instagram.android', 1);
-    await Future<void>.delayed(Duration.zero);
-    expect(notices, hasLength(1)); // nothing new passed
-    // Survives a restart, and switched off it stays quiet.
-    await c.setMilestoneToasts(false);
-    c.dispose();
-    final c2 = await DoomWalkController.start();
-    expect(c2.milestoneToasts, isFalse);
-    await c2.setDeveloperOptions(true);
-    c2.devAddScroll('com.instagram.android', 10);
-    await Future<void>.delayed(Duration.zero);
-    expect(notices, hasLength(1));
-    c2.dispose();
-  });
-
-  test('inside DoomWalk a milestone comes back to the caller, not as a banner', () async {
-    final c = await DoomWalkController.start();
-    await c.setDeveloperOptions(true);
-    await sendNative('onWindow', {'pkg': 'com.lebaaar.doomwalk', 'cls': 'com.lebaaar.doomwalk.MainActivity', 't': 0});
-    expect(c.devAddScroll('com.instagram.android', 0.5), isNull);
-    expect(c.devAddScroll('com.instagram.android', 30)!.title, contains('whale'));
+    c.devAddScroll('com.instagram.android', 40); // past 1 m, the giraffe, the bus and the whale
     await Future<void>.delayed(Duration.zero);
     expect(notices, isEmpty);
     c.dispose();
@@ -334,11 +307,13 @@ void main() {
     expect(c.bankM, closeTo(10, 1e-9));
     expect(c.priceNow, 3); // 40 m scrolled today
     c.devAddScroll('com.instagram.android', 20); // 10 from the bank, 10 owed
-    expect(c.priceNow, 5); // 60 m scrolled today: the next tier
-    c.devAddSteps(100); // 75 m walked at 5x = 15 m: 10 pays what's owed, 5 to the bank
+    expect(c.priceNow, 3); // 60 m scrolled today: still the first tier
+    c.devAddSteps(100); // 75 m walked at 3x = 25 m: 10 pays what's owed, 15 to the bank
     expect(c.overdraftM, 0);
-    expect(c.bankM, closeTo(5, 1e-9));
-    c.devAddScroll('com.instagram.android', 25); // 5 from the bank, 20 owed
+    expect(c.bankM, closeTo(15, 1e-9));
+    c.devAddScroll('com.instagram.android', 25); // 15 from the bank, 10 owed
+    expect(c.priceNow, 5); // 85 m scrolled today: the next tier
+    c.devAddScroll('com.instagram.android', 10); // 20 owed
     expect(c.overdraftM, closeTo(20, 1e-9));
     expect(c.frostLevel, 1);
     await c.updateConfig(c.config.copyWith(bankCapM: WalletConfig.maxBankCapM));

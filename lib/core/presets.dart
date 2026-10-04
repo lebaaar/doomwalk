@@ -3,11 +3,12 @@ import 'scroll_wallet.dart';
 /// One-tap price rules, so most people never touch the individual ones.
 /// Balanced is the app's default config. The bank size is its own setting.
 enum Strictness {
-  gentle('Gentle', priceTiers: [2, 3, 5, 7, 10], priceStepM: 50),
-  balanced('Balanced', priceTiers: WalletConfig.defaultPriceTiers, priceStepM: 50),
-  strict('Strict', priceTiers: [5, 7, 10, 15, 20], priceStepM: 25);
+  gentle('Gentle', priceTiers: [2, 3, 5, 7, 10], priceStepM: 100, oldPriceStepM: 50),
+  balanced('Balanced', priceTiers: WalletConfig.defaultPriceTiers, priceStepM: WalletConfig.defaultPriceStepM,
+      oldPriceStepM: 50),
+  strict('Strict', priceTiers: [5, 7, 10, 15, 20], priceStepM: 50, oldPriceStepM: 25);
 
-  const Strictness(this.label, {required this.priceTiers, required this.priceStepM});
+  const Strictness(this.label, {required this.priceTiers, required this.priceStepM, required this.oldPriceStepM});
 
   final String label;
 
@@ -17,6 +18,9 @@ enum Strictness {
   /// Scrolled per tier.
   final double priceStepM;
 
+  /// The tier length before config model 5 raised it.
+  final double oldPriceStepM;
+
   WalletConfig applyTo(WalletConfig c) => c.copyWith(priceTiers: priceTiers, priceStepM: priceStepM);
 
   /// The preset [c] matches exactly, or null when the rules were customised.
@@ -25,6 +29,15 @@ enum Strictness {
       if (_same(c.priceTiers, s.priceTiers) && (c.priceStepM - s.priceStepM).abs() < 1e-6) return s;
     }
     return null;
+  }
+
+  /// A config saved by model 4: one that was on a preset moves to that
+  /// preset's longer tiers; custom rules stay as they were.
+  static WalletConfig upgradeFromModel4(WalletConfig c) {
+    for (final s in values) {
+      if (_same(c.priceTiers, s.priceTiers) && (c.priceStepM - s.oldPriceStepM).abs() < 1e-6) return s.applyTo(c);
+    }
+    return c;
   }
 }
 

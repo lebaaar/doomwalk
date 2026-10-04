@@ -93,7 +93,7 @@ class SettingsScreen extends ConsumerWidget {
           const _NavTile(
             icon: Ph.sliders,
             title: 'Custom rules',
-            subtitle: 'How fast walking gets dearer, freezing',
+            subtitle: 'How fast walking gets harder, freezing',
             page: _CustomRulesPage(),
           ),
         ]),
@@ -111,13 +111,6 @@ class SettingsScreen extends ConsumerWidget {
             subtitle: '${formatCount(cfg.stepGoal)} steps a day, ${cfg.weightKg.toStringAsFixed(0)} kg, '
                 '${cfg.strideM.toStringAsFixed(2)} m stride',
             page: const _YouPage(),
-          ),
-          SwitchListTile(
-            secondary: const IconBadge(icon: Ph.confetti),
-            title: const Text('Milestone pop-ups'),
-            subtitle: const Text('A note over the app when today\'s scrolling passes a giraffe, a bus, the Eiffel Tower…'),
-            value: c.milestoneToasts,
-            onChanged: c.setMilestoneToasts,
           ),
           _NavTile(
             icon: Ph.palette,
@@ -142,17 +135,20 @@ class SettingsScreen extends ConsumerWidget {
             page: _PrivacyPage(),
           ),
         ]),
-        const SectionTitle('Developer'),
-        TileGroup(dividerIndent: 64, children: [
-          SwitchListTile(
-            secondary: const IconBadge(icon: Ph.code),
-            title: const Text('Developer options'),
-            subtitle: const Text('Testing tools: add steps or scrolling'),
-            value: c.developerOptions,
-            onChanged: c.setDeveloperOptions,
-          ),
-          if (c.developerOptions) DeveloperTools(c: c),
-        ]),
+        // Debug builds only, or a release build unlocked from the title.
+        if (c.developerAvailable) ...[
+          const SectionTitle('Developer'),
+          TileGroup(dividerIndent: 64, children: [
+            SwitchListTile(
+              secondary: const IconBadge(icon: Ph.code),
+              title: const Text('Developer options'),
+              subtitle: const Text('Testing tools: add steps or scrolling'),
+              value: c.developerOptions,
+              onChanged: c.setDeveloperOptions,
+            ),
+            if (c.developerOptions) DeveloperTools(c: c),
+          ]),
+        ],
       ],
     );
   }
@@ -290,7 +286,7 @@ class _CustomRulesPage extends ConsumerWidget {
           'Changing anything here switches it to custom.'),
       TileGroup(children: [
         _SliderRow(
-          label: 'Walking gets dearer every',
+          label: 'Walking gets harder every',
           value: cfg.priceStepM,
           min: 25,
           max: 200,
@@ -526,9 +522,8 @@ class _DeveloperToolsState extends State<DeveloperTools> {
                     onPressed: pkg == null
                         ? null
                         : () {
-                            final hit = c.devAddScroll(pkg, m);
-                            _done('Added ${formatRound(m)} of scrolling to ${c.labelFor(pkg)}'
-                                '${hit == null ? '' : '\n${hit.title}'}');
+                            c.devAddScroll(pkg, m);
+                            _done('Added ${formatRound(m)} of scrolling to ${c.labelFor(pkg)}');
                           },
                     child: Text('+${m.toStringAsFixed(0)} m'),
                   ),

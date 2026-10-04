@@ -10,6 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import '../core/app_catalog.dart';
 import '../core/health.dart';
 import '../core/landmarks.dart';
+import '../core/presets.dart';
 import '../core/scroll_interpreter.dart';
 import '../core/scroll_wallet.dart';
 import '../core/tamper.dart';
@@ -18,8 +19,10 @@ import '../core/walk_tracker.dart';
 import 'native_bridge.dart';
 import 'store.dart';
 
-void _log(String msg) {
-  if (kDebugMode) debugPrint('SD $msg');
+/// Debug builds only. Takes a closure so a release build never formats the
+/// message, which matters on the per-scroll path.
+void _log(String Function() msg) {
+  if (kDebugMode) debugPrint('SD ${msg()}');
 }
 
 /// Owns the wallet and everything that feeds it. Lives for the whole process
@@ -27,7 +30,7 @@ void _log(String msg) {
 class DoomWalkController extends ChangeNotifier {
   /// Bumped whenever the economy's meaning or defaults change, so saved
   /// configs from before are reset to the new defaults.
-  static const modelVersion = '4';
+  static const modelVersion = '5';
 
   DoomWalkController._(this._store, this._native, this._engine, this._walk, this.catalog);
 
@@ -59,12 +62,14 @@ class DoomWalkController extends ChangeNotifier {
   String themeMode = 'system';
 
   /// Settings > Developer options. Gates every tool that fakes data
-  /// (adding steps or scrolling), in any build.
-  bool developerOptions = false;
+  /// (adding steps or scrolling). Only a debug build has them, unless a
+  /// release build was unlocked (tap the Settings title 20 times).
+  bool get developerOptions => developerAvailable && _developerOptions;
+  bool _developerOptions = false;
 
-  /// A funny pop-up over the open app when today's scrolling passes a
-  /// milestone (a giraffe, the Eiffel Tower...).
-  bool milestoneToasts = true;
+  /// Release builds hide the developer section until it is unlocked.
+  bool get developerAvailable => kDebugMode || _developerUnlocked;
+  bool _developerUnlocked = false;
 
   /// Walked metres per previous day, newest first (today is live in state).
   List<(String, double)> walkHistory = [];
@@ -126,7 +131,9 @@ class DoomWalkController extends ChangeNotifier {
         ? const WalletConfig()
         : kv['model'] == modelVersion
             ? WalletConfig.fromJson(savedConfig)
-            : WalletConfig.fromLegacyJson(savedConfig);
+            : kv['model'] == '4'
+                ? Strictness.upgradeFromModel4(WalletConfig.fromJson(savedConfig))
+                : WalletConfig.fromLegacyJson(savedConfig);
     final state = kv['state'] != null
         ? WalletState.fromJson(jsonDecode(kv['state']!) as Map<String, Object?>)
         : WalletState.fresh(now);
@@ -156,8 +163,8 @@ class DoomWalkController extends ChangeNotifier {
       ),
     );
     c.themeMode = kv['theme_mode'] ?? 'system';
-    c.developerOptions = kv['dev_options'] == 'true';
-    c.milestoneToasts = kv['milestone_toasts'] != 'false';
+    c._developerOptions = kv['dev_options'] == 'true';
+    c._developerUnlocked = kv['dev_unlocked'] == 'true';
     c._openGapStartMs = int.tryParse(kv['gap.open_start'] ?? '');
     c._openGapReason = kv['gap.open_reason'];
     c.onboardingDone = kv['onboarding.done'] == 'true';
@@ -183,7 +190,7 @@ class DoomWalkController extends ChangeNotifier {
       catalog.addExempt(d.keyboards);
       _keyboards.addAll(d.keyboards);
     }
-    _log('ready ydpi=${d?.ydpi} used=$dpi screenH=${d?.screenHeightPx} '
+    _log(() => 'ready ydpi=${d?.ydpi} used=$dpi screenH=${d?.screenHeightPx} '
         'launchers=${d?.launchers} keyboards=${d?.keyboards}');
 
     // Learn every installed app's Android category up front, so apps that
@@ -195,7 +202,7 @@ class DoomWalkController extends ChangeNotifier {
     } on Exception {
       // No shim (tests) or package query failed: fall back to known packages.
     }
-    if (_engine.rollover(now)) _log('rollover to ${state.dayKey}');
+    if (_engine.rollover(now)) _log(() => 'rollover to ${state.dayKey}');
     await _reloadPeriods();
     gaps = await _store.recentGaps();
     await _checkTamperOnStart(kv, now);
@@ -258,7 +265,7 @@ class DoomWalkController extends ChangeNotifier {
         }
       case 'debugDump':
         if (kDebugMode) {
-          _log('dump ${jsonEncode(state.toJson())} frost=${frostLevel.toStringAsFixed(3)} '
+          _log(() => 'dump ${jsonEncode(state.toJson())} frost=${frostLevel.toStringAsFixed(3)} '
               'fg=$foreground apps=${todayApps.map((k, v) => MapEntry(k, v.rawM.toStringAsFixed(2)))}');
         }
       case 'debugReset':
@@ -280,45 +287,19 @@ class DoomWalkController extends ChangeNotifier {
   }
 
   /// The single charging path for scrolled distance (real or injected).
-  /// Returns the milestone this scroll passed, if any.
-  Milestone? _chargeScroll(String pkg, double metres, DateTime at, {required String source}) {
-    if (!catalog.isRestricted(pkg) || metres <= 0) return null;
+  void _chargeScroll(String pkg, double metres, DateTime at, {required String source}) {
+    if (!catalog.isRestricted(pkg) || metres <= 0) return;
     _syncDay(at);
-    final before = state.scrolledTodayM;
     final bankBefore = bankM;
     final charge = _engine.applyScroll(metres: metres, at: at);
     _addAppDelta(pkg, charge.rawM, charge.fromBankM + charge.owedM);
     _ensureMeta(pkg);
     if (bankBefore >= 0.5 && bankM < 0.5) _noticeIfEmpty(force: true);
-    _log('scroll pkg=$pkg src=$source m=${metres.toStringAsFixed(3)} '
+    _log(() => 'scroll pkg=$pkg src=$source m=${metres.toStringAsFixed(3)} '
         'bank=${bankM.toStringAsFixed(2)} '
         'owed=${overdraftM.toStringAsFixed(2)} '
         'today=${todayApps[pkg]!.rawM.toStringAsFixed(2)}');
-    final hit = _celebrate(before, state.scrolledTodayM);
     _changed();
-    return hit;
-  }
-
-  /// Pops up a milestone over the open app when today's scrolling has just
-  /// passed one. Each fires once a day, since today's total only grows.
-  /// While DoomWalk itself is open (developer tools) there is no banner:
-  /// the caller shows it in its own single message instead.
-  Milestone? _celebrate(double before, double after) {
-    if (!milestoneToasts) return null;
-    final m = milestoneCrossed(before, after);
-    if (m == null) return null;
-    _log('milestone ${m.metres}');
-    if (status.serviceConnected && foreground != selfPackage) {
-      unawaited(_safe(() => _native.showNotice(m.title, m.body, ms: 3500)));
-    }
-    return m;
-  }
-
-  Future<void> setMilestoneToasts(bool on) async {
-    milestoneToasts = on;
-    _dirty = true;
-    notifyListeners();
-    await flush();
   }
 
   void _addAppDelta(String pkg, double raw, double charged) {
@@ -349,7 +330,7 @@ class DoomWalkController extends ChangeNotifier {
     if (pkg == foreground || _keyboards.contains(pkg)) return;
     final prev = foreground;
     foreground = pkg;
-    _log('foreground $prev -> $pkg exempt=${catalog.isExempt(pkg)}');
+    _log(() => 'foreground $prev -> $pkg exempt=${catalog.isExempt(pkg)}');
     _ensureMeta(pkg);
     unawaited(flush()); // batch boundary on app switch
     _pushFrost(animateMs: 250);
@@ -410,7 +391,7 @@ class DoomWalkController extends ChangeNotifier {
       onError: (Object e) {
         walkAvailable = false;
         walkError = 'Step counter unavailable on this device';
-        _log('pedometer error $e');
+        _log(() => 'pedometer error $e');
         notifyListeners();
       },
     );
@@ -421,7 +402,7 @@ class DoomWalkController extends ChangeNotifier {
     _syncDay(now);
     final banked = _engine.applyWalk(metres, now);
     _dirty = true;
-    _log('walk src=$source m=${metres.toStringAsFixed(2)} banked=${banked.toStringAsFixed(2)} '
+    _log(() => 'walk src=$source m=${metres.toStringAsFixed(2)} banked=${banked.toStringAsFixed(2)} '
         'bank=${bankM.toStringAsFixed(2)} owed=${overdraftM.toStringAsFixed(2)} frost=${frostLevel.toStringAsFixed(3)}');
     _changed();
   }
@@ -429,8 +410,14 @@ class DoomWalkController extends ChangeNotifier {
   // ------------------------------------------------------ developer tools
   // All of these do nothing unless developer options are on.
 
+  /// Shows the developer section in a release build, switched on.
+  Future<void> unlockDeveloperOptions() async {
+    _developerUnlocked = true;
+    await setDeveloperOptions(true);
+  }
+
   Future<void> setDeveloperOptions(bool on) async {
-    developerOptions = on;
+    _developerOptions = on;
     _dirty = true;
     notifyListeners();
     await flush();
@@ -442,8 +429,9 @@ class DoomWalkController extends ChangeNotifier {
   }
 
   /// Adds [metres] of scrolling to [pkg], priced like real scrolling.
-  /// Returns the milestone it passed, if any.
-  Milestone? devAddScroll(String pkg, double metres) => developerOptions ? _fakeScroll(pkg, metres) : null;
+  void devAddScroll(String pkg, double metres) {
+    if (developerOptions) _fakeScroll(pkg, metres);
+  }
 
   /// Gives back today's emergency passes.
   void devRefillPasses() {
@@ -472,12 +460,12 @@ class DoomWalkController extends ChangeNotifier {
   /// Adds [metres] of scrolling to [pkg], priced exactly like real scrolling
   /// (from the bank, owed once it is empty). Exempt apps and apps that
   /// don't count are ignored, as they would be for real.
-  Milestone? _fakeScroll(String pkg, double metres) {
+  void _fakeScroll(String pkg, double metres) {
     if (catalog.isExempt(pkg)) {
-      _log('debug scroll ignored: $pkg is exempt');
-      return null;
+      _log(() => 'debug scroll ignored: $pkg is exempt');
+      return;
     }
-    return _chargeScroll(pkg, metres, DateTime.now(), source: 'fake');
+    _chargeScroll(pkg, metres, DateTime.now(), source: 'fake');
   }
 
   // -------------------------------------------------------------- override
@@ -486,7 +474,7 @@ class DoomWalkController extends ChangeNotifier {
     final now = DateTime.now();
     _syncDay(now);
     final ok = _engine.startOverride(now);
-    _log('override start ok=$ok until=${state.overrideUntilMs}');
+    _log(() => 'override start ok=$ok until=${state.overrideUntilMs}');
     _dirty = true;
     _pushFrost(force: true, animateMs: 300);
     _changed();
@@ -524,7 +512,7 @@ class DoomWalkController extends ChangeNotifier {
   Future<void> _onServiceState(bool connected) async {
     final now = DateTime.now();
     status = await _native.status();
-    _log('service connected=$connected enabled=${status.accessibilityEnabled}');
+    _log(() => 'service connected=$connected enabled=${status.accessibilityEnabled}');
     if (connected) {
       if (_openGapStartMs != null) await _closeGap(now);
       _pushFrost(force: true);
@@ -543,7 +531,7 @@ class DoomWalkController extends ChangeNotifier {
     _openGapStartMs = startMs;
     _openGapReason = reason;
     _dirty = true;
-    _log('gap open reason=$reason');
+    _log(() => 'gap open reason=$reason');
   }
 
   Future<void> _closeGap(DateTime now) async {
@@ -563,7 +551,7 @@ class DoomWalkController extends ChangeNotifier {
     final history = await _store.dailyRaw(beforeDay: state.dayKey);
     final avg = _tamper.averageMetresPerHour(history);
     final cost = _tamper.costFor(gap, avg);
-    _log('gap close len=${gap.length.inMinutes}min avg=${avg.toStringAsFixed(1)}m/h cost=$cost');
+    _log(() => 'gap close len=${gap.length.inMinutes}min avg=${avg.toStringAsFixed(1)}m/h cost=$cost');
     if (cost <= 0) return;
     _syncDay(gap.end);
     _engine.chargeGap(cost, gap.end);
@@ -609,7 +597,7 @@ class DoomWalkController extends ChangeNotifier {
   /// totals instead of happening silently inside the wallet.
   void _syncDay(DateTime now) {
     if (!_engine.rollover(now)) return;
-    _log('rollover to ${state.dayKey}');
+    _log(() => 'rollover to ${state.dayKey}');
     _onRolledOver();
   }
 
@@ -639,8 +627,8 @@ class DoomWalkController extends ChangeNotifier {
       if (_walk.baseline != null) 'walk.sensor_baseline': _walk.baseline.toString(),
       'restricted_categories': catalog.restricted.map((c) => c.name).join(','),
       'theme_mode': themeMode,
-      'dev_options': developerOptions.toString(),
-      'milestone_toasts': milestoneToasts.toString(),
+      'dev_options': _developerOptions.toString(),
+      'dev_unlocked': _developerUnlocked.toString(),
     };
     try {
       await _store.flush(kv: kv, appDeltas: deltas, walkedToday: (state.dayKey, state.walkedTodayM));
@@ -652,7 +640,7 @@ class DoomWalkController extends ChangeNotifier {
         p.chargedM += v.chargedM;
       });
       _dirty = true;
-      _log('flush failed $e');
+      _log(() => 'flush failed $e');
     }
   }
 
@@ -704,7 +692,7 @@ class DoomWalkController extends ChangeNotifier {
         strideM: config.strideM,
         unlocksM: unlockChunkM,
         seed: DateTime.now().difference(DateTime(2000)).inDays);
-    _log('frost -> ${target.toStringAsFixed(3)} fg=$foreground');
+    _log(() => 'frost -> ${target.toStringAsFixed(3)} fg=$foreground');
     unawaited(_safe(() => _native.setFrost(target,
         title: title,
         body: body,
@@ -771,7 +759,7 @@ class DoomWalkController extends ChangeNotifier {
       ]);
       await HomeWidget.updateWidget(qualifiedAndroidName: 'com.lebaaar.doomwalk.DebtWidgetSmall');
       await HomeWidget.updateWidget(qualifiedAndroidName: 'com.lebaaar.doomwalk.DebtWidgetLarge');
-      _log('widget pushed $big $caption');
+      _log(() => 'widget pushed $big $caption');
     }));
   }
 
@@ -781,7 +769,7 @@ class DoomWalkController extends ChangeNotifier {
     } on MissingPluginException {
       // No native side (tests).
     } on PlatformException catch (e) {
-      _log('native error $e');
+      _log(() => 'native error $e');
     }
   }
 
@@ -898,7 +886,7 @@ class DoomWalkController extends ChangeNotifier {
   Future<bool> restartScrollMeasuring() async {
     _lastRestart = DateTime.now();
     final ok = await _native.restartAccessibility();
-    _log('restart scroll measuring: ${ok ? 'sent' : 'not allowed'}');
+    _log(() => 'restart scroll measuring: ${ok ? 'sent' : 'not allowed'}');
     return ok;
   }
 
@@ -958,7 +946,7 @@ class DoomWalkController extends ChangeNotifier {
     await flush();
     _pushFrost(force: true);
     _pushWidget(force: true);
-    _log('reset');
+    _log(() => 'reset');
     notifyListeners();
   }
 

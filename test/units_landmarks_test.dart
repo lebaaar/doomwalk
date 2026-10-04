@@ -92,13 +92,5 @@ void main() {
       expect(nearestLandmark(106.7, ladder: climb), liberty);
       expect(nearestLandmark(400, ladder: climb), eiffel);
     });
-    test('milestones fire when passed, the biggest of several', () {
-      expect(milestoneCrossed(0, 0.9), isNull);
-      expect(milestoneCrossed(0.9, 1.0)!.metres, 1);
-      expect(milestoneCrossed(1.0, 1.5), isNull); // already passed
-      expect(milestoneCrossed(5, 6)!.title, contains('giraffe'));
-      expect(milestoneCrossed(0, 40)!.title, contains('whale'));
-      expect(milestoneCrossed(320, 331)!.title, contains('Eiffel'));
-    });
   });
 }

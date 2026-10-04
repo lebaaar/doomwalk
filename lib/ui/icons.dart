@@ -36,7 +36,6 @@ abstract final class Ph {
   static const sliders = IconData(0xe432, fontFamily: _f);
   static const ticket = IconData(0xe490, fontFamily: _f);
   static const arrowCounterClockwise = IconData(0xe038, fontFamily: _f);
-  static const confetti = IconData(0xe81a, fontFamily: _f);
 }
 
 /// Phosphor Fill, same code points, for selected states.

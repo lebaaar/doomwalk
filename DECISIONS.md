@@ -464,3 +464,21 @@ are gone).
   as a tap and skipped the slide. A raw `Listener` on the slide area now pauses
   the moment a finger lands; a release within 250 ms is a tap (back/next),
   anything longer just resumes.
+
+## Round 19: longer tiers, debug-only developer options, no milestones
+* **Longer tiers on every preset:** Gentle 100 m, Balanced 75 m, Strict 50 m per tier
+  (were 50, 50 and 25). Config model `5`: a model 4 config still on a preset moves to
+  that preset's new tier length; custom rules and everything else are kept.
+* **Developer options are debug-only.** A release build hides the Developer section;
+  tapping the Settings title 20 times (no pause over 3 s) unlocks it, switched on,
+  with a "Developer options enabled" snackbar. The unlock is saved (`dev_unlocked`).
+* **Milestone pop-ups are gone**, with their setting and the `milestone_toasts` key.
+* **Less work in release:** `_log` takes a closure, so release builds never format
+  log strings on the per-scroll path, and the accessibility service forwards only the
+  first of DoomWalk's own scroll events in a row (they never count).
+* **Landmark silhouettes redrawn** as SVG-style paths (`_d`) with cut-outs: an Eiffel
+  Tower with its arch and platforms, a bus with decks, door and wheel arches, a slimmer
+  whale, a crowned statue with torch and tablet, setbacks on the Burj, snow caps.
+* **Stories:** no "Tap to go on" hint; slide 2 counts up from 0 to 100 m; the privacy
+  slide shows a shield and "No internet / No accounts / No analytics" instead of a 0.
+

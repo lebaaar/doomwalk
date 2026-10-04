@@ -48,6 +48,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     super.dispose();
   }
 
+  /// Taps on the Settings title; 20 in a row unlock the developer options
+  /// in a release build. A pause of 3 s starts the count again.
+  int _titleTaps = 0;
+  DateTime _lastTitleTap = DateTime.fromMillisecondsSinceEpoch(0);
+  static const _tapsToUnlock = 20;
+
+  void _onTitleTap() {
+    final c = ref.read(controllerProvider);
+    if (_tab != 2 || c.developerAvailable) return;
+    final now = DateTime.now();
+    if (now.difference(_lastTitleTap) > const Duration(seconds: 3)) _titleTaps = 0;
+    _lastTitleTap = now;
+    if (++_titleTaps < _tapsToUnlock) return;
+    _titleTaps = 0;
+    unawaited(c.unlockDeveloperOptions());
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(const SnackBar(content: Text('Developer options enabled'), duration: Duration(seconds: 2)));
+  }
+
   void _go(int tab) {
     if (tab == _tab) return;
     setState(() => _tab = tab);
@@ -60,7 +80,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     const titles = ['Today', 'Activity', 'Settings'];
     return Scaffold(
       appBar: AppBar(
-        title: Text(titles[_tab]),
+        title: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: _onTitleTap,
+          child: Text(titles[_tab]),
+        ),
       ),
       // Tabs keep their state and scroll position (the stack is never
       // rebuilt from scratch); the incoming one fades in.

@@ -26,7 +26,7 @@ class WalletConfig {
   const WalletConfig({
     this.bankCapM = 50,
     this.priceTiers = defaultPriceTiers,
-    this.priceStepM = 50,
+    this.priceStepM = defaultPriceStepM,
     this.frostAtM = 20,
     this.overridesPerDay = 3,
     this.overrideMinutes = 5,
@@ -46,6 +46,8 @@ class WalletConfig {
 
   /// Every this much scrolled today, walking moves up one tier.
   final double priceStepM;
+
+  static const defaultPriceStepM = 75.0;
 
   /// The price at the start of the day.
   double get startPrice => priceTiers.first;

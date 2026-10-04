@@ -365,25 +365,35 @@ class ScrollAccessibilityService : AccessibilityService() {
         Log.i(TAG, "accessibility service connected")
     }
 
+    /** Package of the last scroll forwarded to Dart. */
+    private var lastScrollPkg: String? = null
+
     override fun onAccessibilityEvent(e: AccessibilityEvent) {
         val pkg = e.packageName?.toString() ?: return
         val now = System.currentTimeMillis()
         when (e.eventType) {
-            AccessibilityEvent.TYPE_VIEW_SCROLLED -> Shim.send(
-                "onScroll", hashMapOf(
-                    "pkg" to pkg,
-                    "cls" to (e.className?.toString() ?: ""),
-                    "t" to now,
-                    "win" to e.windowId,
-                    "dx" to e.scrollDeltaX,
-                    "dy" to e.scrollDeltaY,
-                    "sy" to e.scrollY,
-                    "msy" to e.maxScrollY,
-                    "from" to e.fromIndex,
-                    "to" to e.toIndex,
-                    "count" to e.itemCount,
+            AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
+                // DoomWalk's own scrolling never counts: forward the first
+                // event (it still marks us as the open app) and drop the rest,
+                // so scrolling our own lists doesn't flood the engine.
+                if (pkg == packageName && lastScrollPkg == pkg) return
+                lastScrollPkg = pkg
+                Shim.send(
+                    "onScroll", hashMapOf(
+                        "pkg" to pkg,
+                        "cls" to (e.className?.toString() ?: ""),
+                        "t" to now,
+                        "win" to e.windowId,
+                        "dx" to e.scrollDeltaX,
+                        "dy" to e.scrollDeltaY,
+                        "sy" to e.scrollY,
+                        "msy" to e.maxScrollY,
+                        "from" to e.fromIndex,
+                        "to" to e.toIndex,
+                        "count" to e.itemCount,
+                    )
                 )
-            )
+            }
             // The class name lets Dart tell our own activity from our frost
             // windows, which announce themselves with the same event type.
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> Shim.send(
