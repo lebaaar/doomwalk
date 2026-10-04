@@ -1,27 +1,23 @@
 <p align="center">
-  <img src="docs/logo/final/png/icon-rounded-512.png" width="128" alt="DoomWalk icon">
+  <img src="docs/graphics/feature-graphic-2x.png" alt="DoomWalk: want to scroll? Take a walk first.">
 </p>
 
-<h1 align="center">DoomWalk</h1>
+<h1><img src="docs/logo/final/png/icon-rounded-512.png" width="36" align="absmiddle" alt="">&nbsp;&nbsp;DoomWalk</h1>
 
-<p align="center"><b>Want to scroll? Earn it by taking a walk first.</b></p>
-
-<p align="center">Android · Everything stays on your phone · No accounts, no ads, no tracking</p>
-
-<p align="center">
-  <small>Built at <a href="https://builderbase.com/event/hack-chalmers">Hack Chalmers</a> in under 24h.</small>
-</p>
-
----
+A step counter for Android that fights back and makes you walk before you can scroll.
+<br>
+<sub>Winning project at <a href="https://hackchalmers.se/">Hack Chalmers</a>. Built in under 24h.</sub>
 
 DoomWalk makes you walk before you can doomscroll. It measures how far you scroll in
 your social and video apps, in actual metres, and only lets you scroll as far as
 you've walked. Run out, and all addicting apps are blocked until you get up and touch some grass.
 
 <p align="center">
-  <img src="docs/screenshots/host_intro_0.png" width="220" alt="Intro stories: want to scroll? Take a walk first">
-  <img src="docs/screenshots/host_readme_today.png" width="220" alt="Today: steps, and the bank they filled">
-  <img src="docs/screenshots/host_readme_activity.png" width="220" alt="Activity: a week of walking and scrolling by app">
+  <img src="docs/graphics/screenshot-1-today.png" width="160" alt="Want to scroll? Walk first. Today: steps, and the bank they filled">
+  <img src="docs/graphics/screenshot-2-blocked.png" width="160" alt="Out of scroll? Go for a walk. A blocked app behind the blur">
+  <img src="docs/graphics/screenshot-3-tiers.png" width="160" alt="The more you scroll, the more you walk. Walking cost tiers">
+  <img src="docs/graphics/screenshot-4-activity.png" width="160" alt="See where your scroll goes. A week of walking and scrolling by app">
+  <img src="docs/graphics/screenshot-5-landmarks.png" width="160" alt="Scroll in giraffes and Eiffel Towers. Landmarks and a share card">
 </p>
 
 ## How it works
@@ -59,6 +55,8 @@ Your data is not included in cloud backups.
 
 ## Getting it
 
-Download the APK from the [latest release](https://github.com/lebaaar/doomwalk/releases/latest). On Android 13+ you have to allow restricted settings for DoomWalk (App info → ⋮) before the accessibility service can be turned on.
+Currently only available on Android 13+ because of the accessibility requirements.
+<br>
+Soon available for download from the Google Play Store, until then you can download the APK from the [latest release](https://github.com/lebaaar/doomwalk/releases/latest).
 
-To build it yourself, see [CONTRIBUTING.md](CONTRIBUTING.md). See the [privacy policy](PRIVACY.md).
+To build it yourself, see [CONTRIBUTING.md](CONTRIBUTING.md).
