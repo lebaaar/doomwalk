@@ -5,30 +5,32 @@ import '../core/units.dart';
 import 'theme.dart';
 
 /// One row of [priceRows]: from [fromM] scrolled today (to [toM], or open
-/// ended when null) a metre of scrolling costs [price] metres of walking.
-typedef PriceRow = ({double fromM, double? toM, double price, int stepsPer100});
+/// ended when null) a metre of scrolling costs [price] metres of walking,
+/// and filling the whole bank costs [stepsToFill] steps.
+typedef PriceRow = ({double fromM, double? toM, double price, int stepsToFill});
 
-/// The multiplier table for [c]: one row per price step, up to the cap,
-/// with the steps 100 m of scrolling costs at [c]'s stride.
+/// The multiplier table for [c]: one row per price step, from the starting
+/// price up to the cap, with the steps that fill the bank at [c]'s stride.
 List<PriceRow> priceRows(WalletConfig c) {
-  final cap = c.maxPrice < 1 ? 1.0 : c.maxPrice.floorToDouble();
+  final start = c.startPrice < 1 ? 1.0 : c.startPrice.floorToDouble();
+  final cap = c.maxPrice < start ? start : c.maxPrice.floorToDouble();
   final rows = <PriceRow>[];
-  for (var p = 1.0; p <= cap; p++) {
+  for (var p = start; p <= cap; p++) {
     final last = p == cap || c.priceStepM <= 0;
-    final from = (p - 1) * c.priceStepM;
+    final from = (p - start) * c.priceStepM;
     rows.add((
       fromM: from,
       toM: last ? null : from + c.priceStepM,
       price: p,
-      stepsPer100: c.strideM <= 0 ? 0 : (100 * p / c.strideM).ceil(),
+      stepsToFill: c.strideM <= 0 ? 0 : (c.bankCapM * p / c.strideM).ceil(),
     ));
     if (last) break;
   }
   return rows;
 }
 
-/// "Scrolled today / multiplier / 100 m of scrolling costs", with today's
-/// row highlighted.
+/// "Scrolled today / multiplier / steps to fill the bank", with today's row
+/// highlighted.
 class PriceTable extends StatelessWidget {
   const PriceTable({super.key, required this.config, this.currentPrice});
   final WalletConfig config;
@@ -49,7 +51,7 @@ class PriceTable extends StatelessWidget {
     final head = t.bodySmall?.copyWith(color: col.muted);
     return Semantics(
       label: 'Multiplier by distance scrolled today: '
-          '${rows.map((r) => '${range(r)}, ${formatTimes(r.price)}, ${formatCount(r.stepsPer100)} steps per 100 m').join('; ')}',
+          '${rows.map((r) => '${range(r)}, ${formatTimes(r.price)}, ${formatCount(r.stepsToFill)} steps to fill the bank').join('; ')}',
       excludeSemantics: true,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Padding(
@@ -57,7 +59,7 @@ class PriceTable extends StatelessWidget {
           child: Row(children: [
             cell('Scrolled today', style: head, flex: 4),
             cell('Multiplier', style: head, flex: 3),
-            cell('100 m costs', style: head, flex: 4, align: TextAlign.end),
+            cell('Fill ${formatRound(config.bankCapM)}', style: head, flex: 4, align: TextAlign.end),
           ]),
         ),
         for (final r in rows)
@@ -77,7 +79,7 @@ class PriceTable extends StatelessWidget {
                 cell(range(r), style: style, flex: 4),
                 cell('${formatTimes(r.price)}${r.toM == null && rows.length > 1 ? ' (max)' : ''}',
                     style: style, flex: 3),
-                cell('${formatCount(r.stepsPer100)} steps', style: style, flex: 4, align: TextAlign.end),
+                cell('${formatCount(r.stepsToFill)} steps', style: style, flex: 4, align: TextAlign.end),
               ]),
             );
           }),

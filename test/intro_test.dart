@@ -8,19 +8,20 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('price table', () {
-    test('Balanced: five rows of 100 m, steps per 100 m at a 0.75 m stride', () {
+    test('Balanced: from 2x, +1 every 50 m up to 6x, steps to fill a 50 m bank', () {
       final rows = priceRows(const WalletConfig());
-      expect(rows.map((r) => r.price), [1, 2, 3, 4, 5]);
-      expect(rows.map((r) => r.fromM), [0, 100, 200, 300, 400]);
-      expect(rows.last.toM, isNull); // 400 m and up
-      expect(rows.map((r) => r.stepsPer100), [134, 267, 400, 534, 667]);
+      expect(rows.map((r) => r.price), [2, 3, 4, 5, 6]);
+      expect(rows.map((r) => r.fromM), [0, 50, 100, 150, 200]);
+      expect(rows.last.toM, isNull); // 200 m and up
+      // 50 m at 2x = 100 m walked = 134 steps at 0.75 m.
+      expect(rows.map((r) => r.stepsToFill), [134, 200, 267, 334, 400]);
     });
 
-    test('follows the preset and the stride', () {
-      final gentle = priceRows(Strictness.gentle.applyTo(const WalletConfig(strideM: 0.8)));
-      expect(gentle.map((r) => r.price), [1, 2, 3]);
-      expect(gentle.map((r) => r.fromM), [0, 200, 400]);
-      expect(gentle.first.stepsPer100, 125);
+    test('follows the preset, the bank size and the stride', () {
+      final gentle = priceRows(Strictness.gentle.applyTo(const WalletConfig(strideM: 0.8, bankCapM: 100)));
+      expect(gentle.map((r) => r.price), [1, 2, 3, 4]);
+      expect(gentle.map((r) => r.fromM), [0, 100, 200, 300]);
+      expect(gentle.first.stepsToFill, 125);
     });
   });
 

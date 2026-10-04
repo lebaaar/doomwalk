@@ -31,7 +31,7 @@ void main() {
 
     test('a gap spends the walk bank first, the rest is owed', () {
       final w = ScrollWallet(config: const WalletConfig(), state: WalletState.fresh(start));
-      w.applyWalk(15, start);
+      w.applyWalk(30, start); // 15 m in the bank at the default 2x
       final g = TamperGap(start: start, end: start.add(const Duration(hours: 2)), reason: 'x');
       w.chargeGap(p.costFor(g, 20), start);
       expect(w.bankM, 0);

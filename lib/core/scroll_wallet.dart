@@ -6,7 +6,7 @@
 ///   * Walking adds to the bank, up to [WalletConfig.bankCapM]; walking while
 ///     it is full counts for nothing. A metre walked adds 1 / price metres,
 ///     where the price rises in steps with what you have scrolled today:
-///       price = min(maxPrice, 1 + floor(scrolledToday / priceStepM))
+///       price = min(maxPrice, startPrice + floor(scrolledToday / priceStepM))
 ///   * Scrolling spends the bank. With the bank empty it runs an overdraft
 ///     (metres of scrolling owed); the frost grows with it and is full at
 ///     [WalletConfig.frostAtM]. Walking pays the overdraft first.
@@ -24,9 +24,10 @@ String dayKeyOf(DateTime t) {
 
 class WalletConfig {
   const WalletConfig({
-    this.bankCapM = 250,
-    this.priceStepM = 100,
-    this.maxPrice = 5,
+    this.bankCapM = 50,
+    this.startPrice = 2,
+    this.priceStepM = 50,
+    this.maxPrice = 6,
     this.frostAtM = 20,
     this.overridesPerDay = 3,
     this.overrideMinutes = 5,
@@ -37,6 +38,9 @@ class WalletConfig {
 
   /// Most scrolling the bank can hold.
   final double bankCapM;
+
+  /// Metres walked per metre of scrolling at the start of the day.
+  final double startPrice;
 
   /// Every this much scrolled today, a metre of scrolling costs one more
   /// metre of walking.
@@ -67,11 +71,12 @@ class WalletConfig {
   /// The step goal as a distance, at the current stride.
   double get walkGoalM => stepGoal * strideM;
 
-  static const maxBankCapM = 500.0;
-  static const minBankCapM = 50.0;
+  static const maxBankCapM = 100.0;
+  static const minBankCapM = 20.0;
 
   WalletConfig copyWith({
     double? bankCapM,
+    double? startPrice,
     double? priceStepM,
     double? maxPrice,
     double? frostAtM,
@@ -83,6 +88,7 @@ class WalletConfig {
   }) =>
       WalletConfig(
         bankCapM: bankCapM ?? this.bankCapM,
+        startPrice: startPrice ?? this.startPrice,
         priceStepM: priceStepM ?? this.priceStepM,
         maxPrice: maxPrice ?? this.maxPrice,
         frostAtM: frostAtM ?? this.frostAtM,
@@ -95,6 +101,7 @@ class WalletConfig {
 
   Map<String, Object?> toJson() => {
         'bankCapM': bankCapM,
+        'startPrice': startPrice,
         'priceStepM': priceStepM,
         'maxPrice': maxPrice,
         'frostAtM': frostAtM,
@@ -111,6 +118,7 @@ class WalletConfig {
     int i(String k, int def) => (j[k] as num?)?.toInt() ?? def;
     return WalletConfig(
       bankCapM: n('bankCapM', d.bankCapM).clamp(minBankCapM, maxBankCapM),
+      startPrice: n('startPrice', d.startPrice),
       priceStepM: n('priceStepM', d.priceStepM),
       maxPrice: n('maxPrice', d.maxPrice),
       frostAtM: n('frostAtM', d.frostAtM),
@@ -244,9 +252,10 @@ class ScrollCharge {
 /// Metres walked per metre of scrolling once [scrolled] metres have been
 /// scrolled today.
 double priceAt(double scrolled, WalletConfig c) {
-  final cap = math.max(1.0, c.maxPrice);
+  final start = math.max(1.0, c.startPrice);
+  final cap = math.max(start, c.maxPrice);
   if (c.priceStepM <= 0) return cap;
-  return math.min(1.0 + (scrolled / c.priceStepM).floor(), cap);
+  return math.min(start + (scrolled / c.priceStepM).floor(), cap);
 }
 
 class ScrollWallet {

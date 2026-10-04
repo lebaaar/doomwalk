@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -26,6 +25,10 @@ void _log(String msg) {
 /// Owns the wallet and everything that feeds it. Lives for the whole process
 /// in the cached engine, whether or not the UI is attached.
 class DoomWalkController extends ChangeNotifier {
+  /// Bumped whenever the economy's meaning or defaults change, so saved
+  /// configs from before are reset to the new defaults.
+  static const modelVersion = '3';
+
   DoomWalkController._(this._store, this._native, this._engine, this._walk, this.catalog);
 
   final Store _store;
@@ -102,9 +105,8 @@ class DoomWalkController extends ChangeNotifier {
   /// Walking (overdraft included) that brings the bank to [metres].
   double walkToUnlock(double metres) => _engine.walkToUnlock(metres);
 
-  /// The chunk of scrolling the walking asks are phrased in: 100 m, or the
-  /// whole bank when it holds less.
-  double get unlockChunkM => math.min(100, bankCapM);
+  /// The walking asks are phrased as filling the whole bank.
+  double get unlockChunkM => bankCapM;
   double get weekRawM => _weekPriorRawM + state.scrolledTodayM;
   bool get overrideActive => _engine.overrideActive(DateTime.now());
   int get overridesLeft => _engine.overridesLeft(DateTime.now());
@@ -116,12 +118,13 @@ class DoomWalkController extends ChangeNotifier {
     final store = await Store.open();
     final kv = await store.readKv();
     final now = DateTime.now();
-    // Model 2 is the scroll wallet. A config saved by the old debt model
-    // keeps only its personal settings; its economy meant something else.
+    // Model 3 is the small bank with a starting price. A config saved by an
+    // older model keeps only its personal settings (stride, weight, goal,
+    // passes); its economy is replaced by today's defaults.
     final savedConfig = kv['config'] == null ? null : jsonDecode(kv['config']!) as Map<String, Object?>;
     final config = savedConfig == null
         ? const WalletConfig()
-        : kv['model'] == '2'
+        : kv['model'] == modelVersion
             ? WalletConfig.fromJson(savedConfig)
             : WalletConfig.fromLegacyJson(savedConfig);
     final state = kv['state'] != null
@@ -625,7 +628,7 @@ class DoomWalkController extends ChangeNotifier {
     final kv = <String, String>{
       'state': jsonEncode(state.toJson()),
       'config': jsonEncode(config.toJson()),
-      'model': '2',
+      'model': modelVersion,
       'app_overrides': jsonEncode(catalog.overrides),
       'heartbeat': DateTime.now().millisecondsSinceEpoch.toString(),
       'heartbeat.tracking': status.accessibilityEnabled.toString(),

@@ -433,3 +433,20 @@ are gone).
   already appears within a few dozen flicks; the config field, its settings
   switch and the "Demo mode" chip are removed, and a saved `demoMode` is
   ignored.
+
+## Round 17: a small bank that costs more from the start
+* **Bank:** 50 m by default, 20-100 m in Settings → Bank (it was 250 m, up to 500).
+  250 m was about 1,600 swipes for a 3-minute walk: far too generous.
+* **Starting price** (`WalletConfig.startPrice`): walking isn't 1:1 from the first
+  step any more. `price = min(maxPrice, startPrice + floor(scrolledToday / priceStepM))`.
+  Presets: Gentle 1× +1/100 m max 4×, Balanced 2× +1/50 m max 6×, Strict 3× +1/25 m
+  max 8×. Custom rules gained a "Walking per metre at first" slider; start and max
+  push each other so the start is never above the max.
+* **Walking asks fill the whole bank** ("134 steps put 50 m in it"), since it is
+  at most 100 m. The price table's last column is "Fill 50 m".
+* **Migration:** config model `3`. A saved config from before keeps only the
+  personal settings (stride, weight, step goal, passes); the economy resets to the
+  new Balanced.
+* **Docs:** the README is for users (what it is, how it works, features, privacy);
+  building, signing, permissions, testing, the precise model and the code layout
+  moved to CONTRIBUTING.md.

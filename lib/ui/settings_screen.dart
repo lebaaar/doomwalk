@@ -44,8 +44,8 @@ class SettingsScreen extends ConsumerWidget {
           child: Text(
             preset == null
                     ? 'You\'re using custom rules. Pick a level to replace them.'
-                    : 'You scroll as far as you walk: 1:1 at first, then 1 more metre of walking for every '
-                        '${formatRound(cfg.priceStepM)} you scroll in a day, up to ${_x(cfg.maxPrice)}:1.',
+                    : 'Each metre of scrolling costs ${_x(cfg.startPrice)} m of walking at first, then 1 m more for '
+                        'every ${formatRound(cfg.priceStepM)} you scroll in a day, up to ${_x(cfg.maxPrice)} m.',
             style: t.bodyMedium?.copyWith(color: context.colors.muted),
           ),
         ),
@@ -63,15 +63,15 @@ class SettingsScreen extends ConsumerWidget {
             value: cfg.bankCapM,
             min: WalletConfig.minBankCapM,
             max: WalletConfig.maxBankCapM,
-            divisions: 18,
+            divisions: ((WalletConfig.maxBankCapM - WalletConfig.minBankCapM) / 10).round(),
             format: (v) => '${v.toStringAsFixed(0)} m',
             onChanged: (v) => c.updateConfig(cfg.copyWith(bankCapM: v)),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(Gaps.margin, 0, Gaps.margin, 14),
             child: Text(
-              'The most scrolling you can save up. It starts empty every day, and walking while it\'s '
-              'full adds nothing, so walk when you want to scroll.',
+              'The most scrolling you can save up, ${formatRound(WalletConfig.maxBankCapM)} at most. It starts empty every '
+              'day, and walking while it\'s full adds nothing, so walk when you want to scroll.',
               style: t.bodyMedium?.copyWith(color: context.colors.muted),
             ),
           ),
@@ -290,11 +290,20 @@ class _CustomRulesPage extends ConsumerWidget {
       const _Help('Changing any of these switches How strict to custom.'),
       TileGroup(children: [
         _SliderRow(
+          label: 'Walking per metre at first',
+          value: cfg.startPrice,
+          min: 1,
+          max: 5,
+          divisions: 4,
+          format: (v) => '${_x(v)} m',
+          onChanged: (v) => set(cfg.copyWith(startPrice: v, maxPrice: v > cfg.maxPrice ? v : null)),
+        ),
+        _SliderRow(
           label: 'Walking gets dearer every',
           value: cfg.priceStepM,
           min: 25,
-          max: 500,
-          divisions: 19,
+          max: 200,
+          divisions: 7,
           format: (v) => '${v.toStringAsFixed(0)} m scrolled',
           onChanged: (v) => set(cfg.copyWith(priceStepM: v)),
         ),
@@ -305,7 +314,7 @@ class _CustomRulesPage extends ConsumerWidget {
           max: 10,
           divisions: 9,
           format: (v) => '${_x(v)} m walked per metre',
-          onChanged: (v) => set(cfg.copyWith(maxPrice: v)),
+          onChanged: (v) => set(cfg.copyWith(maxPrice: v, startPrice: v < cfg.startPrice ? v : null)),
         ),
         _SliderRow(
           label: 'Apps freeze completely after',

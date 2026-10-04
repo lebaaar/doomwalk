@@ -186,9 +186,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                 style: t.headlineLarge?.copyWith(fontSize: 34, letterSpacing: -1.4)),
             const SizedBox(height: 14),
             Text(
-              'Walking fills a bank of scrolling, and social apps spend it. It starts empty every day and holds '
-              '${formatRound(_c.bankCapM)}. At first 1 m walked buys 1 m of scrolling, and the more you scroll, the more walking it '
-              'takes. Run out, and the apps freeze until you go.',
+              'Walking fills a small bank of scrolling, and social apps spend it. It starts empty every day and '
+              'holds ${formatRound(_c.bankCapM)}. Each metre of scrolling costs ${formatRound(_c.config.startPrice)} '
+              'of walking at first, and more the more you scroll. Run out, and the apps freeze until you go.',
               style: t.bodyLarge?.copyWith(color: context.colors.muted),
             ),
             const SizedBox(height: 32),

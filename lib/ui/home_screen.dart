@@ -393,8 +393,8 @@ class _BankBlock extends StatelessWidget {
       _Verdict.low || _Verdict.ok =>
         'You can scroll ${formatRound(bank)}. ${stepsText(c.walkToUnlock(cap), stride)} fill it up.',
     };
-    // The multiplier: tinted once walking costs more than 1:1.
-    final dear = price > 1;
+    // The multiplier: tinted once it has risen above the day's start.
+    final dear = price > c.config.startPrice;
     final chipFg = owed ? fg : (dear ? col.onAccent : col.onAccentContainer);
     final chipBg = owed ? fg.withValues(alpha: 0.14) : (dear ? col.accent : col.accentContainer);
     final per = formatMetres(1 / price, decimals: price == 1 ? 0 : 2);

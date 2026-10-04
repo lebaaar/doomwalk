@@ -3,13 +3,35 @@ import 'package:doomwalk/core/scroll_wallet.dart';
 
 void main() {
   final t0 = DateTime(2026, 10, 3, 10);
-  ScrollWallet fresh([WalletConfig c = const WalletConfig()]) =>
-      ScrollWallet(config: c, state: WalletState.fresh(t0));
+  // Round numbers for the mechanics: 1:1 at first, +1 every 100 m up to 5,
+  // a 100 m bank. The defaults have their own tests.
+  const simple = WalletConfig(bankCapM: 100, startPrice: 1, priceStepM: 100, maxPrice: 5);
+  ScrollWallet fresh([WalletConfig c = simple]) => ScrollWallet(config: c, state: WalletState.fresh(t0));
+
+  group('defaults', () {
+    test('a 50 m bank, walking at 2x from the start, +1 every 50 m up to 6x', () {
+      const c = WalletConfig();
+      expect(c.bankCapM, 50);
+      expect(priceAt(0, c), 2);
+      expect(priceAt(49.9, c), 2);
+      expect(priceAt(50, c), 3);
+      expect(priceAt(200, c), 6);
+      expect(priceAt(1000, c), 6);
+      final w = fresh(c);
+      expect(w.applyWalk(60, t0), closeTo(30, 1e-9)); // 60 m walked at 2x
+      w.applyWalk(1000, t0);
+      expect(w.bankM, 50);
+    });
+
+    test('a starting price above the cap wins', () {
+      expect(priceAt(500, const WalletConfig(startPrice: 3, maxPrice: 2)), 3);
+    });
+  });
 
   group('price', () {
-    const c = WalletConfig(); // +1 every 100 m scrolled, capped at 5
+    const c = simple; // +1 every 100 m scrolled, capped at 5
 
-    test('starts at 1:1 and goes up by one every step, up to the cap', () {
+    test('starts at the starting price and goes up by one every step, up to the cap', () {
       expect(priceAt(0, c), 1);
       expect(priceAt(99.9, c), 1);
       expect(priceAt(100, c), 2);
@@ -19,7 +41,7 @@ void main() {
     });
 
     test('a cap of 1 keeps it 1:1 forever', () {
-      expect(priceAt(10000, const WalletConfig(maxPrice: 1)), 1);
+      expect(priceAt(10000, const WalletConfig(startPrice: 1, maxPrice: 1)), 1);
     });
   });
 
@@ -35,20 +57,20 @@ void main() {
 
     test('walking fills it 1:1 at first, scrolling spends it', () {
       final w = fresh();
-      expect(w.applyWalk(120, t0), closeTo(120, 1e-9));
-      final c = w.applyScroll(metres: 80, at: t0);
-      expect(c.fromBankM, closeTo(80, 1e-9));
-      expect(w.bankM, closeTo(40, 1e-9));
+      expect(w.applyWalk(80, t0), closeTo(80, 1e-9));
+      final c = w.applyScroll(metres: 50, at: t0);
+      expect(c.fromBankM, closeTo(50, 1e-9));
+      expect(w.bankM, closeTo(30, 1e-9));
       expect(w.frostLevel, 0);
     });
 
     test('is capped: walking with it full counts for nothing', () {
       final w = fresh();
       w.applyWalk(5000, t0);
-      expect(w.bankM, 250);
+      expect(w.bankM, 100);
       expect(w.bankFull, isTrue);
-      expect(w.state.addedTodayM, closeTo(250, 1e-9));
-      expect(w.state.overflowWalkTodayM, closeTo(4750, 1e-9));
+      expect(w.state.addedTodayM, closeTo(100, 1e-9));
+      expect(w.state.overflowWalkTodayM, closeTo(4900, 1e-9));
       w.applyScroll(metres: 50, at: t0);
       expect(w.bankFull, isFalse);
       expect(w.applyWalk(500, t0), closeTo(50, 1e-9));
@@ -56,18 +78,21 @@ void main() {
 
     test('the price rises with what was scrolled today', () {
       final w = fresh();
-      w.applyWalk(250, t0);
-      w.applyScroll(metres: 150, at: t0);
+      w.applyWalk(100, t0);
+      w.applyScroll(metres: 90, at: t0);
+      expect(w.priceNow, 1);
+      w.applyScroll(metres: 20, at: t0); // 10 from the bank, 10 owed
       expect(w.priceNow, 2);
-      expect(w.applyWalk(40, t0), closeTo(20, 1e-9));
-      expect(w.bankM, closeTo(120, 1e-9));
+      // 40 m walked at 2x = 20 m: 10 pays what's owed, 10 to the bank.
+      expect(w.applyWalk(40, t0), closeTo(10, 1e-9));
+      expect(w.bankM, closeTo(10, 1e-9));
     });
 
     test('lowering the cap trims the bank', () {
       final w = fresh();
-      w.applyWalk(250, t0);
-      w.config = const WalletConfig(bankCapM: 100);
-      expect(w.bankM, 100);
+      w.applyWalk(100, t0);
+      w.config = simple.copyWith(bankCapM: 50);
+      expect(w.bankM, 50);
     });
   });
 
@@ -97,8 +122,8 @@ void main() {
       w.applyWalk(300, t0); // pays 150 of scrolling: 110 owed, 40 to the bank
       expect(w.bankM, closeTo(40, 1e-9));
       expect(w.walkToUnlock(100), closeTo(60 * 2, 1e-9));
-      // Never more than the bank holds.
-      expect(w.walkToUnlock(1000), closeTo(210 * 2, 1e-9));
+      // Never more than the bank holds (100 m).
+      expect(w.walkToUnlock(1000), closeTo(60 * 2, 1e-9));
     });
 
     test('a tracking gap spends the bank first, the rest is owed', () {
@@ -140,8 +165,8 @@ void main() {
   group('midnight', () {
     test('everything starts over: bank, overdraft and price', () {
       final w = fresh();
-      w.applyWalk(250, t0);
-      w.applyScroll(metres: 300, at: t0); // 250 from the bank, 50 owed
+      w.applyWalk(250, t0); // fills the 100 m bank
+      w.applyScroll(metres: 300, at: t0); // 100 from the bank, 200 owed
       w.startOverride(t0);
       final next = DateTime(2026, 10, 4, 7);
       expect(w.rollover(next), isTrue);
@@ -181,7 +206,8 @@ void main() {
     });
 
     test('config round-trips through JSON, the cap stays in range', () {
-      const c = WalletConfig(bankCapM: 400, priceStepM: 60, maxPrice: 4, frostAtM: 30, weightKg: 90, stepGoal: 12500);
+      const c = WalletConfig(
+          bankCapM: 80, startPrice: 3, priceStepM: 60, maxPrice: 4, frostAtM: 30, weightKg: 90, stepGoal: 12500);
       expect(WalletConfig.fromJson(c.toJson()).toJson(), c.toJson());
       expect(WalletConfig.fromJson({'bankCapM': 9000}).bankCapM, WalletConfig.maxBankCapM);
     });

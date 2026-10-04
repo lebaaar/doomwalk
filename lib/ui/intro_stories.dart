@@ -186,7 +186,8 @@ class _Slide {
 
 List<_Slide> _buildSlides(WalletConfig c) {
   final cap = formatRound(c.bankCapM);
-  final steps100 = c.strideM <= 0 ? 0 : (100 / c.strideM).ceil();
+  final start = formatTimes(c.startPrice);
+  final fillSteps = c.strideM <= 0 ? 0 : (c.bankCapM * c.startPrice / c.strideM).ceil();
   return [
     const _Slide(
       title: 'Want to scroll?\nTake a walk first.',
@@ -201,22 +202,30 @@ List<_Slide> _buildSlides(WalletConfig c) {
       visual: _BigFigure(value: '347 m', caption: 'scrolled today', icon: Ph.squaresFour),
     ),
     _Slide(
-      title: 'Walking fills your bank',
+      title: 'Walking fills a small bank',
       body:
-          'At first, every metre you walk adds a metre of scrolling. '
-          'The bank starts empty every day and holds up to $cap.',
-      visual: _BankVisual(from: 0, to: 0.6, cap: c.bankCapM, caption: '${formatCount(steps100)} steps = 100 m'),
+          'The bank starts empty every day and holds $cap of scrolling. '
+          'Walking costs $start from the first step: ${formatRound(c.startPrice).replaceAll(' ', '\u00A0')} '
+          'walked for every metre scrolled.',
+      visual: _BankVisual(
+        from: 0,
+        to: 1,
+        cap: c.bankCapM,
+        caption: '${formatCount(fillSteps)} steps fill it',
+      ),
     ),
     _Slide(
       title: 'A full bank stops filling',
       body:
           'Walking while it\'s full adds nothing, so a long commute can\'t buy a day of scrolling. '
-          'Walk when you want to scroll.',
-      visual: _BankVisual(from: 0.6, to: 1, cap: c.bankCapM, caption: 'Bank full'),
+          'Scroll it down, then walk again.',
+      visual: _BankVisual(from: 1, to: 1, cap: c.bankCapM, caption: 'Bank full'),
     ),
     _Slide(
       title: 'The more you scroll, the more it costs',
-      body: 'Every ${formatRound(c.priceStepM)} you scroll in a day, a metre of scrolling takes 1 m more walking.',
+      body:
+          'It starts at $start, and every ${formatRound(c.priceStepM)} you scroll in a day adds 1 m more '
+          'walking per metre, up to ${formatTimes(c.maxPrice)}.',
       visual: _TableVisual(config: c),
     ),
     _Slide(
@@ -224,17 +233,17 @@ List<_Slide> _buildSlides(WalletConfig c) {
       body:
           'Keep scrolling with an empty bank and the app frosts over until you walk. '
           'Calls, maps, banking and emergency apps are never touched.',
-      visual: _FrostVisual(steps: steps100),
+      visual: _FrostVisual(steps: fillSteps, unlocks: cap),
     ),
     const _Slide(
       title: 'Emergency? Use a pass',
       body: 'Three a day, five minutes each. Scrolling during a pass is free.',
       visual: _BigFigure(value: '3', caption: 'passes a day', icon: Ph.lifebuoy),
     ),
-    const _Slide(
+    _Slide(
       title: 'Every midnight, a fresh start',
-      body: 'The bank empties and the multiplier is back to 1×. Nothing carries over, nothing grows.',
-      visual: _BigFigure(value: '00:00', caption: 'back to 1×', icon: Ph.moon),
+      body: 'The bank empties and walking is back to $start. Nothing carries over, nothing grows.',
+      visual: _BigFigure(value: '00:00', caption: 'back to $start', icon: Ph.moon),
     ),
     const _Slide(
       title: 'Nothing leaves your phone',
@@ -368,15 +377,16 @@ class _TableVisual extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(color: col.raised, borderRadius: BorderRadius.circular(Radii.surface)),
-      child: PriceTable(config: config, currentPrice: 1),
+      child: PriceTable(config: config, currentPrice: config.startPrice),
     );
   }
 }
 
 /// A frosted phone screen with the card it shows.
 class _FrostVisual extends StatelessWidget {
-  const _FrostVisual({required this.steps});
+  const _FrostVisual({required this.steps, required this.unlocks});
   final int steps;
+  final String unlocks;
 
   @override
   Widget build(BuildContext context) {
@@ -417,7 +427,7 @@ class _FrostVisual extends StatelessWidget {
                   Text('Take a walk first', style: t.titleSmall?.copyWith(color: col.text)),
                   const SizedBox(height: 4),
                   Text(
-                    '${formatCount(steps)} steps put 100 m in the bank.',
+                    '${formatCount(steps)} steps put $unlocks in the bank.',
                     textAlign: TextAlign.center,
                     style: t.bodySmall?.copyWith(color: col.muted),
                   ),
