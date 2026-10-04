@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/app_catalog.dart';
 import '../core/scroll_wallet.dart';
@@ -19,7 +20,25 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final c = ref.watch(controllerProvider);
+    // The controller notifies several times a second while scrolling or walking.
+    // Rebuilding this whole list each time janks and stalls the user's fling, so
+    // rebuild only when something shown here changes.
+    ref.watch(
+      controllerProvider.select(
+        (c) => (
+          c.config,
+          c.priceNow,
+          c.themeMode,
+          c.status.serviceConnected,
+          c.status.accessibilityEnabled,
+          c.developerAvailable,
+          c.developerOptions,
+          c.passesUsedToday,
+          c.catalog.restricted.length,
+        ),
+      ),
+    );
+    final c = ref.read(controllerProvider);
     final cfg = c.config;
     final t = Theme.of(context).textTheme;
     final preset = Strictness.of(cfg);
@@ -176,9 +195,33 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
         ],
+        const _VersionLabel(),
       ],
     );
   }
+}
+
+class _VersionLabel extends StatelessWidget {
+  const _VersionLabel();
+
+  static final Future<PackageInfo> _info = PackageInfo.fromPlatform();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 24),
+    child: FutureBuilder<PackageInfo>(
+      future: _info,
+      builder: (context, snap) {
+        final i = snap.data;
+        return Text(
+          i == null ? '' : 'Version ${i.version}+${i.buildNumber}',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodyMedium
+              ?.copyWith(color: context.colors.muted),
+        );
+      },
+    ),
+  );
 }
 
 String _themeLabel(String mode) => switch (mode) {
