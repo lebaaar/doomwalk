@@ -65,7 +65,7 @@
                 android:value="Shows the user's scroll-debt balance and keeps on-device step counting running until activity-recognition permission is granted." />
         </service>
 
-        <receiver android:name=".BootReceiver" android:exported="true">
+        <receiver android:name=".BootReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
