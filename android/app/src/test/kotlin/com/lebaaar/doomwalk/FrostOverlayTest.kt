@@ -40,7 +40,7 @@ class FrostOverlayTest {
     private fun fullScreen(v: View) = params(v).width == WindowManager.LayoutParams.MATCH_PARENT
 
     @Test fun fullFrostShowsCardOverAppAndLetsTouchesThrough() {
-        overlay.animateTo(1f, "Instagram is frozen", "Take a walk: 134 steps puts 100 m of scrolling in the bank.", 0, 3)
+        overlay.animateTo(1f, "Instagram is blocked", "Take a walk: 134 steps puts 100 m of scrolling in the bank.", 0, 3)
         idle()
         val w = windows()
         assertEquals("frost + card", 2, w.size)
@@ -51,7 +51,7 @@ class FrostOverlayTest {
         assertTrue("card takes touches (its buttons)", touchable(card))
         assertTrue("touches outside the card go to the app",
             params(card).flags and WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL != 0)
-        assertEquals(listOf("DoomWalk", "Instagram is frozen", "Take a walk: 134 steps puts 100 m of scrolling in the bank.", "Use pass (3)", "Leave app"), texts(card))
+        assertEquals(listOf("DoomWalk", "Instagram is blocked", "Take a walk: 134 steps puts 100 m of scrolling in the bank.", "Use pass (3)", "Leave app"), texts(card))
         assertTrue("card narrower than the screen", params(card).width > 0)
     }
 

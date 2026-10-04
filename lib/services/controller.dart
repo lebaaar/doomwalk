@@ -1028,9 +1028,9 @@ String stepsText(double metres, double strideM) {
   final time = walkMinutes(walkM);
   final nudge = walkNudges[seed % walkNudges.length];
   return full
-      ? ('$name is frozen', 'Take a walk: $steps ($time) puts $unlocks of scrolling in the bank.\n\n$nudge')
+      ? ('$name is blocked', 'Take a walk: $steps ($time) puts $unlocks of scrolling in the bank.\n\n$nudge')
       : ('Take a walk first',
-          'Your bank is empty. $steps ($time) puts $unlocks in it. Scrolling more freezes $name.\n\n$nudge');
+          'Your bank is empty. $steps ($time) puts $unlocks in it. Scrolling more blocks $name.\n\n$nudge');
 }
 
 /// The banner when the bank is empty in an app that counts.

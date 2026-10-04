@@ -241,22 +241,13 @@ List<_Slide> _buildSlides(WalletConfig c) {
     _Slide(
       title: 'Walking fills a small bank',
       body:
-          'The bank starts empty every day and holds $cap of scrolling. '
-          'Walking costs $start from the first step: ${formatRound(c.startPrice).replaceAll(' ', '\u00A0')} '
-          'walked for every metre scrolled.',
+          'It starts empty every day and holds $cap of scrolling, at $start from the first step: '
+          '${formatRound(c.startPrice).replaceAll(' ', '\u00A0')} walked per metre. Once it\'s full, walking '
+          'adds nothing, so a long commute can\'t buy a day of scrolling.',
       visual: _BankVisual(
-        from: 0,
-        to: 1,
         cap: c.bankCapM,
         caption: '${formatCount(fillSteps)} steps fill it',
       ),
-    ),
-    _Slide(
-      title: 'A full bank stops filling',
-      body:
-          'Walking while it\'s full adds nothing, so a long commute can\'t buy a day of scrolling. '
-          'Scroll it down, then walk again.',
-      visual: _BankVisual(from: 1, to: 1, cap: c.bankCapM, caption: 'Bank full'),
     ),
     _Slide(
       title: 'The more you scroll, the more it costs',
@@ -356,10 +347,10 @@ class _BigFigure extends StatelessWidget {
 
 /// The bank bar filling from [from] to [to] of [cap].
 class _BankVisual extends StatelessWidget {
-  const _BankVisual({required this.from, required this.to, required this.cap, required this.caption});
-  final double from;
-  final double to;
+  const _BankVisual({required this.cap, required this.caption});
   final double cap;
+
+  /// Under the bar while it fills; "Bank full" once it is.
   final String caption;
 
   @override
@@ -367,8 +358,8 @@ class _BankVisual extends StatelessWidget {
     final col = context.colors;
     final t = Theme.of(context).textTheme;
     return TweenAnimationBuilder<double>(
-      tween: Tween(begin: from, end: to),
-      duration: const Duration(milliseconds: 2200),
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 3000),
       curve: Curves.easeInOutCubic,
       builder: (context, v, _) => Column(
         mainAxisSize: MainAxisSize.min,
@@ -397,7 +388,10 @@ class _BankVisual extends StatelessWidget {
             style: t.headlineMedium?.merge(numeric).copyWith(color: col.onHero),
           ),
           const SizedBox(height: 4),
-          Text(caption, style: t.bodyLarge?.copyWith(color: col.onHeroMuted)),
+          Text(
+            v >= 0.999 ? 'Bank full: walking adds nothing' : caption,
+            style: t.bodyLarge?.copyWith(color: v >= 0.999 ? col.onHero : col.onHeroMuted),
+          ),
         ],
       ),
     );

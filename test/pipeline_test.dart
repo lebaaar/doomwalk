@@ -198,7 +198,7 @@ void main() {
     expect(frostArgs.last['body'], contains('216\u00A0steps (about 3 minutes) puts 50\u00A0m in it'));
     c.devAddScroll('com.instagram.android', 20);
     expect(frostCalls.last, 1);
-    expect(frostArgs.last['title'], 'Instagram is frozen');
+    expect(frostArgs.last['title'], 'Instagram is blocked');
     expect(frostArgs.last['body'], startsWith('Take a walk:'));
     expect(walkNudges.any((n) => (frostArgs.last['body'] as String).endsWith(n)), isTrue);
     c.dispose();

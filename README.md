@@ -17,7 +17,7 @@ Run out, and the app you're in slowly **frosts over** until you get up and take 
 <p align="center">
   <img src="docs/screenshots/host_intro_0.png" width="200" alt="Intro: want to scroll? Take a walk first">
   <img src="docs/screenshots/host_tab_today.png" width="200" alt="Today: steps and the bank">
-  <img src="docs/screenshots/host_intro_5.png" width="200" alt="Bank empty? The app freezes">
+  <img src="docs/screenshots/host_intro_4.png" width="200" alt="Bank empty? The app freezes">
 </p>
 
 ## How it works

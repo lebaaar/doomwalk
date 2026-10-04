@@ -238,8 +238,8 @@ void main() {
     screen.value = IntroStories(config: c.config, onDone: () {});
     await tester.pump(const Duration(seconds: 1));
     final w = tester.view.physicalSize.width / tester.view.devicePixelRatio;
-    for (var i = 0; i < 9; i++) {
-      if ({0, 2, 4, 5, 8}.contains(i)) {
+    for (var i = 0; i < 8; i++) {
+      if ({0, 2, 3, 4, 7}.contains(i)) {
         // shot() pumps 4 s more; slides move on at 7 s.
         await tester.pump(const Duration(seconds: 2));
         await shot('intro_$i', null);

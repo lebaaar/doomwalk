@@ -425,7 +425,7 @@ are gone).
   table, passes, midnight) and a short Today: steps, added to the bank,
   scrolled, owed, in the bank. Walking lost to a full bank and tracking gaps
   get one line only when they happened.
-* **Story intro** (`lib/ui/intro_stories.dart`): nine full-screen slides with
+* **Story intro** (`lib/ui/intro_stories.dart`): eight full-screen slides (nine until the two bank slides were merged) with
   progress bars; tap right/left to move, hold to pause, 7 s each, the last one
   waits for its button. It shows once before setup (`intro.seen`) and again
   from Settings → How DoomWalk works. The numbers come from the config.
