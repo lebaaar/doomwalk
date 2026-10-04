@@ -1,6 +1,10 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- The Flutter tool needs INTERNET for hot reload and breakpoints -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Never granted by install; grant over adb so the app can restart its own accessibility service. Debug only: Play would flag it -->
+    <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
+        tools:ignore="ProtectedPermissions" />
     <application>
         <receiver android:name=".DebugReceiver" android:exported="true">
             <intent-filter>
