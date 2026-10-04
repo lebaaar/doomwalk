@@ -6,7 +6,7 @@
 
 <p align="center"><b>Want to scroll? Earn it by taking a walk first.</b></p>
 
-<p align="center">For Android · everything stays on your phone · no accounts, no ads, no tracking</p>
+<p align="center">Android · Everything stays on your phone · No accounts, no ads, no tracking</p>
 
 <p align="center">
   <small>Built at <a href="https://builderbase.com/event/hack-chalmers">Hack Chalmers</a> in under 24h.</small>
