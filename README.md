@@ -136,20 +136,18 @@ adb logcat -s flutter | grep 'SD '
 1. Before going on stage: the app is installed and onboarded, cross-window blur is on
    (Developer options → *Allow window-level blurs*, normally on by default), and
    battery saver is **off** because it disables blur.
-2. Open DoomWalk → ⚙ → **Demo mode** on → back. The dashboard shows *DEMO*:
-   a 30 m bank, the price goes up every 5 m (up to 3:1), full frost at 5 m unpaid.
-3. Open Instagram and scroll the feed. The bank starts empty, so the frost fades in
-   within a few flicks, with a "Take a walk" card in the middle. Tap a post
-   to show that touches still work through the frost.
+2. Start with an empty bank: DoomWalk → ⚙ → Developer options → *Reset tracking*.
+3. Open Instagram and scroll the feed. The bank is empty, so the frost fades in
+   within a few dozen flicks (full at 20 m owed), with a "Take a walk" card in the
+   middle. Tap a post to show that touches still work through the frost.
 4. Pull down the notification: "Frozen. Walk x steps to unlock 100 m", with the
    **Emergency pass** button.
-5. Open DoomWalk: the *Today* card turns navy with "Time for a walk" and the
-   steps to walk as a large number, and Instagram is at the top of *Most scrolled today*.
-6. Walk about 20-30 steps around the stage. What's owed counts down and back in
+5. Open DoomWalk: the *Today* card turns navy, with the bank empty, what's owed and
+   the steps to walk, and Instagram is at the top of *Most scrolled today*.
+6. Walk about 30 steps around the stage. What's owed counts down and back in
    Instagram the frost melts. (Backup: Settings → Developer options → *Add steps to today*.)
 7. *Activity* → *Scrolling by app* → tap Instagram → **Share** for the
    "Instagram: … this week" card.
-8. Demo mode off afterwards.
 
 ## Model
 A bank of scrolling, reset at local midnight:

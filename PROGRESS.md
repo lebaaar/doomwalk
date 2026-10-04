@@ -14,7 +14,7 @@ is at most **partial: code complete, host-verified**. What *was* verified here:
 | Check | Result |
 |---|---|
 | `flutter analyze` | No issues found |
-| `flutter test` | 84 tests pass: unit tests (ScrollWallet price, capped bank, overdraft and midnight reset, pixel→metres, landmarks, tamper gaps, WalkTracker, ScrollInterpreter, AppCatalog, presets), a full Dart pipeline test with the native channel mocked, and a UI render smoke test |
+| `flutter test` | 86 tests pass: unit tests (ScrollWallet price, capped bank, overdraft and midnight reset, pixel→metres, landmarks, tamper gaps, WalkTracker, ScrollInterpreter, AppCatalog, presets), a full Dart pipeline test with the native channel mocked, and a UI render smoke test |
 | Kotlin shim | Type-checks with `kotlinc` 2.2.20 against the Android 16 framework classes (Robolectric android-all) and the Flutter embedding jar of this engine. Only `androidx.lifecycle` was stubbed. |
 | Android XML | All resource/manifest XML is well-formed. It has **not** been compiled by aapt2. |
 | UI | Rendered on the host: `docs/screenshots/host_*.png` (emoji show as boxes on the host only) |
@@ -40,7 +40,7 @@ swipes in Chrome, takes screenshots and greps logcat into `docs/device/`.
 | 10 | Share card | partial | `host_share_card.png`; the share sheet itself is untested |
 | 11 | ~~Overnight interest~~ → midnight reset | partial | wallet tests (reset, clock set back) |
 | 12 | Tamper detection | partial | `test/tamper_walk_test.dart`, pipeline tamper test |
-| 13 | Demo mode | partial | wallet + pipeline tests (30 m bank, frost full at 5 m owed) |
+| 13 | ~~Demo mode~~ | removed in round 16 | an empty bank freezes within a few dozen flicks |
 
 ## Known risks / likely flaky on device
 * **Instagram/TikTok event shape.** We assume RecyclerView index changes arrive with

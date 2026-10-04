@@ -56,7 +56,7 @@ class DoomWalkController extends ChangeNotifier {
   String themeMode = 'system';
 
   /// Settings > Developer options. Gates every tool that fakes data
-  /// (adding steps or scrolling, demo mode), in any build.
+  /// (adding steps or scrolling), in any build.
   bool developerOptions = false;
 
   /// A funny pop-up over the open app when today's scrolling passes a
@@ -66,6 +66,9 @@ class DoomWalkController extends ChangeNotifier {
   /// Walked metres per previous day, newest first (today is live in state).
   List<(String, double)> walkHistory = [];
   bool onboardingDone = false;
+
+  /// The story intro has been seen (or skipped) once.
+  bool introSeen = false;
   bool walkAvailable = false;
   String? walkError;
   StreamSubscription<StepCount>? _steps;
@@ -155,6 +158,7 @@ class DoomWalkController extends ChangeNotifier {
     c._openGapStartMs = int.tryParse(kv['gap.open_start'] ?? '');
     c._openGapReason = kv['gap.open_reason'];
     c.onboardingDone = kv['onboarding.done'] == 'true';
+    c.introSeen = kv['intro.seen'] == 'true';
     await c._init(kv, now);
     return c;
   }
@@ -426,12 +430,7 @@ class DoomWalkController extends ChangeNotifier {
     developerOptions = on;
     _dirty = true;
     notifyListeners();
-    // Nothing fake stays active behind a switch the user can't see.
-    if (!on && config.demoMode) {
-      await updateConfig(config.copyWith(demoMode: false));
-    } else {
-      await flush();
-    }
+    await flush();
   }
 
   /// Adds [steps] to today as if the pedometer had counted them.
@@ -457,10 +456,11 @@ class DoomWalkController extends ChangeNotifier {
     if (developerOptions) await resetAll();
   }
 
-  /// Shows the setup flow again from the start.
+  /// Shows the intro and the setup flow again from the start.
   Future<void> devReplayOnboarding() async {
     if (!developerOptions) return;
     onboardingDone = false;
+    introSeen = false;
     _dirty = true;
     await flush();
     notifyListeners();
@@ -632,6 +632,7 @@ class DoomWalkController extends ChangeNotifier {
       'gap.open_start': _openGapStartMs?.toString() ?? '',
       'gap.open_reason': _openGapReason ?? '',
       'onboarding.done': onboardingDone.toString(),
+      'intro.seen': introSeen.toString(),
       if (_walk.baseline != null) 'walk.sensor_baseline': _walk.baseline.toString(),
       'restricted_categories': catalog.restricted.map((c) => c.name).join(','),
       'theme_mode': themeMode,
@@ -913,6 +914,13 @@ class DoomWalkController extends ChangeNotifier {
 
   NativeBridge get native => _native;
 
+  Future<void> completeIntro() async {
+    introSeen = true;
+    _dirty = true;
+    await flush();
+    notifyListeners();
+  }
+
   Future<void> completeOnboarding() async {
     onboardingDone = true;
     _dirty = true;
@@ -967,8 +975,8 @@ class DoomWalkController extends ChangeNotifier {
 
   double get lifetimeRawM => state.lifetimeScrolledM;
 
-  /// Overdraft that fully frosts, after demo-mode overrides.
-  double get frostAtM => config.effective.frostAtM;
+  /// Overdraft that fully frosts.
+  double get frostAtM => config.frostAtM;
 
   @override
   void dispose() {

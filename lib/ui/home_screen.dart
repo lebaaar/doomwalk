@@ -10,6 +10,7 @@ import '../services/controller.dart';
 import '../services/store.dart';
 import 'icons.dart';
 import 'landmark_art.dart';
+import 'price_table.dart';
 import 'logo.dart';
 import 'permissions_screen.dart';
 import 'providers.dart';
@@ -60,17 +61,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[_tab]),
-        actions: [
-          if (c.config.demoMode)
-            Padding(
-              padding: const EdgeInsets.only(right: Gaps.margin),
-              child: Chip(
-                label: const Text('Demo mode'),
-                visualDensity: VisualDensity.compact,
-                side: BorderSide(color: context.colors.faint),
-              ),
-            ),
-        ],
       ),
       // Tabs keep their state and scroll position (the stack is never
       // rebuilt from scratch); the incoming one fades in.
@@ -419,7 +409,7 @@ class _BankBlock extends StatelessWidget {
             triggerMode: TooltipTriggerMode.tap,
             showDuration: const Duration(seconds: 5),
             message: 'Right now 1 m walked adds $per of scrolling. '
-                'Every ${formatRound(c.config.effective.priceStepM)} you scroll today, it takes 1 m more.',
+                'Every ${formatRound(c.config.priceStepM)} you scroll today, it takes 1 m more.',
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(color: chipBg, borderRadius: BorderRadius.circular(999)),
@@ -610,57 +600,63 @@ class LedgerView extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final col = context.colors;
     final s = c.state;
-    final cfg = c.config.effective;
-    Widget line(String a, String b, {bool strong = false, Color? color}) => Padding(
+    final cfg = c.config;
+    Widget rule(IconData icon, String text) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(children: [
-            Expanded(child: Text(a, style: strong ? t.titleSmall : t.bodyLarge?.copyWith(color: col.muted))),
-            Text(b, style: (strong ? t.titleSmall : t.bodyLarge)?.merge(numeric).copyWith(color: color ?? col.text)),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(icon, size: 20, color: col.accent),
+            const SizedBox(width: 12),
+            Expanded(child: Text(text, style: t.bodyLarge?.copyWith(height: 1.4))),
           ]),
         );
-    Widget para(String text) => Text(text, style: t.bodyMedium?.copyWith(color: col.muted));
-    final step = formatRound(cfg.priceStepM);
-    final onPasses = s.scrolledTodayM - s.pricedScrolledTodayM;
+    Widget line(String a, String b, {bool strong = false}) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(children: [
+            Expanded(child: Text(a, style: strong ? t.titleSmall : t.bodyLarge?.copyWith(color: col.muted))),
+            Text(b, style: (strong ? t.titleSmall : t.bodyLarge)?.merge(numeric)),
+          ]),
+        );
+    final owed = c.overdraftM >= 0.05;
     return ListView(
       controller: scroll,
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
       children: [
         Text('How it works', style: t.titleLarge),
         const SizedBox(height: 8),
-        para('Walking fills your bank, and scrolling spends it. The bank starts empty every day and holds '
-            'up to ${formatRound(cfg.bankCapM)}; walking while it\'s full adds nothing. At first 1 m of walking '
-            'adds 1 m of scrolling. Every $step you scroll in a day, a metre of scrolling costs 1 m more '
-            'walking, up to ${formatTimes(cfg.maxPrice)}. When the bank is empty, apps freeze until you walk.'),
+        rule(Ph.footprints, 'Walking fills your bank. It starts empty each day and holds ${formatRound(cfg.bankCapM)}.'),
+        rule(Ph.squaresFour, 'Scrolling spends it. When it\'s empty, apps freeze until you walk.'),
+        rule(Ph.lightning, 'The more you scroll today, the more walking each metre costs:'),
+        const SizedBox(height: 4),
+        PriceTable(config: c.config, currentPrice: c.priceNow),
+        const SizedBox(height: 4),
+        rule(Ph.lifebuoy, '${cfg.overridesPerDay} emergency passes a day, ${cfg.overrideMinutes} min each, free scrolling.'),
+        rule(Ph.moon, 'Midnight resets the bank and the price.'),
         const SizedBox(height: 16),
         Text('Today', style: t.titleSmall),
         const SizedBox(height: 4),
-        line('Walked', formatMetres(s.walkedTodayM)),
-        line('Added to the bank', '+${formatMetres(s.addedTodayM)}', color: col.accent),
-        if (s.overflowWalkTodayM >= 0.05)
-          line('Walked with the bank full', formatMetres(s.overflowWalkTodayM)),
-        const Divider(),
+        line('Walked', '${formatCount(c.stepsToday)} steps'),
+        line('Added to the bank', formatMetres(s.addedTodayM)),
         line('Scrolled', formatMetres(s.scrolledTodayM)),
-        if (onPasses >= 0.05) line('On emergency passes (free)', formatMetres(onPasses)),
-        if (s.tamperChargedTodayM > 0)
-          line('Charged for tracking gaps', formatMetres(s.tamperChargedTodayM)),
-        if (c.overdraftM >= 0.05) line('Scrolled with the bank empty', formatMetres(c.overdraftM), color: col.accent),
-        const Divider(),
+        if (owed) line('Owed (bank empty)', formatMetres(c.overdraftM)),
         line('In the bank', '${formatMetres(c.bankM)} of ${formatRound(c.bankCapM)}', strong: true),
-        const SizedBox(height: 20),
-        Text('The price right now', style: t.titleSmall),
-        const SizedBox(height: 4),
-        para('${formatTimes(c.priceNow)}: each metre you walk adds '
-            '${formatMetres(1 / c.priceNow, decimals: 2)} of scrolling. '
-            '${stepsText(c.walkToUnlock(c.unlockChunkM), c.config.strideM)} would bring the bank to '
-            '${formatRound(c.unlockChunkM)}.'),
+        if (s.overflowWalkTodayM >= 0.05 || s.tamperChargedTodayM > 0) ...[
+          const SizedBox(height: 8),
+          Text(
+            [
+              if (s.overflowWalkTodayM >= 0.05)
+                '${formatMetres(s.overflowWalkTodayM)} walked with the bank full didn\'t count.',
+              if (s.tamperChargedTodayM > 0)
+                '${formatMetres(s.tamperChargedTodayM)} charged for time without scroll measuring.',
+            ].join(' '),
+            style: t.bodyMedium?.copyWith(color: col.muted),
+          ),
+        ],
         if (c.gaps.isNotEmpty) ...[
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           Text('Tracking gaps', style: t.titleSmall),
           const SizedBox(height: 4),
-          para('Time without scroll measuring is charged as scrolling, at your average of '
-              '${formatMetres(c.averageScrollPerHour)} per hour.'),
           for (final g in c.gaps.take(3))
-            line('${_fmt(g.start)} to ${_fmt(g.end)}, ${g.reason}', '−${formatMetres(g.chargedM)}', color: col.accent),
+            line('${_fmt(g.start)} to ${_fmt(g.end)}', formatMetres(g.chargedM)),
         ],
       ],
     );

@@ -171,17 +171,6 @@ void main() {
     });
   });
 
-  group('demo mode', () {
-    test('replaces the economy, keeps personal settings', () {
-      final w = fresh(const WalletConfig(demoMode: true, strideM: 0.8));
-      w.applyWalk(100, t0);
-      expect(w.bankM, 30);
-      w.applyScroll(metres: 35, at: t0);
-      expect(w.frostLevel, 1);
-      expect(w.config.effective.strideM, 0.8);
-    });
-  });
-
   group('persistence', () {
     test('state round-trips through JSON', () {
       final w = fresh();

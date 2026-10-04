@@ -31,7 +31,6 @@ class WalletConfig {
     this.overridesPerDay = 3,
     this.overrideMinutes = 5,
     this.strideM = 0.75,
-    this.demoMode = false,
     this.weightKg = 70,
     this.stepGoal = defaultStepGoal,
   });
@@ -55,9 +54,6 @@ class WalletConfig {
   /// Stride length used only by WalkTracker.
   final double strideM;
 
-  /// Stage demo: small bank, fast price steps, frost after a few metres.
-  final bool demoMode;
-
   /// Body weight for calorie estimates.
   final double weightKg;
 
@@ -74,18 +70,6 @@ class WalletConfig {
   static const maxBankCapM = 500.0;
   static const minBankCapM = 50.0;
 
-  static const demo = WalletConfig(bankCapM: 30, priceStepM: 5, maxPrice: 3, frostAtM: 5);
-
-  /// The values the wallet actually uses (demo mode overrides the economy).
-  WalletConfig get effective => demoMode
-      ? copyWith(
-          bankCapM: demo.bankCapM,
-          priceStepM: demo.priceStepM,
-          maxPrice: demo.maxPrice,
-          frostAtM: demo.frostAtM,
-        )
-      : this;
-
   WalletConfig copyWith({
     double? bankCapM,
     double? priceStepM,
@@ -94,7 +78,6 @@ class WalletConfig {
     int? overridesPerDay,
     int? overrideMinutes,
     double? strideM,
-    bool? demoMode,
     double? weightKg,
     int? stepGoal,
   }) =>
@@ -106,7 +89,6 @@ class WalletConfig {
         overridesPerDay: overridesPerDay ?? this.overridesPerDay,
         overrideMinutes: overrideMinutes ?? this.overrideMinutes,
         strideM: strideM ?? this.strideM,
-        demoMode: demoMode ?? this.demoMode,
         weightKg: weightKg ?? this.weightKg,
         stepGoal: stepGoal ?? this.stepGoal,
       );
@@ -119,7 +101,6 @@ class WalletConfig {
         'overridesPerDay': overridesPerDay,
         'overrideMinutes': overrideMinutes,
         'strideM': strideM,
-        'demoMode': demoMode,
         'weightKg': weightKg,
         'stepGoal': stepGoal,
       };
@@ -136,7 +117,6 @@ class WalletConfig {
       overridesPerDay: i('overridesPerDay', d.overridesPerDay),
       overrideMinutes: i('overrideMinutes', d.overrideMinutes),
       strideM: n('strideM', d.strideM),
-      demoMode: j['demoMode'] as bool? ?? d.demoMode,
       weightKg: n('weightKg', d.weightKg),
       stepGoal: _stepGoalFrom(j, n('strideM', d.strideM)),
     );
@@ -150,7 +130,6 @@ class WalletConfig {
       overridesPerDay: old.overridesPerDay,
       overrideMinutes: old.overrideMinutes,
       strideM: old.strideM,
-      demoMode: old.demoMode,
       weightKg: old.weightKg,
       stepGoal: old.stepGoal,
     );
@@ -286,7 +265,7 @@ class ScrollWallet {
     _clampBank();
   }
 
-  WalletConfig get _e => _config.effective;
+  WalletConfig get _e => _config;
 
   void _clampBank() => state.bankM = math.min(state.bankM, _e.bankCapM);
 

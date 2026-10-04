@@ -29,14 +29,13 @@ case "$CUR" in *"$SVC"*) ;; null|"") adb shell settings put secure enabled_acces
   *) adb shell settings put secure enabled_accessibility_services "$CUR:$SVC" ;; esac
 adb shell settings put secure accessibility_enabled 1
 
-log "launch, demo mode via reset + debug dump"
+log "launch, reset (empty bank) + debug dump"
 adb logcat -c
 adb shell monkey -p $PKG -c android.intent.category.LAUNCHER 1 >/dev/null
 sleep 4
 adb shell am broadcast -n $PKG/.DebugReceiver -a $PKG.DEBUG_RESET >/dev/null
 sleep 1
 shot 01_app_launched
-echo "  (turn on Demo mode in Settings now for a fast loop; press Enter)"; read -r _
 
 log "1-3. scroll in Chrome / another app -> metres, debt, frost"
 W=$(adb shell wm size | grep -o '[0-9]*x[0-9]*' | tail -1); X=${W%x*}; Y=${W#*x}

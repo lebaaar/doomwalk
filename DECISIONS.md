@@ -416,3 +416,20 @@ are gone).
 * **Migration:** a goal saved in metres becomes steps at the saved stride; the
   untouched old default (5 km) becomes the new 10,000.
 * The Activity tab's walking panel counts steps too ("of 10,000 steps today").
+
+## Round 16: the price table, story intro, a short "How it works", no demo mode
+* **Price table** (`lib/ui/price_table.dart`): scrolled today → multiplier →
+  steps for 100 m, built from the preset and the stride, with today's row
+  highlighted. It sits under How strict in Settings and in "How it works".
+* **"How it works"** is five one-line rules (bank, spending and freezing, the
+  table, passes, midnight) and a short Today: steps, added to the bank,
+  scrolled, owed, in the bank. Walking lost to a full bank and tracking gaps
+  get one line only when they happened.
+* **Story intro** (`lib/ui/intro_stories.dart`): nine full-screen slides with
+  progress bars; tap right/left to move, hold to pause, 7 s each, the last one
+  waits for its button. It shows once before setup (`intro.seen`) and again
+  from Settings → How DoomWalk works. The numbers come from the config.
+* **Demo mode is gone.** The day starts with an empty bank, so the frost
+  already appears within a few dozen flicks; the config field, its settings
+  switch and the "Demo mode" chip are removed, and a saved `demoMode` is
+  ignored.

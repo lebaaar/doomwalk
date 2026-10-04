@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'home_screen.dart';
+import 'intro_stories.dart';
 import 'onboarding_screen.dart';
 import 'providers.dart';
 import 'theme.dart';
@@ -33,13 +34,21 @@ class DoomWalkApp extends ConsumerWidget {
   }
 }
 
-/// Shows onboarding until the user has finished it, then the dashboard.
+/// Shows the story intro once, then onboarding until the user has finished
+/// it, then the dashboard.
 class _Root extends ConsumerWidget {
   const _Root();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(controllerProvider);
+    if (!c.introSeen) {
+      return IntroStories(
+        config: c.config,
+        doneLabel: c.onboardingDone ? 'Got it' : 'Set it up',
+        onDone: c.completeIntro,
+      );
+    }
     return c.onboardingDone ? const HomeScreen() : const OnboardingScreen();
   }
 }

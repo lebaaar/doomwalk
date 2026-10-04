@@ -12,6 +12,9 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'support/mocks.dart';
 
+/// Small numbers so a few metres of scrolling freeze an app.
+const _fast = WalletConfig(bankCapM: 50, priceStepM: 5, maxPrice: 3, frostAtM: 5);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
@@ -35,7 +38,7 @@ void main() {
 
   test('scroll -> overdraft -> frost -> walk -> clear, persisted', () async {
     final c = await DoomWalkController.start();
-    await c.updateConfig(const WalletConfig(demoMode: true)); // bank of 30 m, price steps of 5 m, frost at 5 m
+    await c.updateConfig(_fast); // bank of 50 m, price steps of 5 m, frost at 5 m
 
     // Instagram comes to the foreground and the user scrolls hard.
     await sendNative('onWindow', {'pkg': 'com.instagram.android', 't': 0});
@@ -71,13 +74,13 @@ void main() {
     expect(frostCalls.last, 1);
 
     // Walk (debug hook = same path as the pedometer) at today's price (3:1
-    // after 15 m in demo): what's owed first, then the bank fills to its cap.
+    // after 15 m): what's owed first, then the bank fills to its cap.
     expect(c.priceNow, 3);
     await sendNative('debugInjectWalk', {'metres': (c.overdraftM - 2) * 3});
     expect(c.frostLevel, closeTo(0.4, 1e-6));
     await sendNative('debugInjectWalk', {'metres': 1000.0});
     expect(c.overdraftM, 0);
-    expect(c.bankM, 30);
+    expect(c.bankM, 50);
     expect(c.bankFull, isTrue);
     expect(frostCalls.last, 0);
     expect(c.state.walkedTodayM, greaterThan(1000));
@@ -89,7 +92,7 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 50));
     final c2 = await DoomWalkController.start();
     expect(c2.state.scrolledTodayM, closeTo(scrolled, 1e-9));
-    expect(c2.config.demoMode, isTrue);
+    expect(c2.config.priceStepM, 5);
     expect(c2.todayApps['com.instagram.android']!.rawM, closeTo(scrolled, 1e-6));
     c2.dispose();
   });
@@ -203,7 +206,7 @@ void main() {
 
   test('a running pass counts down over the app it unfroze and in the notification', () async {
     final c = await DoomWalkController.start();
-    await c.updateConfig(const WalletConfig(demoMode: true));
+    await c.updateConfig(_fast);
     await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
     await c.setDeveloperOptions(true);
     c.devAddScroll('com.instagram.android', 20);
@@ -283,16 +286,6 @@ void main() {
     c.dispose();
   });
 
-  test('turning developer options off also ends demo mode', () async {
-    final c = await DoomWalkController.start();
-    await c.setDeveloperOptions(true);
-    await c.updateConfig(c.config.copyWith(demoMode: true));
-    await c.setDeveloperOptions(false);
-    expect(c.config.demoMode, isFalse);
-    expect(c.developerOptions, isFalse);
-    c.dispose();
-  });
-
   test('developer scroll is priced like real scrolling', () async {
     final c = await DoomWalkController.start();
     await c.setDeveloperOptions(true);
@@ -352,7 +345,7 @@ void main() {
 
   test('our own frost windows do not lift the frost', () async {
     final c = await DoomWalkController.start();
-    await c.updateConfig(const WalletConfig(demoMode: true));
+    await c.updateConfig(_fast);
     await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'com.instagram.mainactivity.MainActivity', 't': 0});
     await c.setDeveloperOptions(true);
     c.devAddScroll('com.instagram.android', 20);

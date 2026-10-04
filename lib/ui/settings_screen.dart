@@ -8,7 +8,9 @@ import '../core/units.dart';
 import '../services/controller.dart';
 import '../services/native_bridge.dart';
 import 'icons.dart';
+import 'intro_stories.dart';
 import 'permissions_screen.dart';
+import 'price_table.dart';
 import 'providers.dart';
 import 'theme.dart';
 
@@ -40,15 +42,20 @@ class SettingsScreen extends ConsumerWidget {
         Padding(
           padding: const EdgeInsets.fromLTRB(Gaps.margin + 4, 10, Gaps.margin + 4, 0),
           child: Text(
-            cfg.demoMode
-                ? 'Demo mode is on and replaces these rules. Turn it off in Developer options.'
-                : preset == null
+            preset == null
                     ? 'You\'re using custom rules. Pick a level to replace them.'
                     : 'You scroll as far as you walk: 1:1 at first, then 1 more metre of walking for every '
                         '${formatRound(cfg.priceStepM)} you scroll in a day, up to ${_x(cfg.maxPrice)}:1.',
             style: t.bodyMedium?.copyWith(color: context.colors.muted),
           ),
         ),
+        const SizedBox(height: 12),
+        TileGroup(children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: PriceTable(config: cfg, currentPrice: c.priceNow),
+          ),
+        ]),
         const SectionTitle('Bank'),
         TileGroup(children: [
           _SliderRow(
@@ -92,6 +99,12 @@ class SettingsScreen extends ConsumerWidget {
         ]),
         const SectionTitle('General'),
         TileGroup(dividerIndent: 64, children: [
+          const _NavTile(
+            icon: Ph.lightning,
+            title: 'How DoomWalk works',
+            subtitle: 'The intro stories again',
+            page: _IntroReplay(),
+          ),
           _NavTile(
             icon: Ph.user,
             title: 'You',
@@ -134,7 +147,7 @@ class SettingsScreen extends ConsumerWidget {
           SwitchListTile(
             secondary: const IconBadge(icon: Ph.code),
             title: const Text('Developer options'),
-            subtitle: const Text('Testing tools: add steps or scrolling, demo mode'),
+            subtitle: const Text('Testing tools: add steps or scrolling'),
             value: c.developerOptions,
             onChanged: c.setDeveloperOptions,
           ),
@@ -167,6 +180,18 @@ class _NavTile extends StatelessWidget {
         subtitle: Text(subtitle),
         trailing: Icon(Ph.caretRight, size: 18, color: context.colors.muted),
         onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page)),
+      );
+}
+
+/// The intro stories, opened from Settings; done goes back.
+class _IntroReplay extends ConsumerWidget {
+  const _IntroReplay();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => IntroStories(
+        config: ref.read(controllerProvider).config,
+        doneLabel: 'Done',
+        onDone: () => Navigator.of(context).pop(),
       );
 }
 
@@ -262,9 +287,7 @@ class _CustomRulesPage extends ConsumerWidget {
     final cfg = c.config;
     void set(WalletConfig n) => c.updateConfig(n);
     return _SubPage(title: 'Custom rules', children: [
-      _Help(cfg.demoMode
-          ? 'Demo mode is on and replaces these rules until you turn it off.'
-          : 'Changing any of these switches How strict to custom.'),
+      const _Help('Changing any of these switches How strict to custom.'),
       TileGroup(children: [
         _SliderRow(
           label: 'Walking gets dearer every',
@@ -442,20 +465,11 @@ class _DeveloperToolsState extends State<DeveloperTools> {
   Widget build(BuildContext context) {
     final c = widget.c;
     final t = Theme.of(context).textTheme;
-    const demo = WalletConfig.demo;
     Widget heading(String text) => Padding(
           padding: const EdgeInsets.fromLTRB(Gaps.margin, 16, Gaps.margin, 4),
           child: Text(text, style: t.titleSmall),
         );
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      SwitchListTile(
-        title: const Text('Demo mode'),
-        subtitle: Text('Bank of ${demo.bankCapM.toStringAsFixed(0)} m, walking gets dearer every '
-            '${demo.priceStepM.toStringAsFixed(0)} m, apps freeze after ${demo.frostAtM.toStringAsFixed(0)} m unpaid. '
-            'Scroll, freeze, walk and unlock fit in two minutes.'),
-        value: c.config.demoMode,
-        onChanged: (v) => c.updateConfig(c.config.copyWith(demoMode: v)),
-      ),
       heading('Add steps to today'),
       _Help('Counted like real steps: they earn scrolling and count toward your goal. '
           '1,000 steps is ${formatRound(1000 * c.config.strideM)} at your stride.'),
