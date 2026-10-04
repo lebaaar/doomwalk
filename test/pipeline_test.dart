@@ -6,6 +6,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:doomwalk/core/app_catalog.dart';
+import 'package:doomwalk/core/presets.dart';
 import 'package:doomwalk/core/scroll_wallet.dart';
 import 'package:doomwalk/services/controller.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -257,6 +258,39 @@ void main() {
     await Future<void>.delayed(Duration.zero);
     expect(notices, isEmpty);
     c.dispose();
+  });
+
+  test('erase all data starts over as on a fresh install', () async {
+    final c = await DoomWalkController.start();
+    await c.completeIntro();
+    await c.completeOnboarding();
+    await c.setThemeMode('dark');
+    await c.updateConfig(Strictness.strict.applyTo(c.config.copyWith(bankCapM: 80, strideM: 0.9)));
+    await c.setCategoryRestricted(AppCategory.browser, true);
+    await c.setAppCounts('com.reddit.frontpage', false);
+    await c.setDeveloperOptions(true);
+    c.devAddSteps(100);
+    c.devAddScroll('com.instagram.android', 10);
+    await c.eraseEverything();
+    expect(c.introSeen, isFalse);
+    expect(c.onboardingDone, isFalse);
+    expect(c.themeMode, 'system');
+    expect(c.developerOptions, isFalse);
+    expect(Strictness.of(c.config), Strictness.balanced);
+    expect(c.config.bankCapM, 50);
+    expect(c.config.strideM, 0.75);
+    expect(c.catalog.restricted, defaultRestricted);
+    expect(c.catalog.overrides, isEmpty);
+    expect(c.state.scrolledTodayM, 0);
+    expect(c.todayApps, isEmpty);
+    c.dispose();
+    // And it stays that way after a restart.
+    final c2 = await DoomWalkController.start();
+    expect(c2.introSeen, isFalse);
+    expect(c2.onboardingDone, isFalse);
+    expect(c2.config.bankCapM, 50);
+    expect(c2.catalog.overrides, isEmpty);
+    c2.dispose();
   });
 
   test('developer scroll is priced like real scrolling', () async {

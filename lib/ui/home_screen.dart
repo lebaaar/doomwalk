@@ -819,7 +819,7 @@ class _AppsPanel extends StatelessWidget {
     return _Panel(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Scrolling by app', style: t.labelLarge?.copyWith(color: context.colors.muted)),
-        const SizedBox(height: 2),
+        const SizedBox(height: 8),
         Text(
           rows.isEmpty ? 'Nothing counted yet.' : 'Tap an app to share its card.',
           style: t.bodyMedium?.copyWith(color: context.colors.muted),

@@ -443,7 +443,7 @@ class DoomWalkController extends ChangeNotifier {
   }
 
   /// Walking, scrolling and the wallet back to zero, history and passes included.
-  /// Settings are kept. The same wipe as Privacy's erase, one tap closer.
+  /// Settings are kept, unlike Privacy's erase, which starts over completely.
   Future<void> devResetTracking() async {
     if (developerOptions) await resetAll();
   }
@@ -941,6 +941,7 @@ class DoomWalkController extends ChangeNotifier {
     todayApps.clear();
     weekApps.clear();
     _weekPriorRawM = 0;
+    walkHistory = [];
     gaps = [];
     _openGapStartMs = null;
     _dirty = true;
@@ -949,6 +950,25 @@ class DoomWalkController extends ChangeNotifier {
     _pushWidget(force: true);
     _log(() => 'reset');
     notifyListeners();
+  }
+
+  /// Settings > Privacy > Erase all data: the data and every setting, as on
+  /// a fresh install, so the intro stories and setup show again.
+  Future<void> eraseEverything() async {
+    _engine.config = const WalletConfig();
+    _walk.strideM = _engine.config.strideM;
+    catalog.overrides.clear();
+    catalog.restricted
+      ..clear()
+      ..addAll(defaultRestricted);
+    themeMode = 'system';
+    _developerOptions = false;
+    _developerUnlocked = false;
+    onboardingDone = false;
+    introSeen = false;
+    _lastNotice.clear();
+    await resetAll();
+    _pushNotification();
   }
 
   /// Emergency passes used today, after a day change nobody has ticked yet.

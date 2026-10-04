@@ -98,7 +98,6 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> with Widg
               child: _StoppedCard(
                 status: st,
                 restarting: _restarting,
-                showAdbHint: c.developerOptions,
                 onRestart: _restart,
               ),
             ),
@@ -227,12 +226,10 @@ class _StoppedCard extends StatelessWidget {
   const _StoppedCard({
     required this.status,
     required this.restarting,
-    required this.showAdbHint,
     required this.onRestart,
   });
   final NativeStatus status;
   final bool restarting;
-  final bool showAdbHint;
   final VoidCallback onRestart;
 
   @override
@@ -258,10 +255,6 @@ class _StoppedCard extends StatelessWidget {
             'It\'s switched on in Settings, but Android isn\'t running it, so nothing is measured or locked. $why',
             style: t.bodyMedium?.copyWith(color: col.muted),
           ),
-          if (showAdbHint && exit?.description != null) ...[
-            const SizedBox(height: 8),
-            Text(exit!.description!, style: t.bodySmall),
-          ],
           const SizedBox(height: 16),
           if (status.canRestartService)
             FilledButton.icon(
