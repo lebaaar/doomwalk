@@ -17,15 +17,17 @@ double sanitizeDpi({required double ydpi, required double densityDpi}) {
 }
 
 String formatMetres(double m, {int decimals = 1}) {
-  if (double.parse(m.toStringAsFixed(decimals)).abs() >= 1000)
+  if (double.parse(m.toStringAsFixed(decimals)).abs() >= 1000) {
     return '${(m / 1000).toStringAsFixed(2)} km';
+  }
   return '${m.toStringAsFixed(decimals)} m';
 }
 
 // Rounds before picking the unit, so 999.6 is "1 km", not "1000 m"
 String formatRound(double m) {
-  if (m.round().abs() >= 1000)
+  if (m.round().abs() >= 1000) {
     return '${_trim((m / 1000).toStringAsFixed(1))} km';
+  }
   return '${m.round()} m';
 }
 

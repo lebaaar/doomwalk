@@ -516,8 +516,9 @@ class _PrivacyPage extends ConsumerWidget {
                 );
                 if (ok != true) return;
                 await c.eraseEverything();
-                if (context.mounted)
+                if (context.mounted) {
                   Navigator.of(context).popUntil((r) => r.isFirst);
+                }
               },
             ),
           ],

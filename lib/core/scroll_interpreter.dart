@@ -86,8 +86,9 @@ class ScrollInterpreter {
     if (e.scrollY >= 0) _lastScrollY[k] = e.scrollY;
     if (e.fromIndex >= 0) _lastFrom[k] = e.fromIndex;
 
-    if (e.dy > 0 || e.dy < -1)
+    if (e.dy > 0 || e.dy < -1) {
       return (e.dy.abs().toDouble(), ScrollSource.deltaY);
+    }
     if (e.dx != 0 && e.dx != -1 && e.dy == 0) return (0, ScrollSource.none);
 
     if (e.scrollY >= 0 && prevY != null) {
@@ -97,8 +98,9 @@ class ScrollInterpreter {
     }
 
     if (e.fromIndex >= 0) {
-      if (prevFrom == null || prevFrom == e.fromIndex)
+      if (prevFrom == null || prevFrom == e.fromIndex) {
         return (0, ScrollSource.itemIndex);
+      }
       final visible = (e.toIndex >= e.fromIndex)
           ? (e.toIndex - e.fromIndex + 1)
           : 1;
@@ -109,8 +111,9 @@ class ScrollInterpreter {
     if (e.scrollY >= 0) return (0, ScrollSource.scrollY);
 
     final last = _lastEstimate[k];
-    if (last != null && e.timeMs - last < estimateMinGapMs)
+    if (last != null && e.timeMs - last < estimateMinGapMs) {
       return (0, ScrollSource.estimate);
+    }
     _lastEstimate[k] = e.timeMs;
     return (screenHeightPx * estimateFraction, ScrollSource.estimate);
   }

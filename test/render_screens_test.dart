@@ -25,8 +25,9 @@ Future<void> _loadFonts() async {
     final l = FontLoader(family);
     for (final f in files) {
       final file = File(f);
-      if (file.existsSync())
+      if (file.existsSync()) {
         l.addFont(Future.value(ByteData.sublistView(file.readAsBytesSync())));
+      }
     }
     await l.load();
   }

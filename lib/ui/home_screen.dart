@@ -42,8 +42,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState s) {
-    if (s == AppLifecycleState.resumed)
+    if (s == AppLifecycleState.resumed) {
       ref.read(controllerProvider).refreshStatus();
+    }
   }
 
   @override
@@ -61,8 +62,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final c = ref.read(controllerProvider);
     if (_tab != 2 || c.developerAvailable) return;
     final now = DateTime.now();
-    if (now.difference(_lastTitleTap) > const Duration(seconds: 3))
+    if (now.difference(_lastTitleTap) > const Duration(seconds: 3)) {
       _titleTaps = 0;
+    }
     _lastTitleTap = now;
     if (++_titleTaps < _tapsToUnlock) return;
     _titleTaps = 0;

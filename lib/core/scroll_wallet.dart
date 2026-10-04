@@ -134,11 +134,13 @@ List<double>? _tiersFrom(Object? v) {
 // A goal saved in metres by older versions becomes steps at the saved stride, except the old 5 km default
 int _stepGoalFrom(Map<String, Object?> j, double strideM) {
   final steps = (j['stepGoal'] as num?)?.toInt();
-  if (steps != null)
+  if (steps != null) {
     return steps.clamp(WalletConfig.minStepGoal, WalletConfig.maxStepGoal);
+  }
   final metres = (j['walkGoalM'] as num?)?.toDouble();
-  if (metres == null || metres == 5000 || strideM <= 0)
+  if (metres == null || metres == 5000 || strideM <= 0) {
     return WalletConfig.defaultStepGoal;
+  }
   return (metres / strideM).round().clamp(
     WalletConfig.minStepGoal,
     WalletConfig.maxStepGoal,
@@ -315,8 +317,9 @@ class ScrollWallet {
     if (metres <= 0) return const ScrollCharge(rawM: 0, fromBankM: 0, owedM: 0);
     state.scrolledTodayM += metres;
     state.lifetimeScrolledM += metres;
-    if (overrideActive(at))
+    if (overrideActive(at)) {
       return ScrollCharge(rawM: metres, fromBankM: 0, owedM: 0);
+    }
     state.pricedScrolledTodayM += metres;
     final (bank, owed) = _spend(metres);
     return ScrollCharge(rawM: metres, fromBankM: bank, owedM: owed);
