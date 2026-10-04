@@ -22,8 +22,9 @@ you've walked. Run out, and those apps are **blocked** until you get up and take
 
 ## How it works
 
-1. **Walking fills a small bank.** It starts empty every morning and holds 50 m of
-   scrolling. Walking while it's full adds nothing, so walk when you want to scroll.
+1. **Walking fills a small bank.** Every day starts with **0 m** in it (it empties at
+   midnight), and it can hold **up to 50 m** of scrolling. Walking while it's full adds
+   nothing, so walk when you want to scroll.
 2. **Scrolling spends it.** Instagram, TikTok, YouTube, Reddit and the like count.
    Calls, maps, banking, messages and emergency apps are never touched.
 3. **Scrolling gets more expensive.** Every metre of scrolling costs 3 m of walking
