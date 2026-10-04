@@ -194,8 +194,8 @@ void main() {
     c.devAddScroll('com.instagram.android', 4); // empty bank: 4 m owed, full frost at 20
     expect(frostCalls.last, closeTo(4 / 20, 0.01));
     expect(frostArgs.last['title'], 'Take a walk first');
-    // (4 owed + the 50 m bank) at 3x = 162 m walked = 216 steps.
-    expect(frostArgs.last['body'], contains('216\u00A0steps (about 3 minutes) puts 50\u00A0m in it'));
+    // (4 owed + the 50 m bank) at 4x = 216 m walked = 288 steps.
+    expect(frostArgs.last['body'], contains('288\u00A0steps (about 3 minutes) puts 50\u00A0m in it'));
     c.devAddScroll('com.instagram.android', 20);
     expect(frostCalls.last, 1);
     expect(frostArgs.last['title'], 'Instagram is blocked');
@@ -229,14 +229,14 @@ void main() {
   test('an empty bank says so as it runs out, then once per app on opening', () async {
     final c = await DoomWalkController.start();
     await c.setDeveloperOptions(true);
-    c.devAddSteps(100); // 75 m walked at 3x: 25 m in the bank
+    c.devAddSteps(80); // 60 m walked at 4x: 15 m in the bank
     await sendNative('onWindow', {'pkg': 'com.reddit.frontpage', 'cls': 'X', 't': 0});
     expect(notices, isEmpty); // scrolling left
-    c.devAddScroll('com.reddit.frontpage', 25); // exactly used up, nothing owed
+    c.devAddScroll('com.reddit.frontpage', 15); // exactly used up, nothing owed
     await Future<void>.delayed(Duration.zero);
     expect(notices, hasLength(1)); // the moment it ran out
     expect(notices.last['title'], 'Your bank is empty');
-    expect(notices.last['body'], 'Take a walk first: 200 steps puts 50 m in it for Reddit.');
+    expect(notices.last['body'], 'Take a walk first: 267 steps puts 50 m in it for Reddit.');
     await sendNative('onWindow', {'pkg': 'com.android.chrome', 'cls': 'X', 't': 0}); // doesn't count
     expect(notices, hasLength(1));
     await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
@@ -262,7 +262,7 @@ void main() {
   test('developer scroll is priced like real scrolling', () async {
     final c = await DoomWalkController.start();
     await c.setDeveloperOptions(true);
-    c.devAddSteps(24); // 18 m walked at 3x: 6 m in the bank
+    c.devAddSteps(32); // 24 m walked at 4x: 6 m in the bank
     c.devAddScroll('com.instagram.android', 10); // 6 from the bank, 4 owed
     expect(c.bankM, 0);
     expect(c.overdraftM, closeTo(4, 1e-9));
@@ -284,36 +284,34 @@ void main() {
     final c = await DoomWalkController.start();
     await c.flush();
     // The day starts with an empty bank.
-    // Filling the 50 m bank at 3x: 150 m walked = 200 steps.
-    expect(widgetData['debt_text'], '200');
+    // Filling the 50 m bank at 4x: 200 m walked = 267 steps.
+    expect(widgetData['debt_text'], '267');
     expect(widgetData['caption_text'], 'steps for 50 m');
     expect(widgetData['progress'], 0); // today's walking goal
     expect(widgetData['landmark_text'], contains('Eiffel'));
     expect(notifications, isNotEmpty);
-    expect(notifications.last['title'], 'Bank empty. Walk 200 steps for 50 m');
+    expect(notifications.last['title'], 'Bank empty. Walk 267 steps for 50 m');
     c.dispose();
   });
 
   test('the capped bank and rising price, end to end', () async {
     final c = await DoomWalkController.start();
     await c.setDeveloperOptions(true);
-    c.devAddSteps(400); // 300 m walked at 3x = 100 m, but the bank holds 50
+    c.devAddSteps(400); // 300 m walked at 4x = 75 m, but the bank holds 50
     expect(c.bankM, 50);
     expect(c.bankFull, isTrue);
-    expect(c.state.overflowWalkTodayM, closeTo(150, 1e-9));
+    expect(c.state.overflowWalkTodayM, closeTo(100, 1e-9));
     await Future<void>.delayed(const Duration(milliseconds: 300)); // notification is debounced
     expect(notifications.last['title'], 'Bank full: 50 m to scroll');
     c.devAddScroll('com.instagram.android', 40);
     expect(c.bankM, closeTo(10, 1e-9));
-    expect(c.priceNow, 3); // 40 m scrolled today
+    expect(c.priceNow, 4); // 40 m scrolled today
     c.devAddScroll('com.instagram.android', 20); // 10 from the bank, 10 owed
-    expect(c.priceNow, 3); // 60 m scrolled today: still the first tier
-    c.devAddSteps(100); // 75 m walked at 3x = 25 m: 10 pays what's owed, 15 to the bank
+    expect(c.priceNow, 6); // 60 m scrolled today: the next tier
+    c.devAddSteps(100); // 75 m walked at 6x = 12.5 m: 10 pays what's owed, 2.5 to the bank
     expect(c.overdraftM, 0);
-    expect(c.bankM, closeTo(15, 1e-9));
-    c.devAddScroll('com.instagram.android', 25); // 15 from the bank, 10 owed
-    expect(c.priceNow, 5); // 85 m scrolled today: the next tier
-    c.devAddScroll('com.instagram.android', 10); // 20 owed
+    expect(c.bankM, closeTo(2.5, 1e-9));
+    c.devAddScroll('com.instagram.android', 22.5); // 2.5 from the bank, 20 owed
     expect(c.overdraftM, closeTo(20, 1e-9));
     expect(c.frostLevel, 1);
     await c.updateConfig(c.config.copyWith(bankCapM: WalletConfig.maxBankCapM));

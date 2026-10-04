@@ -482,3 +482,21 @@ are gone).
 * **Stories:** no "Tap to go on" hint; slide 2 counts up from 0 to 100 m; the privacy
   slide shows a shield and "No internet / No accounts / No analytics" instead of a 0.
 
+
+## Round 20: higher multipliers, "locked" wording, logo on the lock card
+* **Higher multipliers, original tier lengths.** Round 19's longer tiers are undone
+  (50, 50 and 25 m again); instead every tier costs more: Gentle 3, 4, 6, 9, 12;
+  Balanced 4, 6, 9, 12, 18; Strict 6, 9, 12, 18, 25. Filling the 50 m bank now takes
+  267 steps first thing on Balanced. Config model `6`: a model 4 or 5 config that was
+  on a preset (`Strictness.earlier`) moves to that preset's current rules; custom
+  rules are kept.
+* **"Locked", never "frozen"** in anything the user reads (notification, Today card,
+  stories, onboarding, settings, permissions). The Today card says "All apps that
+  count are locked" rather than naming one app, since the lock covers all of them.
+* **Pass button only while locked** (or while a pass runs); its line reads "You have
+  N pass(es) left for emergency dopamine hits".
+* **Lock card:** the depth-ticks logo before "DoomWalk"; the nudge follows the walking
+  ask after a single line break; "Go touch some grass!" replaces "Your legs…".
+* **Notification** second line is just "N m scrolled today".
+* **Settings** starts 8 dp under the app bar like Today and Activity
+  (`SectionTitle(first: true)`); the How it works sheet pads for the navigation bar.

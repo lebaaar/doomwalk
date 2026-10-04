@@ -42,12 +42,12 @@ class WalletConfig {
   /// the first applies at the start, the last is the most it can cost.
   final List<double> priceTiers;
 
-  static const defaultPriceTiers = <double>[3, 5, 7, 10, 15];
+  static const defaultPriceTiers = <double>[4, 6, 9, 12, 18];
 
   /// Every this much scrolled today, walking moves up one tier.
   final double priceStepM;
 
-  static const defaultPriceStepM = 75.0;
+  static const defaultPriceStepM = 50.0;
 
   /// The price at the start of the day.
   double get startPrice => priceTiers.first;

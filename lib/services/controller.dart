@@ -30,7 +30,7 @@ void _log(String Function() msg) {
 class DoomWalkController extends ChangeNotifier {
   /// Bumped whenever the economy's meaning or defaults change, so saved
   /// configs from before are reset to the new defaults.
-  static const modelVersion = '5';
+  static const modelVersion = '6';
 
   DoomWalkController._(this._store, this._native, this._engine, this._walk, this.catalog);
 
@@ -123,16 +123,17 @@ class DoomWalkController extends ChangeNotifier {
     final store = await Store.open();
     final kv = await store.readKv();
     final now = DateTime.now();
-    // Model 3 is the small bank with a starting price. A config saved by an
-    // older model keeps only its personal settings (stride, weight, goal,
-    // passes); its economy is replaced by today's defaults.
+    // Models 4 and 5 (price tiers) keep everything, except that a config on
+    // a preset moves to that preset's current tiers. Anything older keeps
+    // only its personal settings (stride, weight, goal, passes); its economy
+    // is replaced by today's defaults.
     final savedConfig = kv['config'] == null ? null : jsonDecode(kv['config']!) as Map<String, Object?>;
     final config = savedConfig == null
         ? const WalletConfig()
         : kv['model'] == modelVersion
             ? WalletConfig.fromJson(savedConfig)
-            : kv['model'] == '4'
-                ? Strictness.upgradeFromModel4(WalletConfig.fromJson(savedConfig))
+            : kv['model'] == '4' || kv['model'] == '5'
+                ? Strictness.upgrade(WalletConfig.fromJson(savedConfig))
                 : WalletConfig.fromLegacyJson(savedConfig);
     final state = kv['state'] != null
         ? WalletState.fromJson(jsonDecode(kv['state']!) as Map<String, Object?>)
@@ -950,13 +951,6 @@ class DoomWalkController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Restricted apps used today, most scrolled first. The frost covers every
-  /// restricted app; these are the examples the user will recognise.
-  List<String> get frostedAppsToday => [
-        for (final r in ranked(todayApps))
-          if (catalog.isRestricted(r.pkg)) r.pkg,
-      ];
-
   /// Emergency passes used today, after a day change nobody has ticked yet.
   int get passesUsedToday => config.overridesPerDay - overridesLeft;
 
@@ -1016,9 +1010,9 @@ String stepsText(double metres, double strideM) {
   final time = walkMinutes(walkM);
   final nudge = walkNudges[seed % walkNudges.length];
   return full
-      ? ('$name is blocked', 'Take a walk: $steps ($time) puts $unlocks of scrolling in the bank.\n\n$nudge')
+      ? ('$name is blocked', 'Take a walk: $steps ($time) puts $unlocks of scrolling in the bank.\n$nudge')
       : ('Take a walk first',
-          'Your bank is empty. $steps ($time) puts $unlocks in it. Scrolling more blocks $name.\n\n$nudge');
+          'Your bank is empty. $steps ($time) puts $unlocks in it. Scrolling more blocks $name.\n$nudge');
 }
 
 /// The banner when the bank is empty in an app that counts.

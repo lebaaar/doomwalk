@@ -29,6 +29,7 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
+import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -53,6 +54,7 @@ import android.view.accessibility.AccessibilityEvent
 import android.view.animation.DecelerateInterpolator
 import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import io.flutter.FlutterInjector
@@ -733,8 +735,19 @@ class FrostOverlay(private val service: AccessibilityService) {
     private fun ensureCard() {
         if (card != null) return
         val c = colors()
-        // Names who put the card there, since it sits over another app.
-        val eyebrow = text("DoomWalk", 13f, c.muted, bold = true)
+        // Names who put the card there, since it sits over another app:
+        // the depth-ticks mark, then the name.
+        val eyebrow = LinearLayout(service).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(ImageView(service).apply {
+                setImageResource(R.drawable.ic_stat_ticks)
+                imageTintList = ColorStateList.valueOf(c.accent)
+            }, LinearLayout.LayoutParams(dp(22), dp(22)))
+            addView(text("DoomWalk", 14f, c.text, bold = true), LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginStart = dp(8) })
+        }
         val title = text(titleText, 22f, c.text, bold = true)
         val body = text(bodyText, 15f, c.muted)
         val pass = button("Use pass", filled = false, c) { Shim.send("onOverrideRequested", null) }

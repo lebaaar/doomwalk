@@ -144,9 +144,9 @@ A bank of scrolling, reset at local midnight (`lib/core/scroll_wallet.dart`):
 
 | Preset | `priceTiers` | `priceStepM` |
 |---|---|---|
-| Gentle | 2, 3, 5, 7, 10 | 100 m |
-| Balanced (default) | 3, 5, 7, 10, 15 | 75 m |
-| Strict | 5, 7, 10, 15, 20 | 50 m |
+| Gentle | 3, 4, 6, 9, 12 | 50 m |
+| Balanced (default) | 4, 6, 9, 12, 18 | 50 m |
+| Strict | 6, 9, 12, 18, 25 | 25 m |
 
 The reasoning behind each choice is in [DECISIONS.md](DECISIONS.md), plugin findings in
 [SPIKE.md](SPIKE.md), and status in [PROGRESS.md](PROGRESS.md).

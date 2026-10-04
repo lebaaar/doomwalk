@@ -3,16 +3,16 @@ import 'package:doomwalk/core/presets.dart';
 import 'package:doomwalk/core/scroll_wallet.dart';
 
 void main() {
-  test('the default config is Balanced: 3x, 5x, 7x, 10x, 15x', () {
+  test('the default config is Balanced: 4x, 6x, 9x, 12x, 18x', () {
     expect(Strictness.of(const WalletConfig()), Strictness.balanced);
-    expect(Strictness.balanced.priceTiers, [3, 5, 7, 10, 15]);
+    expect(Strictness.balanced.priceTiers, [4, 6, 9, 12, 18]);
   });
 
   test('applying a preset sets the price rules and keeps the rest, bank size included', () {
     final c = Strictness.strict.applyTo(const WalletConfig(weightKg: 82, overridesPerDay: 1, bankCapM: 80));
     expect(Strictness.of(c), Strictness.strict);
-    expect(c.priceTiers, [5, 7, 10, 15, 20]);
-    expect(c.priceStepM, 50);
+    expect(c.priceTiers, [6, 9, 12, 18, 25]);
+    expect(c.priceStepM, 25);
     expect(c.bankCapM, 80);
     expect(c.weightKg, 82);
     expect(c.overridesPerDay, 1);
@@ -32,20 +32,27 @@ void main() {
     expect(Strictness.of(const WalletConfig(priceStepM: 60)), isNull);
   });
 
-  test('every preset lets you scroll longer per tier than before', () {
-    expect([for (final s in Strictness.values) s.priceStepM], [100, 75, 50]);
+  test('every preset costs more walking than before, on the original tier lengths', () {
+    expect([for (final s in Strictness.values) s.priceStepM], [50, 50, 25]);
     for (final s in Strictness.values) {
-      expect(s.priceStepM, greaterThan(s.oldPriceStepM));
+      final before = s.earlier.first.$1;
+      for (var i = 0; i < before.length; i++) {
+        expect(s.priceTiers[i], greaterThan(before[i]));
+      }
     }
   });
 
-  test('a model 4 config on a preset moves to its new tiers; custom rules stay', () {
-    final oldStrict = const WalletConfig(priceTiers: [5, 7, 10, 15, 20], priceStepM: 25, bankCapM: 80);
-    final up = Strictness.upgradeFromModel4(oldStrict);
+  test('a model 4 or 5 config on a preset moves to its current rules; custom rules stay', () {
+    const oldStrict = WalletConfig(priceTiers: [5, 7, 10, 15, 20], priceStepM: 25, bankCapM: 80);
+    final up = Strictness.upgrade(oldStrict);
     expect(Strictness.of(up), Strictness.strict);
     expect(up.bankCapM, 80);
-    expect(Strictness.of(Strictness.upgradeFromModel4(const WalletConfig(priceStepM: 50))), Strictness.balanced);
-    const custom = WalletConfig(priceStepM: 125);
-    expect(Strictness.upgradeFromModel4(custom).priceStepM, 125);
+    const model5Balanced = WalletConfig(priceTiers: [3, 5, 7, 10, 15], priceStepM: 75);
+    expect(Strictness.of(Strictness.upgrade(model5Balanced)), Strictness.balanced);
+    const model5Gentle = WalletConfig(priceTiers: [2, 3, 5, 7, 10], priceStepM: 100);
+    expect(Strictness.of(Strictness.upgrade(model5Gentle)), Strictness.gentle);
+    const custom = WalletConfig(priceTiers: [3, 5, 7, 10, 15], priceStepM: 125);
+    expect(Strictness.upgrade(custom).priceStepM, 125);
+    expect(Strictness.upgrade(custom).priceTiers, [3, 5, 7, 10, 15]);
   });
 }

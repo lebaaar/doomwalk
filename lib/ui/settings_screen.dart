@@ -30,7 +30,7 @@ class SettingsScreen extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
-        const SectionTitle('How strict'),
+        const SectionTitle('How strict', first: true),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
           child: Segmented<Strictness>(

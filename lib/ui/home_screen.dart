@@ -227,16 +227,6 @@ class _Notice extends StatelessWidget {
   }
 }
 
-/// "Instagram, TikTok and 2 more".
-String _appList(DoomWalkController c, List<String> pkgs) {
-  final names = pkgs.map(c.labelFor).toList();
-  if (names.isEmpty) return 'restricted apps';
-  if (names.length == 1) return names.first;
-  if (names.length == 2) return '${names[0]} and ${names[1]}';
-  if (names.length == 3) return '${names[0]}, ${names[1]} and ${names[2]}';
-  return '${names[0]}, ${names[1]} and ${names.length - 2} more';
-}
-
 /// Where today stands, from most to least urgent.
 enum _Verdict { walk, unfrozen, empty, full, low, ok }
 
@@ -402,11 +392,9 @@ class _BankBlock extends StatelessWidget {
     final price = c.priceNow;
     final unlockM = c.unlockChunkM;
     final unlockWalk = c.walkToUnlock(unlockM);
-    final apps = c.frostedAppsToday;
-    final which = apps.isEmpty ? 'your restricted apps' : _appList(c, apps);
     final line = switch (verdict) {
       _Verdict.walk => c.status.serviceConnected
-          ? '$which ${apps.length == 1 ? 'is' : 'are'} locked. ${stepsText(unlockWalk, stride)} '
+          ? 'All apps that count are locked. ${stepsText(unlockWalk, stride)} '
               '(${walkMinutes(unlockWalk)}) unlock ${formatRound(unlockM)}.'
           : '${stepsText(unlockWalk, stride)} unlock ${formatRound(unlockM)}. '
               'Locking is paused while scroll measuring is off.',
@@ -565,7 +553,7 @@ class _PassButton extends StatelessWidget {
       const SizedBox(height: 8),
       Text(
         left > 0
-            ? 'For emergencies. $left ${left == 1 ? 'pass' : 'passes'} left today.'
+            ? 'You have $left ${left == 1 ? 'pass' : 'passes'} left for emergency dopamine hits.'
             : 'No passes left today.',
         textAlign: TextAlign.start,
         style: t.bodySmall?.merge(numeric).copyWith(color: muted),
