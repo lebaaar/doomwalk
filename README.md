@@ -8,6 +8,8 @@
 
 <p align="center">For Android · everything stays on your phone · no accounts, no ads, no tracking</p>
 
+<p align="center">Built at <a href="https://builderbase.com/event/hack-chalmers">Hack Chalmers</a></p>
+
 ---
 
 DoomWalk makes you walk before you can doomscroll. It measures how far you scroll in
@@ -72,3 +74,7 @@ DoomWalk isn't in an app store yet. To build and install it yourself, see
 
 **Why "DoomWalk"?** Doomscrolling plus a walk: the walk is the ticket, the scroll is
 the ride. It's written **DoomWalk**, one word with a capital W.
+
+## Built at Hack Chalmers
+
+DoomWalk was built at the [Hack Chalmers](https://builderbase.com/event/hack-chalmers) hackathon.
