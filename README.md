@@ -4,7 +4,7 @@
 
 <h1><img src="docs/logo/final/png/icon-rounded-512.png" width="36" align="absmiddle" alt="">&nbsp;&nbsp;DoomWalk</h1>
 
-A step counter for Android that fights back and makes you walk before you can scroll.
+A step counter for Android that fights back.
 <br>
 <sub>Winning project at <a href="https://hackchalmers.se/">Hack Chalmers</a>. Built in under 24h.</sub>
 
@@ -13,7 +13,7 @@ your social and video apps, in actual metres, and only lets you scroll as far as
 you've walked. Run out, and all addicting apps are blocked until you get up and touch some grass.
 
 <p align="center">
-  <img src="docs/graphics/screenshot-1-today.png" width="160" alt="Want to scroll? Walk first. Today: steps, and the bank they filled">
+  <img src="docs/graphics/screenshot-1-today.png" width="160" alt="Want to scroll? Walk first. Today: steps, and the scrolling they earned">
   <img src="docs/graphics/screenshot-2-blocked.png" width="160" alt="Out of scroll? Go for a walk. A blocked app behind the blur">
   <img src="docs/graphics/screenshot-3-tiers.png" width="160" alt="The more you scroll, the more you walk. Walking cost tiers">
   <img src="docs/graphics/screenshot-4-activity.png" width="160" alt="See where your scroll goes. A week of walking and scrolling by app">
@@ -22,11 +22,11 @@ you've walked. Run out, and all addicting apps are blocked until you get up and 
 
 ## How it works
 
-1. **Walking fills your bank.** Every day starts with 0m in it, and it can hold up to 50m of scrolling. Walking while it's full adds nothing, so walk when you want to scroll.
-2. **Scrolling empties your bank.** Apps like Instagram, TikTok, YouTube, Reddit empty your scoll usage, but apps like Calls, maps, banking, messages and emergency apps do not.
+1. **Walking earns you scrolling.** Every day starts with 0m, and you can save up to 50m of scrolling at a time. Walking while your balance is full does nothing, so walk when you want to scroll.
+2. **Scrolling drains you balance.** Apps like Instagram, TikTok, YouTube and Reddit use it up, but apps like calls, maps, banking, messages and emergency apps do not.
 3. **Scrolling gets more expensive.** Every metre of scrolling costs you 5m of walking to start with, and it goes up a tier for every 50m you scroll in a day:
 
-   | Scrolled today | Walking per metre | Filling the 50m bank |
+   | Scrolled today | Walking per metre | Earning the full 50m |
    |---|---|---|
    | 0–49m | 5× | 334 steps |
    | 50–99m | 12× | 800 steps |
@@ -34,24 +34,22 @@ you've walked. Run out, and all addicting apps are blocked until you get up and 
    | 150–199m | 32× | 2,134 steps |
    | 200m and more | 48× (max) | 3,200 steps |
 
-4. **Bank empty? Apps are blocked, time to touch grass.** It fades behind a blur with a card that says how many steps get you going again. Taps still work, it's just no fun.
+4. **Out of scrolling? Apps are blocked, time to touch grass.** It fades behind a blur with a card that says how many steps get you going again. Taps still work, it's just no fun.
 5. **Need a dopaime hit badly?** Three emergency passes a day unlock everything for five minutes.
 
-Prefer it gentler or stricter? You can pick between *Gentle*, *Balanced* or *Strict* modes in Settings and set the bank size from anywhere between 20 to 100m.
+Prefer it gentler or stricter? You can pick between *Gentle*, *Balanced* or *Strict* modes in Settings and set how much scrolling you can save up, anywhere from 20 to 100m.
 
 ## Features
 
-* **Today at a glance:** your steps, how full the bank is, and what walking costs now.
-* **Activity:** steps against your daily goal (10,000 by default), a week of walking, your streak, and which apps you scroll most.
+* **Today at a glance:** your steps, how much scrolling you have left, and what walking costs now.
+* **Activity:** steps against your daily goal (10,000 by default), a week of walking, your streak, and which apps eat the most of your time.
 * **Landmarks:** your scrolling measured in giraffes, Eiffel Towers and Everests, with a card to share (`#DoomWalk`).
-* **A notification** with what's left in the bank and an emergency-pass button, and
-  **a home-screen widget** with the bank or the steps you need.
+* **A  notification** with the scrolling you have left and an emergency-pass button and **a home-screen widget** with your scrolling left or the steps you need.
 
 ## Privacy
 
-DoomWalk has **no internet permission**: nothing ever leaves your phone.
-It needs Android's accessibility access to notice scrolling, but it can only see **how far** you scroll and **which app** is open, never what's on the screen.
-Your data is not included in cloud backups.
+DoomWalk has no internet permission and collects 0 personal data. Nothing ever leaves your phone.
+It needs Android's accessibility access to notice scrolling, but it can only see how far you scroll and which app is open, not the actual content of the screen.
 
 ## Getting it
 

@@ -92,8 +92,8 @@ Release build fails without `android/key.properties`, so that debug-signed APK c
 2. Raise `version:` in `pubspec.yaml` (example: `1.0.1+2`).
 3. Build:
    ```bash
-   flutter build appbundle --release # build/app/outputs/bundle/release/app-release.aab, for Play
-   flutter build apk --release       # build/app/outputs/flutter-apk/app-release.apk, for GitHub / sideloading
+   flutter build appbundle --release    # build/app/outputs/bundle/release/app-release.aab, for Play
+   flutter build apk --release          # build/app/outputs/flutter-apk/app-release.apk, for GitHub / sideloading
    ```
 4. Check the APK has no `INTERNET` permission (`tool/device_test.sh` does this too):
    ```bash
