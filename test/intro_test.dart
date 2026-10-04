@@ -4,6 +4,7 @@ import 'package:doomwalk/ui/intro_stories.dart';
 import 'package:doomwalk/ui/price_table.dart';
 import 'package:doomwalk/ui/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -43,6 +44,16 @@ void main() {
       await tester.pump(const Duration(seconds: 8));
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('Your scrolling, in metres'), findsOneWidget);
+    });
+
+    testWidgets('the system bars are see-through with light icons', (tester) async {
+      await show(tester, () {});
+      final region = tester.widget<AnnotatedRegion<SystemUiOverlayStyle>>(
+          find.byType(AnnotatedRegion<SystemUiOverlayStyle>).last);
+      expect(region.value.systemNavigationBarColor, Colors.transparent);
+      expect(region.value.statusBarColor, Colors.transparent);
+      expect(region.value.systemNavigationBarIconBrightness, Brightness.light);
+      expect(region.value.systemNavigationBarContrastEnforced, isFalse);
     });
 
     testWidgets('skip finishes, and the last slide waits for its button', (tester) async {

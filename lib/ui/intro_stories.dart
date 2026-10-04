@@ -70,8 +70,11 @@ class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderSt
     final slides = _slides;
     final slide = slides[_index];
     final last = _index == slides.length - 1;
+    // Light icons on see-through status and navigation bars, so the slide
+    // runs edge to edge. (SystemUiOverlayStyle.light paints the navigation
+    // bar black.)
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
+      value: overlayStyle(Brightness.dark),
       child: Scaffold(
         backgroundColor: col.heroFrom,
         body: DecoratedBox(
