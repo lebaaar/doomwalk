@@ -147,7 +147,7 @@ class _TodayTab extends StatelessWidget {
           if (c.walkError != null)
             const _Notice(
               title: 'Step counting is off',
-              body: 'Walking won\'t pay your debt down until physical activity access is allowed.',
+              body: 'Walking won\'t earn scrolling until physical activity access is allowed.',
             ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
@@ -224,7 +224,7 @@ String _appList(DoomWalkController c, List<String> pkgs) {
 }
 
 /// Where today stands, from most to least urgent.
-enum _Verdict { walk, unfrozen, limit, low, free }
+enum _Verdict { walk, unfrozen, limit, earned, low, free }
 
 /// The one card that answers "what now?": a verdict, the number behind it,
 /// and the two things it comes from, walked and scrolled today.
@@ -260,48 +260,65 @@ class _TodayCardState extends State<_TodayCard> {
     final c = widget.c;
     final t = Theme.of(context).textTheme;
     final col = context.colors;
-    final debt = c.debtM;
-    final owed = debt >= 0.05;
+    final owed = c.overdraftM >= 0.05;
     final pass = c.overrideActive;
     final allowance = c.config.effective.allowanceM;
     final left = c.allowanceLeftM;
+    final earned = c.earnedScrollLeftM;
+    final unlockM = DoomWalkController.unlockChunkM;
+    final unlockWalk = c.walkToUnlock(unlockM);
+    final stride = c.config.strideM;
     final verdict = pass
         ? _Verdict.unfrozen
         : owed
             ? _Verdict.walk
-            : left < 0.5
-                ? _Verdict.limit
-                : (allowance > 0 && left / allowance <= 0.25 ? _Verdict.low : _Verdict.free);
+            : left >= 0.5
+                ? (allowance > 0 && left / allowance <= 0.25 && earned < 0.5 ? _Verdict.low : _Verdict.free)
+                : earned >= 0.5
+                    ? _Verdict.earned
+                    : _Verdict.limit;
 
-    // Owing turns the card deep navy in both modes; otherwise it is a plain
+    // Frozen turns the card deep navy in both modes; otherwise it is a plain
     // card.
     final fg = owed ? col.onHero : col.text;
     final muted = owed ? col.onHeroMuted : col.muted;
-    // Free scrolling used up (nothing owed yet): a red "done for the day"
-    // instead of a meaningless 0 m.
+    // Nothing left to scroll (nothing owed yet): red, and the walk to take.
     final done = verdict == _Verdict.limit;
     final strong = owed ? col.onHero : (done ? col.danger : col.accent);
-    final penalty = formatTimes(c.config.overridePenalty);
     final apps = c.frostedAppsToday;
     final which = apps.isEmpty ? 'your restricted apps' : 'apps like ${_appList(c, apps)}';
+    final nextPrice = formatTimes(c.priceNow);
 
     final (IconData icon, String status) = switch (verdict) {
       _Verdict.walk => (Ph.walk, 'Time for a walk'),
       _Verdict.unfrozen => (Ph.lifebuoy, 'Unlocked for ${_countdown(c)}'),
-      _Verdict.limit => (Ph.lockSimple, 'Free scrolling used up'),
-      _Verdict.low => (Ph.warningCircle, 'Almost at your limit'),
+      _Verdict.limit => (Ph.lockSimple, 'Take a walk first'),
+      _Verdict.earned => (Ph.walk, 'Scrolling on what you walked'),
+      _Verdict.low => (Ph.warningCircle, 'Almost out of free scrolling'),
       _Verdict.free => (Ph.checkCircle, 'You\'re good to scroll'),
     };
-    final value = owed ? debt : left;
+    // Walking asks are in steps; scrolling left is in metres.
+    final inSteps = verdict == _Verdict.walk || verdict == _Verdict.limit;
+    final value = inSteps
+        ? (stride <= 0 ? 0.0 : (unlockWalk / stride).ceilToDouble())
+        : verdict == _Verdict.earned
+            ? earned
+            : verdict == _Verdict.unfrozen
+                ? left + earned
+                : left;
+    final unlocks = formatRound(unlockM);
     final sentence = switch (verdict) {
       _Verdict.walk => c.status.serviceConnected
-          ? 'to walk off (${walkMinutes(debt)}). Until then, $which stay locked.'
-          : 'to walk off. Locking is paused while scroll measuring is off.',
-      _Verdict.unfrozen => owed
-          ? 'still to walk off. Scrolling costs $penalty until the pass ends.'
-          : 'of free scrolling left. Past that, scrolling costs $penalty until the pass ends.',
-      _Verdict.limit => 'You\'ve used all your free scrolling. Anything more you scroll has to be walked off.',
-      _Verdict.low || _Verdict.free => 'of free scrolling left today, out of ${formatRound(allowance)}.',
+          ? 'to unlock $unlocks of scrolling (${walkMinutes(unlockWalk)}). Until then, $which stay frozen.'
+          : 'to unlock $unlocks of scrolling. Freezing is paused while scroll measuring is off.',
+      _Verdict.unfrozen => 'left to scroll. Scrolling during the pass is free and doesn\'t use any of it.',
+      _Verdict.limit => 'unlock $unlocks of scrolling (${walkMinutes(unlockWalk)}). Free scrolling is used up, '
+          'so from here you scroll as far as you walk.',
+      _Verdict.earned => 'of earned scrolling left. It costs $nextPrice now: the more you scroll today, '
+          'the more each metre takes to walk.',
+      _Verdict.low || _Verdict.free => earned >= 0.5
+          ? 'of free scrolling left, plus ${formatRound(earned)} you\'ve already walked for.'
+          : 'of free scrolling left today, out of ${formatRound(allowance)}. Walk to earn more.',
     };
 
     // A flat fill lit from the top corner by a soft glow: strong navy while
@@ -347,34 +364,33 @@ class _TodayCardState extends State<_TodayCard> {
                 ),
                 const SizedBox(height: 22),
                 Semantics(
-                  label: done ? '$status. Done for the day. $sentence' : '$status. ${formatMetres(value)} $sentence',
+                  label: inSteps
+                      ? '$status. ${value.round()} steps $sentence'
+                      : '$status. ${formatMetres(value)} $sentence',
                   excludeSemantics: true,
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    if (done)
-                      Text(
-                        'Done for the day',
-                        style: t.displayMedium?.copyWith(color: col.danger, fontSize: 44, letterSpacing: -1.8),
-                      )
-                    else
-                      TweenAnimationBuilder<double>(
+                    TweenAnimationBuilder<double>(
                         tween: Tween(end: value),
                         duration: const Duration(milliseconds: 700),
                         curve: Curves.easeOutCubic,
                         // Unit follows the animated value, so crossing 1 km
                         // never shows metres formatted as kilometres.
                         builder: (_, v, _) {
-                          final km = v >= 999.95;
+                          final km = !inSteps && v >= 999.95;
                           return Row(
                             crossAxisAlignment: CrossAxisAlignment.baseline,
                             textBaseline: TextBaseline.alphabetic,
                             children: [
                               Text(
-                                km ? (v / 1000).toStringAsFixed(2) : v.toStringAsFixed(owed ? 1 : 0),
-                                style: t.displayLarge
-                                    ?.copyWith(color: fg, fontSize: 72, letterSpacing: -3.6, fontFeatures: tabular),
+                                km ? (v / 1000).toStringAsFixed(2) : v.toStringAsFixed(0),
+                                style: t.displayLarge?.copyWith(
+                                    color: done ? col.danger : fg,
+                                    fontSize: 72,
+                                    letterSpacing: -3.6,
+                                    fontFeatures: tabular),
                               ),
                               const SizedBox(width: 6),
-                              Text(km ? 'km' : 'm',
+                              Text(inSteps ? 'steps' : (km ? 'km' : 'm'),
                                   style: t.headlineSmall?.copyWith(color: muted, fontWeight: FontWeight.w500)),
                             ],
                           );
@@ -384,7 +400,7 @@ class _TodayCardState extends State<_TodayCard> {
                     Text(sentence, style: t.bodyLarge?.copyWith(color: muted, height: 1.45)),
                   ]),
                 ),
-                if (!owed && !done) ...[
+                if (verdict == _Verdict.free || verdict == _Verdict.low) ...[
                   const SizedBox(height: 18),
                   // Drains like a battery as the free scrolling is used.
                   ExcludeSemantics(
@@ -406,7 +422,7 @@ class _TodayCardState extends State<_TodayCard> {
                 ],
                 const SizedBox(height: 22),
                 _Tally(c: c, fg: fg, muted: muted, onOpenActivity: widget.onOpenActivity),
-                if (owed || pass) ...[
+                if (owed || done || pass) ...[
                   const SizedBox(height: 18),
                   _PassButton(c: c, fg: fg, muted: muted),
                 ],
@@ -420,7 +436,7 @@ class _TodayCardState extends State<_TodayCard> {
                   iconAlignment: IconAlignment.end,
                   icon: Icon(Ph.caretRight, size: 14, color: muted),
                   onPressed: () => showLedgerSheet(context, c),
-                  label: Text(owed ? 'How ${formatMetres(debt)} adds up' : 'How it works'),
+                  label: const Text('How it works'),
                 ),
               ]),
             ),
@@ -467,6 +483,7 @@ class _Tally extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final s = c.state;
     final over = s.scrolledTodayM - s.allowanceUsedM;
+    final banked = c.bankM;
     final line = fg.withValues(alpha: 0.10);
     Widget stat(String label, String value, String sub, {VoidCallback? onTap, bool first = false}) => Expanded(
           child: MergeSemantics(
@@ -494,7 +511,9 @@ class _Tally extends StatelessWidget {
             formatMetres(s.walkedTodayM),
             c.walkError != null
                 ? 'Steps aren\'t counted'
-                : '${(c.goalProgress * 100).round()}% of ${formatRound(c.config.walkGoalM)}',
+                : banked >= 0.5
+                    ? '${formatRound(banked)} in the bank'
+                    : '${(c.goalProgress * 100).round()}% of ${formatRound(c.config.walkGoalM)}',
             onTap: onOpenActivity,
             first: true,
           ),
@@ -503,7 +522,7 @@ class _Tally extends StatelessWidget {
             'Scrolled today',
             formatMetres(s.scrolledTodayM),
             over >= 0.05
-                ? '${formatMetres(over)} over the limit'
+                ? '${formatMetres(over)} on walking'
                 : c.allowanceLeftM < 0.5
                     ? 'All of your free scrolling'
                     : 'All within free',
@@ -534,7 +553,6 @@ class _PassButton extends StatelessWidget {
       );
     }
     final left = c.overridesLeft;
-    final penalty = formatTimes(c.config.overridePenalty);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       // Tonal: a way out, not the main thing to do (that's walking).
       FilledButton.tonalIcon(
@@ -552,7 +570,7 @@ class _PassButton extends StatelessWidget {
       const SizedBox(height: 8),
       Text(
         left > 0
-            ? 'Scrolling costs $penalty while unlocked. $left ${left == 1 ? 'pass' : 'passes'} left today.'
+            ? 'For emergencies. $left ${left == 1 ? 'pass' : 'passes'} left today.'
             : 'No passes left today.',
         textAlign: TextAlign.center,
         style: t.bodySmall?.merge(numeric).copyWith(color: muted),
@@ -585,8 +603,8 @@ class _TopAppsCard extends StatelessWidget {
 
 // ---------------------------------------------------------------- Ledger
 
-/// Bottom sheet that shows how the debt adds up, as a sum that ends at the
-/// number on the Today card.
+/// Bottom sheet that explains the rules with today's numbers: free
+/// scrolling, the walk bank and the price that rises as you scroll.
 Future<void> showLedgerSheet(BuildContext context, DoomWalkController c) => showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -612,7 +630,7 @@ class LedgerView extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final col = context.colors;
     final s = c.state;
-    final cfg = c.config;
+    final cfg = c.config.effective;
     Widget line(String a, String b, {bool strong = false, Color? color}) => Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(children: [
@@ -620,55 +638,47 @@ class LedgerView extends StatelessWidget {
             Text(b, style: (strong ? t.titleSmall : t.bodyLarge)?.merge(numeric).copyWith(color: color ?? col.text)),
           ]),
         );
-    final scrollChargedM = s.chargedTodayM - s.tamperChargedTodayM;
-    final overM = s.scrolledTodayM - s.allowanceUsedM;
-    final carriedM = s.debtM - s.chargedTodayM + s.paidTodayM;
+    Widget para(String text) => Text(text, style: t.bodyMedium?.copyWith(color: col.muted));
+    final step = formatRound(cfg.priceStepM);
     return ListView(
       controller: scroll,
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
       children: [
-        Text('How ${formatMetres(s.debtM)} adds up', style: t.titleLarge),
+        Text('How it works', style: t.titleLarge),
+        const SizedBox(height: 8),
+        para('The first ${formatRound(cfg.allowanceM)} you scroll each day are free. After that, you scroll as '
+            'far as you walk: the first $step cost 1 m of walking per metre, the next $step cost 2 m, '
+            'and so on up to ${formatTimes(cfg.maxPrice)}. Walking earlier in the day counts too. '
+            'Everything starts over at midnight.'),
         const SizedBox(height: 16),
-        line('Scrolled today', formatMetres(s.scrolledTodayM)),
-        line('Free scrolling', '−${formatMetres(s.allowanceUsedM)}'),
-        line('Over the limit', formatMetres(overM)),
-        Text(
-          'Each metre over the limit is multiplied by the app\'s rate (shown next to each app), '
-          'then by ${formatTimes(cfg.effective.ratio)} to turn it into walking.',
-          style: t.bodyMedium?.copyWith(color: col.muted),
-        ),
-        const SizedBox(height: 12),
-        const Divider(),
-        const SizedBox(height: 6),
-        if (carriedM >= 0.05) line('Carried over from before', '+${formatMetres(carriedM)}'),
-        line('Owed for scrolling', '+${formatMetres(scrollChargedM)}', color: col.accent),
-        if (s.tamperChargedTodayM > 0)
-          line('Owed for tracking gaps', '+${formatMetres(s.tamperChargedTodayM)}', color: col.accent),
-        line('Walked off', '−${formatMetres(s.paidTodayM)}'),
-        const Divider(),
-        line('Left to walk', formatMetres(s.debtM), strong: true),
-        const SizedBox(height: 20),
-        Text('Overnight', style: t.titleSmall),
+        Text('Today', style: t.titleSmall),
         const SizedBox(height: 4),
-        Text(
-          cfg.interestRate == 0
-              ? 'Debt left at midnight carries over as it is.'
-              : 'Debt left at midnight grows by ${(cfg.interestRate * 100).toStringAsFixed(1)}%.'
-                  '${s.interestTotalM < 0.05 ? '' : ' Last night added ${formatMetres(s.lastInterestM)}, '
-                      '${formatMetres(s.interestTotalM)} in total.'}',
-          style: t.bodyMedium?.copyWith(color: col.muted),
-        ),
+        line('Scrolled', formatMetres(s.scrolledTodayM)),
+        line('Free scrolling used', formatMetres(s.allowanceUsedM)),
+        line('Scrolled on walking', formatMetres(s.earnedScrolledTodayM)),
+        const Divider(),
+        line('Walked', formatMetres(s.walkedTodayM)),
+        line('Spent on scrolling', '−${formatMetres(s.spentTodayM - s.tamperChargedTodayM)}', color: col.accent),
+        if (s.tamperChargedTodayM > 0)
+          line('Charged for tracking gaps', '−${formatMetres(s.tamperChargedTodayM)}', color: col.accent),
+        if (c.overdraftM >= 0.05) line('Still to walk', formatMetres(c.overdraftM), color: col.accent),
+        const Divider(),
+        line('In the bank', formatMetres(c.bankM), strong: true),
+        line('Lets you scroll', formatMetres(c.earnedScrollLeftM), strong: true),
+        const SizedBox(height: 20),
+        Text('The price right now', style: t.titleSmall),
+        const SizedBox(height: 4),
+        para('${formatTimes(c.priceNow)}: each metre you scroll past the free part takes '
+            '${formatRound(c.priceNow)} of walking. ${stepsText(c.walkToUnlock(DoomWalkController.unlockChunkM), c.config.strideM)} '
+            'more would unlock the next ${formatRound(DoomWalkController.unlockChunkM)}.'),
         if (c.gaps.isNotEmpty) ...[
           const SizedBox(height: 20),
           Text('Tracking gaps', style: t.titleSmall),
           const SizedBox(height: 4),
-          Text(
-            'Time without scroll measuring is charged at your average of '
-            '${formatMetres(c.averageScrollPerHour)} per hour.',
-            style: t.bodyMedium?.copyWith(color: col.muted),
-          ),
+          para('Time without scroll measuring is charged as walking, at your average of '
+              '${formatMetres(c.averageScrollPerHour)} scrolled per hour.'),
           for (final g in c.gaps.take(3))
-            line('${_fmt(g.start)} to ${_fmt(g.end)}, ${g.reason}', '+${formatMetres(g.chargedM)}', color: col.accent),
+            line('${_fmt(g.start)} to ${_fmt(g.end)}, ${g.reason}', '−${formatMetres(g.chargedM)}', color: col.accent),
         ],
       ],
     );
@@ -834,7 +844,7 @@ class _AppRow extends StatelessWidget {
   final AppTotals row;
   final double max;
 
-  /// Today card: no bar, the rate instead.
+  /// Today card: no bar, the category instead.
   final bool compact;
 
   @override
@@ -842,7 +852,6 @@ class _AppRow extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final col = context.colors;
     final icon = c.appMeta[row.pkg]?.icon;
-    final rate = c.catalog.rateFor(row.pkg);
     final label = c.labelFor(row.pkg);
     final free = row.chargedM < 0.05;
     return MergeSemantics(
@@ -870,7 +879,7 @@ class _AppRow extends StatelessWidget {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(label, style: t.bodyLarge?.copyWith(fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
                   if (compact)
-                    Text('${rateLabel(rate)} rate', style: t.bodySmall)
+                    Text(c.catalog.categoryOf(row.pkg).label, style: t.bodySmall)
                   else ...[
                     const SizedBox(height: 6),
                     ExcludeSemantics(
@@ -890,7 +899,7 @@ class _AppRow extends StatelessWidget {
               Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                 Text(formatMetres(row.rawM), style: t.bodyLarge?.merge(numeric).copyWith(fontWeight: FontWeight.w500)),
                 Text(
-                  free ? 'within free' : '+${formatMetres(row.chargedM)} owed',
+                  free ? 'within free' : '${formatMetres(row.chargedM)} walked',
                   style: t.bodySmall?.merge(numeric).copyWith(color: free ? col.muted : col.accent),
                 ),
               ]),

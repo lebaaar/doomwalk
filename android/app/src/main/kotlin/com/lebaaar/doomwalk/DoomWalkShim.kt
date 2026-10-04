@@ -82,7 +82,6 @@ object Shim {
     var notifText = "Tracking scroll distance"
     var overridesLeft = 0
     var overrideActive = false
-    var penaltyText = "3×"
     var overrideUntilMs: Long? = null
 
     /** Returns the app's engine, creating and starting main() if needed. Main thread only. */
@@ -167,7 +166,6 @@ object Shim {
                     overridesLeft = call.argument<Int>("overridesLeft") ?: 0
                     overrideActive = call.argument<Boolean>("overrideActive") ?: false
                     overrideUntilMs = call.argument<Number>("overrideUntilMs")?.toLong()
-                    penaltyText = call.argument<String>("penalty") ?: penaltyText
                     DebtForegroundService.refresh(app)
                     result.success(null)
                 }
@@ -464,7 +462,7 @@ class FrostOverlay(private val service: AccessibilityService) {
     private var cardBody: TextView? = null
     private var passButton: TextView? = null
     private var overridesLeft = 0
-    private var titleText = "Daily limit hit"
+    private var titleText = "Take a walk first"
     private var bodyText = ""
     private val cardParams = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -888,7 +886,7 @@ class DebtForegroundService : Service() {
                     PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
                 )
                 b.addAction(Notification.Action.Builder(
-                    null as android.graphics.drawable.Icon?, "Emergency pass (${Shim.overridesLeft} left, ${Shim.penaltyText} cost)", pi
+                    null as android.graphics.drawable.Icon?, "Emergency pass (${Shim.overridesLeft} left)", pi
                 ).build())
             }
             return b.build()
@@ -901,7 +899,7 @@ class DebtForegroundService : Service() {
         super.onCreate()
         getSystemService(NotificationManager::class.java).createNotificationChannel(
             NotificationChannel(CHANNEL_ID, "Debt status", NotificationManager.IMPORTANCE_LOW).apply {
-                description = "Current scroll debt and emergency pass"
+                description = "Scrolling left, steps to walk and the emergency pass"
                 setShowBadge(false)
             }
         )

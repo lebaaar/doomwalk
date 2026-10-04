@@ -34,7 +34,7 @@
             android:layout_marginStart="8dp"
             android:layout_marginBottom="6dp"
             android:maxLines="1"
-            android:text="to walk"
+            android:text="left to scroll"
             android:textColor="@color/widget_caption"
             android:textSize="13sp" />
     </LinearLayout>

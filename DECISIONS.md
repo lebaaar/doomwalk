@@ -319,3 +319,39 @@ Audited against the taste-skill anti-slop rules (Leonxlnx/taste-skill).
   test stubbed, since Google's Maven is blocked in this environment).
   `docs/screenshots/overlay_*.png` are the native views drawn by
   Robolectric's native graphics.
+
+## Round 11: walk first, then scroll (the scroll wallet)
+The debt model had too many dials (app rate × ratio × velocity weight × pass
+penalty, plus overnight interest) for anyone to predict what a scroll cost, so
+it couldn't steer behaviour. It is replaced by a wallet: `lib/core/scroll_wallet.dart`
+(`ScrollWallet`, `WalletConfig`, `WalletState`; `DebtEngine` and `FlickWeigher`
+are gone).
+* **The rule:** a free allowance, then you scroll as far as you walk. Walking
+  fills a bank at any time of day, so "take a walk first" actually works.
+* **Price in steps, not a curve:** `price = min(maxPrice, 1 + floor(earned / priceStepM))`,
+  where `earned` is today's scrolling past the allowance. Whole steps can be
+  shown as a plain "2×" and checked by hand; a smooth curve can't. The cap
+  (5:1 on Balanced) keeps a long day from feeling hopeless.
+* **Overdraft instead of an instant lock:** with an empty bank, scrolling is
+  owed as walking and the frost grows with it, full at `frostAtM` (20 m). That
+  is a few flicks, so it feels almost immediate, but it never slams down
+  mid-post. The overdraft is charged at the current price, like the bank.
+  Walking clears it first, then banks.
+* **Midnight resets everything:** allowance, price, bank and overdraft. A banked
+  hike can't buy a week of scrolling, and nothing owed carries into tomorrow
+  (the guilt spiral is what makes people uninstall). No interest.
+* **Passes are free scrolling:** 3 a day, 5 minutes. The 3× penalty is gone; the
+  daily limit already makes them scarce. Scrolling during a pass uses no
+  allowance and doesn't raise the price.
+* **Apps count or don't:** per-category and per-app rates are now a yes/no
+  (`AppCatalog.isRestricted`). Saved per-app rates migrate: 0 → never counts,
+  anything else → counts (`app_overrides` replaces `rates`).
+* **Tamper gaps** are charged 1:1 as walking (no ratio), from the bank first.
+* **Walking asks are in steps** ("133 steps unlock 100 m"), scrolling left is in
+  metres. Steps are what you can act on; metres are the fun number.
+* **Migration:** the kv key `model` = `2` marks a wallet config. An older saved
+  config keeps only its personal settings (stride, weight, goal, passes, demo);
+  an older saved state keeps today's and lifetime totals, never its debt.
+* **Widget:** the big figure is scrolling left (free + earned), or the steps to
+  unlock 100 m when frozen. Its bar is now today's walking goal.
+* **Demo mode:** 2 m free, price +1 every 5 m up to 3:1, full frost at 5 m owed.

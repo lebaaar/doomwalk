@@ -49,7 +49,6 @@ class TamperPolicy {
     return hours * avgMetresPerHour;
   }
 
-  /// Debt cost for [gap], at the default 1x app rate times the debt ratio.
-  double costFor(TamperGap gap, double avgMetresPerHour, double ratio) =>
-      rawMetresFor(gap, avgMetresPerHour) * ratio;
+  /// Walking charged for [gap]: one metre per metre of estimated scrolling.
+  double costFor(TamperGap gap, double avgMetresPerHour) => rawMetresFor(gap, avgMetresPerHour);
 }

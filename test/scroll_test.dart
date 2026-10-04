@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:doomwalk/core/app_catalog.dart';
-import 'package:doomwalk/core/flick_weigher.dart';
 import 'package:doomwalk/core/scroll_interpreter.dart';
 
 void main() {
@@ -66,69 +65,37 @@ void main() {
     });
   });
 
-  group('FlickWeigher', () {
-    test('slow reading scrolls are discounted', () {
-      final w = FlickWeigher();
-      var weight = 0.0;
-      for (var t = 0; t < 10000; t += 1000) {
-        weight = w.weigh('a', 0.02, t);
-      }
-      expect(weight, 0.5);
-    });
-
-    test('rapid repeated flicks cost more than a single flick', () {
-      final w = FlickWeigher();
-      final first = w.weigh('a', 0.8, 0);
-      expect(first, 1.0);
-      var last = first;
-      // Separate bursts 1.5 s apart, each a fast flick.
-      for (var k = 1; k <= 6; k++) {
-        last = w.weigh('a', 0.8, k * 1500);
-      }
-      expect(last, greaterThan(1.5));
-      expect(last, lessThanOrEqualTo(1.6));
-    });
-
-    test('state resets when the app changes', () {
-      final w = FlickWeigher();
-      for (var k = 0; k < 6; k++) {
-        w.weigh('a', 0.8, k * 1500);
-      }
-      expect(w.weigh('b', 0.8, 9000), 1.0);
-    });
-  });
-
   group('AppCatalog', () {
     test('only social and video are restricted by default', () {
       final c = AppCatalog();
-      expect(c.rateFor('com.instagram.android'), 2);
-      expect(c.rateFor('com.zhiliaoapp.musically'), 2);
-      expect(c.rateFor('com.android.chrome'), 0); // browser: not restricted
-      expect(c.rateFor('com.google.android.apps.maps'), 0);
-      expect(c.rateFor('si.nlb.klik'), 0); // a banking app: "other"
+      expect(c.isRestricted('com.instagram.android'), isTrue);
+      expect(c.isRestricted('com.zhiliaoapp.musically'), isTrue);
+      expect(c.isRestricted('com.android.chrome'), isFalse); // browser: not restricted
+      expect(c.isRestricted('com.google.android.apps.maps'), isFalse);
+      expect(c.isRestricted('si.nlb.klik'), isFalse); // a banking app: "other"
       c.categories['com.example.social'] = categoryFromAndroid(4);
-      expect(c.rateFor('com.example.social'), 2);
+      expect(c.isRestricted('com.example.social'), isTrue);
       c.categories['com.example.game'] = categoryFromAndroid(0);
-      expect(c.rateFor('com.example.game'), 0);
+      expect(c.isRestricted('com.example.game'), isFalse);
     });
 
     test('restricting a category turns its apps on', () {
       final c = AppCatalog(restricted: {...defaultRestricted, AppCategory.browser});
-      expect(c.rateFor('com.android.chrome'), 1);
+      expect(c.isRestricted('com.android.chrome'), isTrue);
       c.restricted.remove(AppCategory.social);
-      expect(c.rateFor('com.instagram.android'), 0);
+      expect(c.isRestricted('com.instagram.android'), isFalse);
     });
 
     test('per-app overrides win, exempt apps never count', () {
       final c = AppCatalog(overrides: {
-        'com.android.chrome': 0.5,
-        'com.instagram.android': 0,
-        'com.android.settings': 3,
+        'com.android.chrome': true,
+        'com.instagram.android': false,
+        'com.android.settings': true,
       });
-      expect(c.rateFor('com.android.chrome'), 0.5);
-      expect(c.rateFor('com.instagram.android'), 0);
+      expect(c.isRestricted('com.android.chrome'), isTrue);
+      expect(c.isRestricted('com.instagram.android'), isFalse);
       expect(c.isExempt('com.android.settings'), isTrue);
-      expect(c.rateFor('com.android.settings'), 0);
+      expect(c.isRestricted('com.android.settings'), isFalse);
       c.addExempt(['com.custom.launcher']);
       expect(c.isExempt('com.custom.launcher'), isTrue);
       expect(c.isExempt(selfPackage), isTrue);

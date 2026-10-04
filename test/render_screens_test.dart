@@ -12,7 +12,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:doomwalk/core/debt_engine.dart';
+import 'package:doomwalk/core/scroll_wallet.dart';
 import 'package:doomwalk/services/controller.dart';
 import 'package:doomwalk/ui/home_screen.dart';
 import 'package:doomwalk/ui/onboarding_screen.dart';
@@ -63,7 +63,7 @@ void main() {
       final f = File('${await getDatabasesPath()}/doomwalk.db');
       if (f.existsSync()) f.deleteSync();
       c = await DoomWalkController.start();
-      await c.updateConfig(const DebtConfig(allowanceM: 60));
+      await c.updateConfig(const WalletConfig(allowanceM: 60));
       final t0 = DateTime.now().millisecondsSinceEpoch;
       Future<void> scroll(String pkg, int n, int dy, int gapMs) async {
         await sendNative('onWindow', {'pkg': pkg, 't': 0});
@@ -132,7 +132,7 @@ void main() {
     }
 
     await shot('home', const HomeScreen());
-    await tester.tap(find.textContaining('adds up'));
+    await tester.tap(find.text('How it works'));
     await tester.pump(const Duration(seconds: 1));
     await shot('ledger', null);
     Navigator.of(tester.element(find.byType(LedgerView))).pop();
@@ -198,7 +198,7 @@ void main() {
     await tester.tap(find.text('Close'));
     await tester.pump(const Duration(seconds: 1));
 
-    // Free scrolling used up exactly, nothing owed yet: "done for the day".
+    // Free scrolling used up exactly, nothing banked: "take a walk first".
     await tester.runAsync(() async {
       await c.setDeveloperOptions(true);
       await c.devResetTracking();

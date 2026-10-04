@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:doomwalk/core/debt_engine.dart';
+import 'package:doomwalk/core/scroll_wallet.dart';
 import 'package:doomwalk/core/tamper.dart';
 import 'package:doomwalk/core/walk_tracker.dart';
 
@@ -18,10 +18,10 @@ void main() {
       expect(p.rawMetresFor(g, 30), 0);
     });
 
-    test('gap is charged at the average rate times ratio', () {
+    test('gap is charged as walking, one metre per estimated metre scrolled', () {
       final g = TamperGap(start: start, end: start.add(const Duration(hours: 2)), reason: 'x');
       expect(p.rawMetresFor(g, 30), closeTo(60, 1e-9));
-      expect(p.costFor(g, 30, 2), closeTo(120, 1e-9));
+      expect(p.costFor(g, 30), closeTo(60, 1e-9));
     });
 
     test('very long gaps are capped', () {
@@ -29,12 +29,14 @@ void main() {
       expect(p.rawMetresFor(g, 10), closeTo(160, 1e-9));
     });
 
-    test('gap charge lands in the ledger as tamper debt', () {
-      final e = DebtEngine(config: const DebtConfig(), state: DebtState.fresh(start));
-      final g = TamperGap(start: start, end: start.add(const Duration(hours: 1)), reason: 'x');
-      e.chargeFlat(p.costFor(g, 20, e.config.ratio), start, tamper: true);
-      expect(e.debtM, closeTo(40, 1e-9));
-      expect(e.state.tamperChargedTodayM, closeTo(40, 1e-9));
+    test('a gap spends the walk bank first, the rest is owed', () {
+      final w = ScrollWallet(config: const WalletConfig(), state: WalletState.fresh(start));
+      w.applyWalk(15, start);
+      final g = TamperGap(start: start, end: start.add(const Duration(hours: 2)), reason: 'x');
+      w.chargeGap(p.costFor(g, 20), start);
+      expect(w.bankM, 0);
+      expect(w.overdraftM, closeTo(25, 1e-9));
+      expect(w.state.tamperChargedTodayM, closeTo(40, 1e-9));
     });
   });
 

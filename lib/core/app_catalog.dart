@@ -67,12 +67,6 @@ extension AppCategoryX on AppCategory {
         AppCategory.browser => 'Browsers',
         AppCategory.other => 'Everything else',
       };
-
-  /// Cost multiplier when the category is restricted.
-  double get rate => switch (this) {
-        AppCategory.social || AppCategory.video => 2,
-        _ => 1,
-      };
 }
 
 const defaultRestricted = {AppCategory.social, AppCategory.video};
@@ -117,12 +111,10 @@ const knownCategories = <String, AppCategory>{
   'flipboard.app': AppCategory.news,
 };
 
-String rateLabel(double r) => r == 0 ? 'free' : '${r % 1 == 0 ? r.toInt() : r}×';
-
 class AppCatalog {
   AppCatalog({
     Set<String> extraExempt = const {},
-    Map<String, double> overrides = const {},
+    Map<String, bool> overrides = const {},
     Set<AppCategory> restricted = defaultRestricted,
   })  : _extraExempt = {...extraExempt},
         overrides = {...overrides},
@@ -130,8 +122,9 @@ class AppCatalog {
 
   final Set<String> _extraExempt;
 
-  /// Per-app choice: 0 = never restrict, >0 = restrict at that rate.
-  final Map<String, double> overrides;
+  /// Per-app choice that beats the category rules: true = always counts,
+  /// false = never counts.
+  final Map<String, bool> overrides;
 
   /// Categories that are counted and frosted.
   final Set<AppCategory> restricted;
@@ -146,16 +139,12 @@ class AppCatalog {
 
   AppCategory categoryOf(String pkg) => knownCategories[pkg] ?? categories[pkg] ?? AppCategory.other;
 
-  /// Rate from the category rules alone, ignoring per-app overrides.
-  double defaultRateFor(String pkg) {
-    final cat = categoryOf(pkg);
-    return restricted.contains(cat) ? cat.rate : 0;
-  }
+  /// Whether the category rules alone restrict [pkg], ignoring overrides.
+  bool restrictedByDefault(String pkg) => restricted.contains(categoryOf(pkg));
 
-  double rateFor(String pkg) {
-    if (isExempt(pkg)) return 0;
-    return overrides[pkg] ?? defaultRateFor(pkg);
+  /// Whether scrolling in [pkg] counts (and the app can frost).
+  bool isRestricted(String pkg) {
+    if (isExempt(pkg)) return false;
+    return overrides[pkg] ?? restrictedByDefault(pkg);
   }
-
-  bool isRestricted(String pkg) => rateFor(pkg) > 0;
 }

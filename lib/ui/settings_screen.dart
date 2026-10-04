@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/app_catalog.dart';
-import '../core/debt_engine.dart';
+import '../core/scroll_wallet.dart';
 import '../core/presets.dart';
 import '../core/units.dart';
 import '../services/controller.dart';
@@ -44,9 +44,9 @@ class SettingsScreen extends ConsumerWidget {
                 ? 'Demo mode is on and replaces these rules. Turn it off in Developer options.'
                 : preset == null
                     ? 'You\'re using custom rules. Pick a level to replace them.'
-                    : '${formatRound(cfg.allowanceM)} of free scrolling a day. After that, walk '
-                        '${_x(cfg.ratio)} m for every metre. Apps lock completely at '
-                        '${formatRound(cfg.frostMaxDebtM)} owed.',
+                    : '${formatRound(cfg.allowanceM)} of free scrolling a day. After that, you scroll as far '
+                        'as you walk: 1:1 at first, 1 more metre of walking every ${formatRound(cfg.priceStepM)}, '
+                        'up to ${_x(cfg.maxPrice)}:1.',
             style: t.bodyMedium?.copyWith(color: context.colors.muted),
           ),
         ),
@@ -61,13 +61,13 @@ class SettingsScreen extends ConsumerWidget {
           _NavTile(
             icon: Ph.lifebuoy,
             title: 'Emergency passes',
-            subtitle: '${cfg.overridesPerDay} a day, scrolling costs ${formatTimes(cfg.overridePenalty)} while unlocked',
+            subtitle: '${cfg.overridesPerDay} a day, ${cfg.overrideMinutes} minutes each',
             page: const _PassesPage(),
           ),
           const _NavTile(
             icon: Ph.sliders,
             title: 'Custom rules',
-            subtitle: 'Free scrolling, walking, locking, overnight growth',
+            subtitle: 'Free scrolling, how fast walking gets dearer, freezing',
             page: _CustomRulesPage(),
           ),
         ]),
@@ -185,13 +185,13 @@ class _AppsThatCountPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(controllerProvider);
     return _SubPage(title: 'Apps that count', children: [
-      const _Help('Scrolling in these apps counts toward debt, and they blur and lock when you owe. '
-          'Everything else, like banking, calls and maps, is never touched.'),
+      const _Help('Scrolling in these apps uses your free scrolling, then your walking, and they freeze '
+          'when both run out. Everything else, like banking, calls and maps, is never touched.'),
       TileGroup(children: [
         for (final cat in AppCategory.values)
           SwitchListTile(
             title: Text(cat.label),
-            subtitle: Text(c.catalog.restricted.contains(cat) ? 'Counts at ${rateLabel(cat.rate)} rate' : 'Doesn\'t count'),
+            subtitle: Text(c.catalog.restricted.contains(cat) ? 'Counts' : 'Doesn\'t count'),
             value: c.catalog.restricted.contains(cat),
             onChanged: (v) => c.setCategoryRestricted(cat, v),
           ),
@@ -201,7 +201,7 @@ class _AppsThatCountPage extends ConsumerWidget {
       TileGroup(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(Gaps.margin, 10, Gaps.margin, 4),
-          child: _RatesEditor(c: c),
+          child: _AppRulesEditor(c: c),
         ),
       ]),
     ]);
@@ -215,10 +215,10 @@ class _PassesPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(controllerProvider);
     final cfg = c.config;
-    void set(DebtConfig n) => c.updateConfig(n);
+    void set(WalletConfig n) => c.updateConfig(n);
     return _SubPage(title: 'Emergency passes', children: [
       _Help('A pass unlocks your apps for ${cfg.overrideMinutes} minutes when you really need them. '
-          'Scrolling still counts, at a higher cost.'),
+          'Scrolling during a pass is free, so keep them for emergencies.'),
       TileGroup(children: [
         _SliderRow(
           label: 'Passes per day',
@@ -228,15 +228,6 @@ class _PassesPage extends ConsumerWidget {
           divisions: 10,
           format: (v) => v.toStringAsFixed(0),
           onChanged: (v) => set(cfg.copyWith(overridesPerDay: v.round())),
-        ),
-        _SliderRow(
-          label: 'Cost while unlocked',
-          value: cfg.overridePenalty,
-          min: 1,
-          max: 5,
-          divisions: 8,
-          format: formatTimes,
-          onChanged: (v) => set(cfg.copyWith(overridePenalty: v)),
         ),
       ]),
     ]);
@@ -250,7 +241,7 @@ class _CustomRulesPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(controllerProvider);
     final cfg = c.config;
-    void set(DebtConfig n) => c.updateConfig(n);
+    void set(WalletConfig n) => c.updateConfig(n);
     return _SubPage(title: 'Custom rules', children: [
       _Help(cfg.demoMode
           ? 'Demo mode is on and replaces these rules until you turn it off.'
@@ -266,31 +257,31 @@ class _CustomRulesPage extends ConsumerWidget {
           onChanged: (v) => set(cfg.copyWith(allowanceM: v)),
         ),
         _SliderRow(
-          label: 'Metres to walk per metre scrolled',
-          value: cfg.ratio,
-          min: 0.5,
-          max: 5,
-          divisions: 9,
-          format: (v) => '${_x(v)} m',
-          onChanged: (v) => set(cfg.copyWith(ratio: v)),
-        ),
-        _SliderRow(
-          label: 'Apps lock completely at',
-          value: cfg.frostMaxDebtM,
-          min: 10,
+          label: 'Walking gets dearer every',
+          value: cfg.priceStepM,
+          min: 25,
           max: 500,
-          divisions: 49,
-          format: (v) => '${v.toStringAsFixed(0)} m owed',
-          onChanged: (v) => set(cfg.copyWith(frostMaxDebtM: v)),
+          divisions: 19,
+          format: (v) => '${v.toStringAsFixed(0)} m scrolled',
+          onChanged: (v) => set(cfg.copyWith(priceStepM: v)),
         ),
         _SliderRow(
-          label: 'Overnight growth of unpaid debt',
-          value: cfg.interestRate * 100,
-          min: 0,
-          max: 20,
-          divisions: 40,
-          format: (v) => '${v.toStringAsFixed(1)}%',
-          onChanged: (v) => set(cfg.copyWith(interestRate: v / 100)),
+          label: 'Most it can cost',
+          value: cfg.maxPrice,
+          min: 1,
+          max: 10,
+          divisions: 9,
+          format: (v) => '${_x(v)} m walked per metre',
+          onChanged: (v) => set(cfg.copyWith(maxPrice: v)),
+        ),
+        _SliderRow(
+          label: 'Apps freeze completely after',
+          value: cfg.frostAtM,
+          min: 5,
+          max: 100,
+          divisions: 19,
+          format: (v) => '${v.toStringAsFixed(0)} m unpaid',
+          onChanged: (v) => set(cfg.copyWith(frostAtM: v)),
         ),
       ]),
     ]);
@@ -304,7 +295,7 @@ class _YouPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(controllerProvider);
     final cfg = c.config;
-    void set(DebtConfig n) => c.updateConfig(n);
+    void set(WalletConfig n) => c.updateConfig(n);
     return _SubPage(title: 'You', children: [
       const _Help('Used for calorie estimates and to turn steps into metres.'),
       TileGroup(children: [
@@ -379,13 +370,13 @@ class _PrivacyPage extends ConsumerWidget {
             foreground: context.colors.danger,
           ),
           title: Text('Erase all data', style: TextStyle(color: context.colors.danger)),
-          subtitle: const Text('Debt, history and tracking gaps. Settings are kept.'),
+          subtitle: const Text('Walking, scrolling, history and tracking gaps. Settings are kept.'),
           onTap: () async {
             final ok = await showDialog<bool>(
               context: context,
               builder: (d) => AlertDialog(
                 title: const Text('Erase all data?'),
-                content: const Text('Debt, history and tracking gaps are deleted. Settings are kept. '
+                content: const Text('Walking, scrolling, history and tracking gaps are deleted. Settings are kept. '
                     'This can\'t be undone.'),
                 actions: [
                   TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
@@ -439,7 +430,7 @@ class _DeveloperToolsState extends State<DeveloperTools> {
   Widget build(BuildContext context) {
     final c = widget.c;
     final t = Theme.of(context).textTheme;
-    const demo = DebtConfig.demo;
+    const demo = WalletConfig.demo;
     Widget heading(String text) => Padding(
           padding: const EdgeInsets.fromLTRB(Gaps.margin, 16, Gaps.margin, 4),
           child: Text(text, style: t.titleSmall),
@@ -447,13 +438,14 @@ class _DeveloperToolsState extends State<DeveloperTools> {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SwitchListTile(
         title: const Text('Demo mode'),
-        subtitle: Text('${demo.allowanceM.toStringAsFixed(0)} m free, 1 m walked per metre, apps lock at '
-            '${demo.frostMaxDebtM.toStringAsFixed(0)} m. Scroll, lock, walk and unlock fit in two minutes.'),
+        subtitle: Text('${demo.allowanceM.toStringAsFixed(0)} m free, walking gets dearer every '
+            '${demo.priceStepM.toStringAsFixed(0)} m, apps freeze after ${demo.frostAtM.toStringAsFixed(0)} m unpaid. '
+            'Scroll, freeze, walk and unlock fit in two minutes.'),
         value: c.config.demoMode,
         onChanged: (v) => c.updateConfig(c.config.copyWith(demoMode: v)),
       ),
       heading('Add steps to today'),
-      _Help('Counted like real steps: they pay debt down and count toward your goal. '
+      _Help('Counted like real steps: they earn scrolling and count toward your goal. '
           '1,000 steps is ${formatRound(1000 * c.config.strideM)} at your stride.'),
       Padding(
         padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
@@ -470,7 +462,7 @@ class _DeveloperToolsState extends State<DeveloperTools> {
         ]),
       ),
       heading('Add scrolling'),
-      const _Help('Priced like real scrolling in that app: free allowance first, then its rate.'),
+      const _Help('Priced like real scrolling: free allowance first, then your walking at today\'s price.'),
       FutureBuilder<List<AppMeta>>(
         future: _apps,
         builder: (context, snap) {
@@ -500,7 +492,7 @@ class _DeveloperToolsState extends State<DeveloperTools> {
                     for (final a in apps)
                       DropdownMenuItem(
                         value: a.pkg,
-                        child: Text('${a.label}, ${rateLabel(c.catalog.rateFor(a.pkg))}', overflow: TextOverflow.ellipsis),
+                        child: Text(a.label, overflow: TextOverflow.ellipsis),
                       ),
                   ],
                   onChanged: (v) => setState(() => _pkg = v),
@@ -537,13 +529,13 @@ class _DeveloperToolsState extends State<DeveloperTools> {
       ListTile(
         leading: const Icon(Ph.trash),
         title: const Text('Reset walking and scrolling'),
-        subtitle: const Text('Debt, steps, scrolling and history back to zero. Settings are kept.'),
+        subtitle: const Text('Steps, scrolling, the walk bank and history back to zero. Settings are kept.'),
         onTap: () async {
           final ok = await showDialog<bool>(
             context: context,
             builder: (d) => AlertDialog(
               title: const Text('Reset walking and scrolling?'),
-              content: const Text('Debt, today\'s steps and scrolling, history and tracking gaps are deleted. '
+              content: const Text('Today\'s steps and scrolling, the walk bank, history and tracking gaps are deleted. '
                   'Settings are kept.'),
               actions: [
                 TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
@@ -613,15 +605,15 @@ class _SliderRow extends StatelessWidget {
   }
 }
 
-class _RatesEditor extends StatefulWidget {
-  const _RatesEditor({required this.c});
+class _AppRulesEditor extends StatefulWidget {
+  const _AppRulesEditor({required this.c});
   final DoomWalkController c;
 
   @override
-  State<_RatesEditor> createState() => _RatesEditorState();
+  State<_AppRulesEditor> createState() => _AppRulesEditorState();
 }
 
-class _RatesEditorState extends State<_RatesEditor> {
+class _AppRulesEditorState extends State<_AppRulesEditor> {
   late Future<List<AppMeta>> _apps;
   String _query = '';
 
@@ -631,9 +623,9 @@ class _RatesEditorState extends State<_RatesEditor> {
     _apps = widget.c.launchableApps().catchError((Object _) => <AppMeta>[]);
   }
 
-  static const _choices = <double?>[null, 0, 1, 2, 3];
+  static const _choices = <bool?>[null, true, false];
 
-  String _choiceLabel(double? r) => r == null ? 'Default' : (r == 0 ? 'Never counts' : '${rateLabel(r)} rate');
+  String _choiceLabel(bool? r) => r == null ? 'Default' : (r ? 'Counts' : 'Never counts');
 
   @override
   Widget build(BuildContext context) {
@@ -642,7 +634,7 @@ class _RatesEditorState extends State<_RatesEditor> {
     return FutureBuilder<List<AppMeta>>(
       future: _apps,
       builder: (context, snap) {
-        if (!snap.hasData) return const _RatesSkeleton();
+        if (!snap.hasData) return const _AppRulesSkeleton();
         for (final a in snap.data!) {
           c.catalog.categories[a.pkg] = categoryFromAndroid(a.category);
         }
@@ -673,12 +665,12 @@ class _RatesEditorState extends State<_RatesEditor> {
                     Text(a.label, style: t.bodyLarge),
                     Text(
                       '${c.catalog.categoryOf(a.pkg).label}, '
-                      '${c.catalog.isRestricted(a.pkg) ? 'counts at ${rateLabel(c.catalog.rateFor(a.pkg))}' : 'doesn\'t count'}',
+                      '${c.catalog.isRestricted(a.pkg) ? 'counts' : 'doesn\'t count'}',
                       style: t.bodyMedium?.copyWith(color: context.colors.muted),
                     ),
                   ]),
                 ),
-                DropdownButton<double?>(
+                DropdownButton<bool?>(
                   value: c.catalog.overrides[a.pkg],
                   underline: const SizedBox.shrink(),
                   icon: Icon(Ph.caretDown, size: 14, color: context.colors.muted),
@@ -687,7 +679,7 @@ class _RatesEditorState extends State<_RatesEditor> {
                   style: t.bodyMedium?.copyWith(color: context.colors.text),
                   items: [for (final r in _choices) DropdownMenuItem(value: r, child: Text(_choiceLabel(r)))],
                   onChanged: (r) async {
-                    await c.setRate(a.pkg, r);
+                    await c.setAppCounts(a.pkg, r);
                     setState(() {});
                   },
                 ),
@@ -700,8 +692,8 @@ class _RatesEditorState extends State<_RatesEditor> {
 }
 
 /// Loading placeholder shaped like the list it stands in for.
-class _RatesSkeleton extends StatelessWidget {
-  const _RatesSkeleton();
+class _AppRulesSkeleton extends StatelessWidget {
+  const _AppRulesSkeleton();
 
   @override
   Widget build(BuildContext context) => Column(children: [

@@ -39,13 +39,13 @@ const _steps = [
   _Step(
     _StepId.activity,
     'Count your walking',
-    'Physical activity access lets the step sensor pay your debt down.',
+    'Physical activity access lets the step sensor turn your walking into scrolling.',
     'Allow',
   ),
   _Step(
     _StepId.notifications,
     'Status notification',
-    'A silent notification shows your debt and has the emergency pass button.',
+    'A silent notification shows how much scrolling you have left and has the emergency pass button.',
     'Allow',
     optional: true,
   ),
@@ -181,12 +181,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
               Text('DoomWalk', style: t.titleMedium),
             ]),
             const SizedBox(height: 36),
-            Text('Every metre you scroll, you walk back.',
+            Text('Want to scroll? Take a walk first.',
                 style: t.headlineLarge?.copyWith(fontSize: 34, letterSpacing: -1.4)),
             const SizedBox(height: 14),
             Text(
-              'Scrolling past your daily allowance turns into walking you owe. Past it, social apps blur and lock until '
-              'you walk it off, and every metre counts toward your daily movement goal.',
+              'You get a little free scrolling each day. After that, you scroll as far as you walk: 1 m for 1 m at '
+              'first, and more walking per metre the more you scroll. Run out, and social apps freeze until you go.',
               style: t.bodyLarge?.copyWith(color: context.colors.muted),
             ),
             const SizedBox(height: 32),

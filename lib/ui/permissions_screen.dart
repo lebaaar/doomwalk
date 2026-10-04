@@ -118,7 +118,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> with Widg
                   ? 'On and running'
                   : st.accessibilityEnabled
                       ? 'On, but not running'
-                      : 'Off. Nothing is measured or locked.',
+                      : 'Off. Nothing is measured or frozen.',
               action: 'Accessibility',
               onTap: c.native.openAccessibilitySettings,
             ),
@@ -141,7 +141,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> with Widg
             _Row(
               state: _activity ? _State.ok : _State.problem,
               title: 'Physical activity',
-              subtitle: _activity ? 'Allowed. Steps pay your debt down.' : 'Not allowed. Walking isn\'t counted.',
+              subtitle: _activity ? 'Allowed. Steps earn you scrolling.' : 'Not allowed. Walking isn\'t counted.',
               action: _activity ? 'App info' : 'Allow',
               onTap: () => _permission(Permission.activityRecognition, _activity),
             ),
@@ -258,7 +258,7 @@ class _StoppedCard extends StatelessWidget {
           ]),
           const SizedBox(height: 8),
           Text(
-            'It\'s switched on in Settings, but Android isn\'t running it, so nothing is measured or locked. $why',
+            'It\'s switched on in Settings, but Android isn\'t running it, so nothing is measured or frozen. $why',
             style: t.bodyMedium?.copyWith(color: col.muted),
           ),
           if (showAdbHint && exit?.description != null) ...[

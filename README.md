@@ -4,7 +4,7 @@
 
 <h1 align="center">DoomWalk</h1>
 
-<p align="center"><b>Doomscroll now, walk it off later.</b></p>
+<p align="center"><b>Want to scroll? Take a walk first.</b></p>
 
 <p align="center">
   Android 12+ · Flutter · fully on-device · no INTERNET permission · no analytics
@@ -13,13 +13,14 @@
 ---
 
 Every flick of your thumb has a distance. DoomWalk measures how far you scroll, in
-**metres**, across all your apps. Past a daily free allowance that distance turns into
-**debt**: the app you're in slowly **frosts over**, and the only way to clear it is to
-get up and **walk** the debt back, step by step.
+**metres**, across your social and video apps. You get a little free scrolling each
+day. After that you can only scroll as far as you have **walked**, and every extra
+100 m costs a bit more walking. Run out and the app you're in **frosts over** until
+you take a walk.
 
-| You scroll | It frosts | You walk |
+| You scroll | You walk | It frosts |
 |---|---|---|
-| 200 m of feed a day is free. Scroll past that and every metre counts double. | The app you're in fades behind a blur. Touches still work, but it's no fun. | Steps pay the debt down and the frost melts away. |
+| 150 m of feed a day is free. | Walking fills a bank. Past the free part, the first 100 m of scrolling cost 1 m of walking per metre, the next 100 m cost 2 m, and so on up to 5. | With the bank empty, the app fades behind a blur and says how many steps unlock the next 100 m. Touches still work, but it's no fun. |
 
 <p align="center">
   <img src="docs/screenshots/host_tab_today.png" width="220" alt="Today dashboard">
@@ -27,8 +28,8 @@ get up and **walk** the debt back, step by step.
   <img src="docs/screenshots/host_share_card.png" width="220" alt="Share card">
 </p>
 
-**Why "DoomWalk"?** Doomscrolling plus a walk: the scroll is the crime, the walk is
-the sentence. The name comes with a hashtag for the share card: `#DoomWalk`.
+**Why "DoomWalk"?** Doomscrolling plus a walk: the walk is the ticket, the scroll is
+the ride. The name comes with a hashtag for the share card: `#DoomWalk`.
 
 **Brand basics:** the name is written **DoomWalk**, one word with a capital W. The
 mark is a stack of frost-blue *depth ticks* (see [docs/logo](docs/logo/README.md)).
@@ -137,31 +138,51 @@ adb logcat -s flutter | grep 'SD '
    (Developer options → *Allow window-level blurs*, normally on by default), and
    battery saver is **off** because it disables blur.
 2. Open DoomWalk → ⚙ → **Demo mode** on → back. The dashboard shows *DEMO*:
-   2 m free, 1:1, full frost at 15 m.
+   2 m free, the price goes up every 5 m (up to 3:1), full frost at 5 m unpaid.
 3. Open Instagram and doom-scroll the feed for about 30-45 s (around 60-80 flicks).
-   The frost fades in as you go, with an "x m to walk" label at the top. Tap a post
+   The frost fades in as you go, with a "Take a walk" card in the middle. Tap a post
    to show that touches still work through the frost.
-4. Pull down the notification: "x m owed", with the **Emergency pass** button (3× cost).
+4. Pull down the notification: "Frozen. Walk x steps to unlock 100 m", with the
+   **Emergency pass** button.
 5. Open DoomWalk: the *Today* card turns navy with "Time for a walk" and the
-   debt as a large number, and Instagram is at the top of *Most scrolled today*.
-6. Walk about 20-30 steps around the stage. Debt counts down and back in Instagram
-   the frost melts. (Backup: Settings → Developer options → *Add steps to today*.)
+   steps to walk as a large number, and Instagram is at the top of *Most scrolled today*.
+6. Walk about 20-30 steps around the stage. What's owed counts down and back in
+   Instagram the frost melts. (Backup: Settings → Developer options → *Add steps to today*.)
 7. *Activity* → *Scrolling by app* → tap Instagram → **Share** for the
    "Instagram: … this week" card.
 8. Demo mode off afterwards.
 
 ## Model
-`debt += max(0, scrolled − allowance) × appRate × RATIO × velocityWeight (× 3 during a pass)`,
-walking pays it down (never below 0), the allowance resets at local midnight, and unpaid
-debt accrues overnight interest. Defaults: 200 m/day free, RATIO 2, full frost at
-150 m, 2 %/night, stride 0.75 m. Every value can be changed in Settings. The reasoning
-is in [DECISIONS.md](DECISIONS.md), plugin findings in [SPIKE.md](SPIKE.md), and status
-in [PROGRESS.md](PROGRESS.md).
+A scroll wallet, reset at local midnight:
+
+1. **Free allowance:** counted scrolling uses it first (Balanced: 150 m).
+2. **Walk bank:** every metre walked goes in, including walking done before the
+   allowance runs out.
+3. **Rising price:** past the allowance, scrolling is paid from the bank at
+   `price = min(maxPrice, 1 + floor(scrolledPastFree / priceStep))` metres walked per
+   metre scrolled. Balanced: 100 m steps, up to 5:1, so 100 m cost 100 m of walking,
+   200 m cost 300 m, 300 m cost 600 m.
+4. **Overdraft and frost:** with the bank empty, scrolling is owed as walking. The
+   frost grows with it and is full at 20 m owed. Walking clears what's owed first, then
+   fills the bank.
+5. **Passes:** 3 a day, 5 minutes each. Scrolling during a pass costs nothing.
+6. **Midnight:** allowance, price, bank and what's owed all start over. No interest.
+
+| Preset | Free a day | Price +1 every | Cap |
+|---|---|---|---|
+| Gentle | 300 m | 200 m | 3:1 |
+| Balanced | 150 m | 100 m | 5:1 |
+| Strict | 50 m | 50 m | 5:1 |
+
+Tracking gaps (accessibility switched off, app force-stopped) are charged as walking at
+your average scroll rate, from the bank first. The reasoning is in
+[DECISIONS.md](DECISIONS.md), plugin findings in [SPIKE.md](SPIKE.md), and status in
+[PROGRESS.md](PROGRESS.md).
 
 ## Layout
 ```
-lib/core/       pure Dart (no Flutter): DebtEngine, units, ScrollInterpreter,
-                FlickWeigher, landmarks, AppCatalog, tamper, WalkTracker
+lib/core/       pure Dart (no Flutter): ScrollWallet, units, ScrollInterpreter,
+                landmarks, AppCatalog, presets, tamper, WalkTracker
 lib/services/   controller (orchestration), sqflite store, native bridge
 lib/ui/         dashboard, altitude gauge, onboarding, settings, share card
 android/.../DoomWalkShim.kt   accessibility service, frost overlay, FGS, engine host
