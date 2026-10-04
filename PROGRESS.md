@@ -14,7 +14,7 @@ is at most **partial: code complete, host-verified**. What *was* verified here:
 | Check | Result |
 |---|---|
 | `flutter analyze` | No issues found |
-| `flutter test` | 89 tests pass: unit tests (ScrollWallet price, capped bank, overdraft and midnight reset, pixel→metres, landmarks, tamper gaps, WalkTracker, ScrollInterpreter, AppCatalog, presets), a full Dart pipeline test with the native channel mocked, and a UI render smoke test |
+| `flutter test` | 91 tests pass: unit tests (ScrollWallet price, capped bank, overdraft and midnight reset, pixel→metres, landmarks, tamper gaps, WalkTracker, ScrollInterpreter, AppCatalog, presets), a full Dart pipeline test with the native channel mocked, and a UI render smoke test |
 | Kotlin shim | Type-checks with `kotlinc` 2.2.20 against the Android 16 framework classes (Robolectric android-all) and the Flutter embedding jar of this engine. Only `androidx.lifecycle` was stubbed. |
 | Android XML | All resource/manifest XML is well-formed. It has **not** been compiled by aapt2. |
 | UI | Rendered on the host: `docs/screenshots/host_*.png` (emoji show as boxes on the host only) |

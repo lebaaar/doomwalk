@@ -63,6 +63,41 @@ class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderSt
   void _next() => _go(_index + 1);
   void _previous() => _go(_index - 1);
 
+  /// A press shorter than this is a tap (go on or back); longer is a hold,
+  /// which only pauses.
+  static const _tapTime = Duration(milliseconds: 250);
+  int? _pointer;
+  Duration? _downAt;
+
+  void _onDown(PointerDownEvent e) {
+    if (_pointer != null) return; // a second finger changes nothing
+    _pointer = e.pointer;
+    _downAt = e.timeStamp;
+    _timer.stop();
+  }
+
+  void _onUp(PointerUpEvent e, double width) {
+    if (e.pointer != _pointer) return;
+    final held = e.timeStamp - _downAt!;
+    _pointer = null;
+    if (held < _tapTime) {
+      e.localPosition.dx < width / 3 ? _previous() : _next();
+    } else {
+      _resume();
+    }
+  }
+
+  void _onCancel(PointerCancelEvent e) {
+    if (e.pointer != _pointer) return;
+    _pointer = null;
+    _resume();
+  }
+
+  void _resume() {
+    // The last slide stays put once its bar is full.
+    if (_timer.value < 1) _timer.forward();
+  }
+
   @override
   Widget build(BuildContext context) {
     final col = context.colors;
@@ -86,17 +121,7 @@ class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderSt
             ),
           ),
           child: SafeArea(
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTapUp: (d) {
-                final w = context.size?.width ?? 400;
-                d.localPosition.dx < w / 3 ? _previous() : _next();
-              },
-              onLongPressStart: (_) => _timer.stop(),
-              onLongPressEnd: (_) {
-                if (!last || _timer.value < 1) _timer.forward();
-              },
-              child: Column(
+            child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Padding(
@@ -140,11 +165,21 @@ class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderSt
                     ),
                   ),
                   Expanded(
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
-                      child: KeyedSubtree(
-                        key: ValueKey(_index),
-                        child: _SlideView(slide: slide),
+                    // Raw pointers, not a long-press recognizer: the story
+                    // pauses the moment a finger lands, like Instagram's.
+                    child: LayoutBuilder(
+                      builder: (context, box) => Listener(
+                        behavior: HitTestBehavior.opaque,
+                        onPointerDown: _onDown,
+                        onPointerUp: (e) => _onUp(e, box.maxWidth),
+                        onPointerCancel: (e) => _onCancel(e),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 250),
+                          child: KeyedSubtree(
+                            key: ValueKey(_index),
+                            child: _SlideView(slide: slide),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -171,7 +206,6 @@ class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderSt
                       ),
                     ),
                 ],
-              ),
             ),
           ),
         ),
@@ -227,8 +261,8 @@ List<_Slide> _buildSlides(WalletConfig c) {
     _Slide(
       title: 'The more you scroll, the more it costs',
       body:
-          'It starts at $start, and every ${formatRound(c.priceStepM)} you scroll in a day adds 1 m more '
-          'walking per metre, up to ${formatTimes(c.maxPrice)}.',
+          'It starts at $start and goes up a tier every ${formatRound(c.priceStepM)} you scroll in a day: '
+          '${tiersText(c.priceTiers)}.',
       visual: _TableVisual(config: c),
     ),
     _Slide(

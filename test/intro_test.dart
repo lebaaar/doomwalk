@@ -9,20 +9,20 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('price table', () {
-    test('Balanced: from 2x, +1 every 50 m up to 6x, steps to fill a 50 m bank', () {
+    test('Balanced: a tier per 50 m, steps to fill a 50 m bank', () {
       final rows = priceRows(const WalletConfig());
-      expect(rows.map((r) => r.price), [2, 3, 4, 5, 6]);
+      expect(rows.map((r) => r.price), [3, 5, 7, 10, 15]);
       expect(rows.map((r) => r.fromM), [0, 50, 100, 150, 200]);
       expect(rows.last.toM, isNull); // 200 m and up
-      // 50 m at 2x = 100 m walked = 134 steps at 0.75 m.
-      expect(rows.map((r) => r.stepsToFill), [134, 200, 267, 334, 400]);
+      // 50 m at 3x = 150 m walked = 200 steps at 0.75 m.
+      expect(rows.map((r) => r.stepsToFill), [200, 334, 467, 667, 1000]);
     });
 
     test('follows the preset, the bank size and the stride', () {
       final gentle = priceRows(Strictness.gentle.applyTo(const WalletConfig(strideM: 0.8, bankCapM: 100)));
-      expect(gentle.map((r) => r.price), [1, 2, 3, 4]);
-      expect(gentle.map((r) => r.fromM), [0, 100, 200, 300]);
-      expect(gentle.first.stepsToFill, 125);
+      expect(gentle.map((r) => r.price), [2, 3, 5, 7, 10]);
+      expect(gentle.map((r) => r.fromM), [0, 50, 100, 150, 200]);
+      expect(gentle.first.stepsToFill, 250);
     });
   });
 
@@ -42,6 +42,20 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.textContaining('Take a walk first.'), findsOneWidget);
       await tester.pump(const Duration(seconds: 8));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Your scrolling, in metres'), findsOneWidget);
+    });
+
+    testWidgets('holding pauses at once; letting go resumes without skipping', (tester) async {
+      await show(tester, () {});
+      final g = await tester.createGesture();
+      await g.down(const Offset(400, 300), timeStamp: Duration.zero);
+      await tester.pump(const Duration(seconds: 10)); // far past the 7 s a slide lasts
+      expect(find.textContaining('Take a walk first.'), findsOneWidget);
+      await g.up(timeStamp: const Duration(seconds: 10));
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.textContaining('Take a walk first.'), findsOneWidget); // no skip on release
+      await tester.pump(const Duration(seconds: 8)); // resumed: moves on by itself
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('Your scrolling, in metres'), findsOneWidget);
     });

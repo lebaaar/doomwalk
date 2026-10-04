@@ -450,3 +450,17 @@ are gone).
 * **Docs:** the README is for users (what it is, how it works, features, privacy);
   building, signing, permissions, testing, the precise model and the code layout
   moved to CONTRIBUTING.md.
+
+## Round 18: price tiers, and hold-to-pause that pauses
+* **Tiers instead of +1:** `WalletConfig.priceTiers` (Balanced 3×, 5×, 7×, 10×,
+  15×; one tier up per 50 m scrolled in a day) replaces `startPrice`/`maxPrice`.
+  Filling the 50 m bank costs 200 steps first thing and 1,000 at the top tier.
+  Gentle is 2, 3, 5, 7, 10 per 50 m; Strict 5, 7, 10, 15, 20 per 25 m. The tiers
+  come from the preset; Custom rules keeps the tier length and the freeze point.
+  Saved tiers must be numbers ≥ 1 that never go down, or the defaults are used.
+  Config model `4`: older saved economies reset, personal settings stay.
+* **Hold to pause:** the stories used a long-press recognizer, which only fires
+  after 500 ms; until then the bar kept running, and letting go sooner counted
+  as a tap and skipped the slide. A raw `Listener` on the slide area now pauses
+  the moment a finger lands; a release within 250 ms is a tap (back/next),
+  anything longer just resumes.

@@ -6,7 +6,7 @@
 ///   * Walking adds to the bank, up to [WalletConfig.bankCapM]; walking while
 ///     it is full counts for nothing. A metre walked adds 1 / price metres,
 ///     where the price rises in steps with what you have scrolled today:
-///       price = min(maxPrice, startPrice + floor(scrolledToday / priceStepM))
+///       price = priceTiers[min(floor(scrolledToday / priceStepM), last tier)]
 ///   * Scrolling spends the bank. With the bank empty it runs an overdraft
 ///     (metres of scrolling owed); the frost grows with it and is full at
 ///     [WalletConfig.frostAtM]. Walking pays the overdraft first.
@@ -25,9 +25,8 @@ String dayKeyOf(DateTime t) {
 class WalletConfig {
   const WalletConfig({
     this.bankCapM = 50,
-    this.startPrice = 2,
+    this.priceTiers = defaultPriceTiers,
     this.priceStepM = 50,
-    this.maxPrice = 6,
     this.frostAtM = 20,
     this.overridesPerDay = 3,
     this.overrideMinutes = 5,
@@ -39,15 +38,20 @@ class WalletConfig {
   /// Most scrolling the bank can hold.
   final double bankCapM;
 
-  /// Metres walked per metre of scrolling at the start of the day.
-  final double startPrice;
+  /// Metres walked per metre of scrolling, tier by tier through the day:
+  /// the first applies at the start, the last is the most it can cost.
+  final List<double> priceTiers;
 
-  /// Every this much scrolled today, a metre of scrolling costs one more
-  /// metre of walking.
+  static const defaultPriceTiers = <double>[3, 5, 7, 10, 15];
+
+  /// Every this much scrolled today, walking moves up one tier.
   final double priceStepM;
 
-  /// The price never goes above this many metres walked per metre scrolled.
-  final double maxPrice;
+  /// The price at the start of the day.
+  double get startPrice => priceTiers.first;
+
+  /// The most it can cost.
+  double get maxPrice => priceTiers.last;
 
   /// Overdraft (metres of scrolling owed) at which the frost is full.
   final double frostAtM;
@@ -76,9 +80,8 @@ class WalletConfig {
 
   WalletConfig copyWith({
     double? bankCapM,
-    double? startPrice,
+    List<double>? priceTiers,
     double? priceStepM,
-    double? maxPrice,
     double? frostAtM,
     int? overridesPerDay,
     int? overrideMinutes,
@@ -88,9 +91,8 @@ class WalletConfig {
   }) =>
       WalletConfig(
         bankCapM: bankCapM ?? this.bankCapM,
-        startPrice: startPrice ?? this.startPrice,
+        priceTiers: priceTiers ?? this.priceTiers,
         priceStepM: priceStepM ?? this.priceStepM,
-        maxPrice: maxPrice ?? this.maxPrice,
         frostAtM: frostAtM ?? this.frostAtM,
         overridesPerDay: overridesPerDay ?? this.overridesPerDay,
         overrideMinutes: overrideMinutes ?? this.overrideMinutes,
@@ -101,9 +103,8 @@ class WalletConfig {
 
   Map<String, Object?> toJson() => {
         'bankCapM': bankCapM,
-        'startPrice': startPrice,
+        'priceTiers': priceTiers,
         'priceStepM': priceStepM,
-        'maxPrice': maxPrice,
         'frostAtM': frostAtM,
         'overridesPerDay': overridesPerDay,
         'overrideMinutes': overrideMinutes,
@@ -118,9 +119,8 @@ class WalletConfig {
     int i(String k, int def) => (j[k] as num?)?.toInt() ?? def;
     return WalletConfig(
       bankCapM: n('bankCapM', d.bankCapM).clamp(minBankCapM, maxBankCapM),
-      startPrice: n('startPrice', d.startPrice),
+      priceTiers: _tiersFrom(j['priceTiers']) ?? d.priceTiers,
       priceStepM: n('priceStepM', d.priceStepM),
-      maxPrice: n('maxPrice', d.maxPrice),
       frostAtM: n('frostAtM', d.frostAtM),
       overridesPerDay: i('overridesPerDay', d.overridesPerDay),
       overrideMinutes: i('overrideMinutes', d.overrideMinutes),
@@ -142,6 +142,18 @@ class WalletConfig {
       stepGoal: old.stepGoal,
     );
   }
+}
+
+/// Saved price tiers, or null unless they are a non-empty list of numbers
+/// of at least 1 that never go down.
+List<double>? _tiersFrom(Object? v) {
+  if (v is! List || v.isEmpty) return null;
+  final out = <double>[];
+  for (final x in v) {
+    if (x is! num || x < 1 || (out.isNotEmpty && x < out.last)) return null;
+    out.add(x.toDouble());
+  }
+  return out;
 }
 
 /// A saved step goal; a goal saved in metres (older versions) becomes steps
@@ -252,10 +264,10 @@ class ScrollCharge {
 /// Metres walked per metre of scrolling once [scrolled] metres have been
 /// scrolled today.
 double priceAt(double scrolled, WalletConfig c) {
-  final start = math.max(1.0, c.startPrice);
-  final cap = math.max(start, c.maxPrice);
-  if (c.priceStepM <= 0) return cap;
-  return math.min(start + (scrolled / c.priceStepM).floor(), cap);
+  final tiers = c.priceTiers.isEmpty ? WalletConfig.defaultPriceTiers : c.priceTiers;
+  if (c.priceStepM <= 0) return tiers.last;
+  final i = math.min((scrolled / c.priceStepM).floor(), tiers.length - 1);
+  return tiers[math.max(0, i)];
 }
 
 class ScrollWallet {

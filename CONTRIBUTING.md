@@ -134,7 +134,7 @@ A bank of scrolling, reset at local midnight (`lib/core/scroll_wallet.dart`):
 
 * `bank` holds metres of scrolling, `0 ≤ bank ≤ bankCapM` (default 50 m, 20–100 m).
 * Walking `w` metres adds `w / price` metres (after paying anything owed first), where
-  `price = min(maxPrice, startPrice + floor(scrolledToday / priceStepM))`.
+  `price = priceTiers[min(floor(scrolledToday / priceStepM), priceTiers.length - 1)]`.
   Scrolling during an emergency pass doesn't count toward `scrolledToday`.
 * Scrolling spends the bank; with it empty the rest is owed, and the frost is
   `owed / frostAtM` (full at 20 m).
@@ -142,11 +142,11 @@ A bank of scrolling, reset at local midnight (`lib/core/scroll_wallet.dart`):
 * Tracking gaps (accessibility off, force-stop) are charged as scrolling at the user's
   average rate (25 m/h until there is history), from the bank first.
 
-| Preset | `startPrice` | `priceStepM` | `maxPrice` |
-|---|---|---|---|
-| Gentle | 1 | 100 m | 4 |
-| Balanced (default) | 2 | 50 m | 6 |
-| Strict | 3 | 25 m | 8 |
+| Preset | `priceTiers` | `priceStepM` |
+|---|---|---|
+| Gentle | 2, 3, 5, 7, 10 | 50 m |
+| Balanced (default) | 3, 5, 7, 10, 15 | 50 m |
+| Strict | 5, 7, 10, 15, 20 | 25 m |
 
 The reasoning behind each choice is in [DECISIONS.md](DECISIONS.md), plugin findings in
 [SPIKE.md](SPIKE.md), and status in [PROGRESS.md](PROGRESS.md).

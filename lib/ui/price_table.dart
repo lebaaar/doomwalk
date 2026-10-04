@@ -9,15 +9,14 @@ import 'theme.dart';
 /// and filling the whole bank costs [stepsToFill] steps.
 typedef PriceRow = ({double fromM, double? toM, double price, int stepsToFill});
 
-/// The multiplier table for [c]: one row per price step, from the starting
-/// price up to the cap, with the steps that fill the bank at [c]'s stride.
+/// The multiplier table for [c]: one row per price tier, with the steps
+/// that fill the bank at [c]'s stride.
 List<PriceRow> priceRows(WalletConfig c) {
-  final start = c.startPrice < 1 ? 1.0 : c.startPrice.floorToDouble();
-  final cap = c.maxPrice < start ? start : c.maxPrice.floorToDouble();
   final rows = <PriceRow>[];
-  for (var p = start; p <= cap; p++) {
-    final last = p == cap || c.priceStepM <= 0;
-    final from = (p - start) * c.priceStepM;
+  for (var i = 0; i < c.priceTiers.length; i++) {
+    final p = c.priceTiers[i];
+    final last = i == c.priceTiers.length - 1 || c.priceStepM <= 0;
+    final from = i * c.priceStepM;
     rows.add((
       fromM: from,
       toM: last ? null : from + c.priceStepM,

@@ -44,8 +44,8 @@ class SettingsScreen extends ConsumerWidget {
           child: Text(
             preset == null
                     ? 'You\'re using custom rules. Pick a level to replace them.'
-                    : 'Each metre of scrolling costs ${_x(cfg.startPrice)} m of walking at first, then 1 m more for '
-                        'every ${formatRound(cfg.priceStepM)} you scroll in a day, up to ${_x(cfg.maxPrice)} m.',
+                    : 'Walking per metre of scrolling: ${tiersText(cfg.priceTiers)}, one tier up for every '
+                        '${formatRound(cfg.priceStepM)} you scroll in a day.',
             style: t.bodyMedium?.copyWith(color: context.colors.muted),
           ),
         ),
@@ -158,7 +158,6 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
-String _x(double v) => v % 1 == 0 ? v.toStringAsFixed(0) : v.toStringAsFixed(1);
 
 String _themeLabel(String mode) => switch (mode) {
       'light' => 'Light',
@@ -287,17 +286,9 @@ class _CustomRulesPage extends ConsumerWidget {
     final cfg = c.config;
     void set(WalletConfig n) => c.updateConfig(n);
     return _SubPage(title: 'Custom rules', children: [
-      const _Help('Changing any of these switches How strict to custom.'),
+      _Help('The price tiers (${tiersText(cfg.priceTiers)}) come from How strict. '
+          'Changing anything here switches it to custom.'),
       TileGroup(children: [
-        _SliderRow(
-          label: 'Walking per metre at first',
-          value: cfg.startPrice,
-          min: 1,
-          max: 5,
-          divisions: 4,
-          format: (v) => '${_x(v)} m',
-          onChanged: (v) => set(cfg.copyWith(startPrice: v, maxPrice: v > cfg.maxPrice ? v : null)),
-        ),
         _SliderRow(
           label: 'Walking gets dearer every',
           value: cfg.priceStepM,
@@ -306,15 +297,6 @@ class _CustomRulesPage extends ConsumerWidget {
           divisions: 7,
           format: (v) => '${v.toStringAsFixed(0)} m scrolled',
           onChanged: (v) => set(cfg.copyWith(priceStepM: v)),
-        ),
-        _SliderRow(
-          label: 'Most it can cost',
-          value: cfg.maxPrice,
-          min: 1,
-          max: 10,
-          divisions: 9,
-          format: (v) => '${_x(v)} m walked per metre',
-          onChanged: (v) => set(cfg.copyWith(maxPrice: v, startPrice: v < cfg.startPrice ? v : null)),
         ),
         _SliderRow(
           label: 'Apps freeze completely after',

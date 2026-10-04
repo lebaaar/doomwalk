@@ -27,7 +27,7 @@ void _log(String msg) {
 class DoomWalkController extends ChangeNotifier {
   /// Bumped whenever the economy's meaning or defaults change, so saved
   /// configs from before are reset to the new defaults.
-  static const modelVersion = '3';
+  static const modelVersion = '4';
 
   DoomWalkController._(this._store, this._native, this._engine, this._walk, this.catalog);
 

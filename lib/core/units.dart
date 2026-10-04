@@ -52,3 +52,10 @@ String formatCount(int n) {
   }
   return b.toString();
 }
+
+/// Price tiers as words: "3×, 5×, 7×, 10× and 15×".
+String tiersText(List<double> tiers) {
+  final t = tiers.map(formatTimes).toList();
+  if (t.length < 2) return t.join();
+  return '${t.sublist(0, t.length - 1).join(', ')} and ${t.last}';
+}

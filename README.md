@@ -26,16 +26,16 @@ Run out, and the app you're in slowly **frosts over** until you get up and take 
    scrolling. Walking while it's full adds nothing, so walk when you want to scroll.
 2. **Scrolling spends it.** Instagram, TikTok, YouTube, Reddit and the like count.
    Calls, maps, banking, messages and emergency apps are never touched.
-3. **Scrolling gets more expensive.** At first every metre of scrolling costs 2 m of
-   walking. The more you scroll in a day, the more each metre costs:
+3. **Scrolling gets more expensive.** Every metre of scrolling costs 3 m of walking
+   to start with, and it goes up a tier for every 50 m you scroll in a day:
 
    | Scrolled today | Walking per metre | Filling the 50 m bank |
    |---|---|---|
-   | 0–49 m | 2× | 134 steps |
-   | 50–99 m | 3× | 200 steps |
-   | 100–149 m | 4× | 267 steps |
-   | 150–199 m | 5× | 334 steps |
-   | 200 m and more | 6× | 400 steps |
+   | 0–49 m | 3× | 200 steps |
+   | 50–99 m | 5× | 334 steps |
+   | 100–149 m | 7× | 467 steps |
+   | 150–199 m | 10× | 667 steps |
+   | 200 m and more | 15× (max) | 1,000 steps |
 
 4. **Bank empty? The app freezes.** It fades behind a blur with a card that says how
    many steps get you going again. Taps still work, it's just no fun.

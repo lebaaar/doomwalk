@@ -5,26 +5,26 @@ void main() {
   final t0 = DateTime(2026, 10, 3, 10);
   // Round numbers for the mechanics: 1:1 at first, +1 every 100 m up to 5,
   // a 100 m bank. The defaults have their own tests.
-  const simple = WalletConfig(bankCapM: 100, startPrice: 1, priceStepM: 100, maxPrice: 5);
+  const simple = WalletConfig(bankCapM: 100, priceTiers: [1, 2, 3, 4, 5], priceStepM: 100);
   ScrollWallet fresh([WalletConfig c = simple]) => ScrollWallet(config: c, state: WalletState.fresh(t0));
 
   group('defaults', () {
-    test('a 50 m bank, walking at 2x from the start, +1 every 50 m up to 6x', () {
+    test('a 50 m bank; walking at 3x, then 5x, 7x, 10x and 15x, a tier per 50 m', () {
       const c = WalletConfig();
       expect(c.bankCapM, 50);
-      expect(priceAt(0, c), 2);
-      expect(priceAt(49.9, c), 2);
-      expect(priceAt(50, c), 3);
-      expect(priceAt(200, c), 6);
-      expect(priceAt(1000, c), 6);
+      expect(<double>[0, 49.9, 50, 100, 150, 200, 1000].map((m) => priceAt(m, c)), [3, 3, 5, 7, 10, 15, 15]);
       final w = fresh(c);
-      expect(w.applyWalk(60, t0), closeTo(30, 1e-9)); // 60 m walked at 2x
+      expect(w.applyWalk(60, t0), closeTo(20, 1e-9)); // 60 m walked at 3x
       w.applyWalk(1000, t0);
       expect(w.bankM, 50);
     });
 
-    test('a starting price above the cap wins', () {
-      expect(priceAt(500, const WalletConfig(startPrice: 3, maxPrice: 2)), 3);
+    test('saved tiers must be numbers of at least 1 that never go down', () {
+      List<double> tiers(Object? v) => WalletConfig.fromJson({'priceTiers': v}).priceTiers;
+      expect(tiers([2, 4, 4, 9]), [2, 4, 4, 9]);
+      for (final bad in [<Object>[], [5, 3], [0.5, 2], ['x'], 7]) {
+        expect(tiers(bad), WalletConfig.defaultPriceTiers, reason: '$bad');
+      }
     });
   });
 
@@ -41,7 +41,7 @@ void main() {
     });
 
     test('a cap of 1 keeps it 1:1 forever', () {
-      expect(priceAt(10000, const WalletConfig(startPrice: 1, maxPrice: 1)), 1);
+      expect(priceAt(10000, const WalletConfig(priceTiers: [1])), 1);
     });
   });
 
@@ -207,7 +207,7 @@ void main() {
 
     test('config round-trips through JSON, the cap stays in range', () {
       const c = WalletConfig(
-          bankCapM: 80, startPrice: 3, priceStepM: 60, maxPrice: 4, frostAtM: 30, weightKg: 90, stepGoal: 12500);
+          bankCapM: 80, priceTiers: [2, 4, 8], priceStepM: 60, frostAtM: 30, weightKg: 90, stepGoal: 12500);
       expect(WalletConfig.fromJson(c.toJson()).toJson(), c.toJson());
       expect(WalletConfig.fromJson({'bankCapM': 9000}).bankCapM, WalletConfig.maxBankCapM);
     });

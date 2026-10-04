@@ -409,7 +409,8 @@ class _BankBlock extends StatelessWidget {
             triggerMode: TooltipTriggerMode.tap,
             showDuration: const Duration(seconds: 5),
             message: 'Right now 1 m walked adds $per of scrolling. '
-                'Every ${formatRound(c.config.priceStepM)} you scroll today, it takes 1 m more.',
+                'Every ${formatRound(c.config.priceStepM)} you scroll today it goes up a tier: '
+                '${tiersText(c.config.priceTiers)}.',
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(color: chipBg, borderRadius: BorderRadius.circular(999)),
