@@ -83,7 +83,7 @@ Release build fails without `android/key.properties`, so that debug-signed APK c
    ```
 2. Copy `android/example-key.properties` to `android/key.properties` and fill it in. It is git-ignored; never commit it or the `.jks`.
 3. In Play Console, create the app (package `com.lebaaar.doomwalk`) and keep *Play App Signing* on. Play re-signs with its own key, your upload key only proves the upload is yours.
-4. Fill in the store pages with the text in [docs/google-play/listing.md](docs/google-play/listing.md): short and full description, the accessibility API declaration, the foreground service declarations, the data safety form (no data collected) and the privacy policy URL ([PRIVACY.md](PRIVACY.md) on GitHub). Add an icon (512 px: `docs/logo/final/png/icon-rounded-512.png`), a feature graphic (1024 x 500) and phone screenshots (`docs/screenshots`, 1080 x 2400 ones from `render_screens_test.dart`).
+4. Fill in the store pages with the text in [docs/google-play/listing.md](docs/google-play/listing.md): short and full description, the accessibility API declaration, the foreground service declarations, the data safety form (no data collected) and the privacy policy URL ([PRIVACY.md](PRIVACY.md) on GitHub). Add an icon (512 px: `docs/logo/final/png/icon-rounded-512.png`), a feature graphic (`docs/graphics/feature-graphic.png`, 1024 x 500) and phone screenshots (`docs/graphics/screenshot-*.png`, 2160 x 3840). Both are rendered from `docs/graphics/src/graphics.html` with `node docs/graphics/src/render.cjs` (point its `require` at your Playwright install).
 5. Google reviews apps that use the accessibility API; expect a few days and a possible request for a short demo video of the service doing what the declaration says.
 
 ### Every release
