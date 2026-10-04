@@ -12,6 +12,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:doomwalk/core/scroll_wallet.dart';
 import 'package:doomwalk/services/controller.dart';
 import 'package:doomwalk/ui/home_screen.dart';
 import 'package:doomwalk/ui/intro_stories.dart';
@@ -233,6 +234,31 @@ void main() {
     tester.view.physicalSize = const Size(1080, 3200);
     await shot('home_climb_long', null);
     tester.view.physicalSize = const Size(1080, 2400);
+
+    // README shots, all phone-sized (1080 x 2400): an ordinary day with the
+    // step counter working, some walking and a bank that is part full.
+    await tester.runAsync(() async {
+      c.walkError = null; // as on a phone with activity access
+      c.walkAvailable = true;
+      await c.setDeveloperOptions(true);
+      await c.devResetTracking();
+      c.devAddSteps(4812);
+      c.devAddScroll('com.instagram.android', 14);
+      c.devAddScroll('com.zhiliaoapp.musically', 6);
+      await c.setDeveloperOptions(false);
+      // A believable week behind it (steps per day, newest first).
+      final now = DateTime.now();
+      c.walkHistory = [
+        for (final (i, steps) in [11800, 10400, 12500, 7200, 10100, 6100].indexed)
+          (dayKeyOf(DateTime(now.year, now.month, now.day - i - 1)), steps * c.config.strideM),
+      ];
+    });
+    brightness.value = Brightness.dark;
+    await tab('Today');
+    await shot('readme_today', null);
+    await tab('Activity');
+    await shot('readme_activity', null);
+    await tab('Today');
 
     // The story intro: a few slides, tapping the right side to go on.
     screen.value = IntroStories(config: c.config, onDone: () {});

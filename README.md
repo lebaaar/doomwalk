@@ -15,9 +15,9 @@ your social and video apps, in real **metres**, and only lets you scroll as far 
 you've walked. Run out, and those apps are **blocked** until you get up and take a walk.
 
 <p align="center">
-  <img src="docs/screenshots/host_intro_0.png" width="200" alt="Intro: want to scroll? Take a walk first">
-  <img src="docs/screenshots/host_tab_today.png" width="200" alt="Today: steps and the bank">
-  <img src="docs/screenshots/host_intro_4.png" width="200" alt="Bank empty? The app is blocked">
+  <img src="docs/screenshots/host_intro_0.png" width="220" alt="Intro stories: want to scroll? Take a walk first">
+  <img src="docs/screenshots/host_readme_today.png" width="220" alt="Today: steps, and the bank they filled">
+  <img src="docs/screenshots/host_readme_activity.png" width="220" alt="Activity: a week of walking and scrolling by app">
 </p>
 
 ## How it works
