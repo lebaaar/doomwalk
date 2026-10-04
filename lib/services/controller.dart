@@ -172,6 +172,7 @@ class DoomWalkController extends ChangeNotifier {
       final (info, st) = await _native.ready();
       device = info;
       status = st;
+      // ignore: empty_catches
     } on MissingPluginException {}
     final d = device;
     final dpi = d == null
@@ -197,6 +198,7 @@ class DoomWalkController extends ChangeNotifier {
       for (final m in await _native.launchableApps()) {
         catalog.categories[m.pkg] = categoryFromAndroid(m.category);
       }
+      // ignore: empty_catches
     } on Exception {}
     if (_engine.rollover(now)) _log(() => 'rollover to ${state.dayKey}');
     await _reloadPeriods();
@@ -357,15 +359,17 @@ class DoomWalkController extends ChangeNotifier {
     if (fg == null ||
         !_foregroundFrostable ||
         overrideActive ||
-        !status.serviceConnected)
+        !status.serviceConnected) {
       return;
+    }
     if (overdraftM >= 0.05 || bankM >= 0.5) return;
     final now = DateTime.now();
     final last = _lastNotice[fg];
     if (!force &&
         last != null &&
-        now.difference(last) < const Duration(minutes: 10))
+        now.difference(last) < const Duration(minutes: 10)) {
       return;
+    }
     _lastNotice[fg] = now;
     final walk = walkToUnlock(unlockChunkM);
     final chunk = unlockChunkM;
@@ -614,8 +618,9 @@ class DoomWalkController extends ChangeNotifier {
     _dirty = true;
     await flush();
     _pushNotification();
-    if (now.difference(_lastWidgetPush) > const Duration(minutes: 15))
+    if (now.difference(_lastWidgetPush) > const Duration(minutes: 15)) {
       _pushWidget(force: true);
+    }
     notifyListeners();
   }
 
@@ -717,8 +722,9 @@ class DoomWalkController extends ChangeNotifier {
     if (!force &&
         !endpoint &&
         pass == _lastPassSent &&
-        (target - _lastFrostSent).abs() < 0.01)
+        (target - _lastFrostSent).abs() < 0.01) {
       return;
+    }
     _lastFrostSent = target;
     _lastPassSent = pass;
     final (title, body) = frostCard(
@@ -825,7 +831,6 @@ class DoomWalkController extends ChangeNotifier {
   Future<void> _safe(Future<void> Function() f) async {
     try {
       await f();
-    } on MissingPluginException {
     } on PlatformException catch (e) {
       _log(() => 'native error $e');
     }
@@ -948,8 +953,9 @@ class DoomWalkController extends ChangeNotifier {
     if (!confirmed || !status.canRestartService) return;
     final last = _lastRestart;
     if (last != null &&
-        DateTime.now().difference(last) < const Duration(minutes: 1))
+        DateTime.now().difference(last) < const Duration(minutes: 1)) {
       return;
+    }
     unawaited(restartScrollMeasuring());
   }
 
@@ -1104,8 +1110,9 @@ String walletHeadline({
   required double strideM,
 }) {
   final walk = stepsText(walkToUnlockM, strideM);
-  if (overdraftM >= 0.05)
+  if (overdraftM >= 0.05) {
     return 'Locked. Walk $walk to unlock ${formatRound(unlocksM)}';
+  }
   if (full) return 'Bank full: ${formatRound(bankM)} to scroll';
   if (bankM >= 0.5) return '${formatRound(bankM)} in the bank';
   return 'Bank empty. Walk $walk for ${formatRound(unlocksM)}';
@@ -1119,8 +1126,9 @@ String walletHeadline({
   required double unlocksM,
   required double strideM,
 }) {
-  if (overdraftM < 0.05 && bankM >= 0.5)
+  if (overdraftM < 0.05 && bankM >= 0.5) {
     return (formatRound(bankM), full ? 'bank full' : 'in the bank');
+  }
   final n = strideM <= 0 ? 0 : (walkToUnlockM / strideM).ceil();
   return (formatCount(n), 'steps for ${formatRound(unlocksM)}');
 }
