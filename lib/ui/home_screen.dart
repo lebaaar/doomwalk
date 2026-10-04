@@ -543,7 +543,7 @@ class _PassButton extends StatelessWidget {
         left > 0
             ? 'For emergencies. $left ${left == 1 ? 'pass' : 'passes'} left today.'
             : 'No passes left today.',
-        textAlign: TextAlign.center,
+        textAlign: TextAlign.start,
         style: t.bodySmall?.merge(numeric).copyWith(color: muted),
       ),
     ]);
