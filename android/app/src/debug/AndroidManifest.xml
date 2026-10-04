@@ -1,11 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- The INTERNET permission is required for development. Specifically,
-         the Flutter tool needs it to communicate with the running application
-         to allow setting breakpoints, to provide hot reload, etc.
-    -->
+    <!-- The Flutter tool needs INTERNET for hot reload and breakpoints -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application>
-        <!-- Debug-only hook to simulate walking from adb. Not in release. -->
         <receiver android:name=".DebugReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="com.lebaaar.doomwalk.DEBUG_WALK"/>

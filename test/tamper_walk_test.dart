@@ -14,25 +14,47 @@ void main() {
     });
 
     test('short gaps are free', () {
-      final g = TamperGap(start: start, end: start.add(const Duration(seconds: 90)), reason: 'x');
+      final g = TamperGap(
+        start: start,
+        end: start.add(const Duration(seconds: 90)),
+        reason: 'x',
+      );
       expect(p.rawMetresFor(g, 30), 0);
     });
 
-    test('gap is charged as walking, one metre per estimated metre scrolled', () {
-      final g = TamperGap(start: start, end: start.add(const Duration(hours: 2)), reason: 'x');
-      expect(p.rawMetresFor(g, 30), closeTo(60, 1e-9));
-      expect(p.costFor(g, 30), closeTo(60, 1e-9));
-    });
+    test(
+      'gap is charged as walking, one metre per estimated metre scrolled',
+      () {
+        final g = TamperGap(
+          start: start,
+          end: start.add(const Duration(hours: 2)),
+          reason: 'x',
+        );
+        expect(p.rawMetresFor(g, 30), closeTo(60, 1e-9));
+        expect(p.costFor(g, 30), closeTo(60, 1e-9));
+      },
+    );
 
     test('very long gaps are capped', () {
-      final g = TamperGap(start: start, end: start.add(const Duration(days: 3)), reason: 'x');
+      final g = TamperGap(
+        start: start,
+        end: start.add(const Duration(days: 3)),
+        reason: 'x',
+      );
       expect(p.rawMetresFor(g, 10), closeTo(160, 1e-9));
     });
 
     test('a gap spends the walk bank first, the rest is owed', () {
-      final w = ScrollWallet(config: const WalletConfig(), state: WalletState.fresh(start));
+      final w = ScrollWallet(
+        config: const WalletConfig(),
+        state: WalletState.fresh(start),
+      );
       w.applyWalk(60, start); // 15 m in the bank at the default 4x
-      final g = TamperGap(start: start, end: start.add(const Duration(hours: 2)), reason: 'x');
+      final g = TamperGap(
+        start: start,
+        end: start.add(const Duration(hours: 2)),
+        reason: 'x',
+      );
       w.chargeGap(p.costFor(g, 20), start);
       expect(w.bankM, 0);
       expect(w.overdraftM, closeTo(25, 1e-9));

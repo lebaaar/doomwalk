@@ -24,7 +24,6 @@ class DoomWalkApp extends ConsumerWidget {
         'dark' => ThemeMode.dark,
         _ => ThemeMode.system,
       },
-      // Screens without an app bar (onboarding) still need the bar style.
       builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
         value: overlayStyle(Theme.of(context).brightness),
         child: child!,
@@ -34,8 +33,6 @@ class DoomWalkApp extends ConsumerWidget {
   }
 }
 
-/// Shows the story intro once, then onboarding until the user has finished
-/// it, then the dashboard.
 class _Root extends ConsumerWidget {
   const _Root();
 

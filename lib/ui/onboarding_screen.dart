@@ -14,7 +14,13 @@ import 'theme.dart';
 enum _StepId { restricted, accessibility, activity, notifications, battery }
 
 class _Step {
-  const _Step(this.id, this.title, this.why, this.action, {this.optional = false});
+  const _Step(
+    this.id,
+    this.title,
+    this.why,
+    this.action, {
+    this.optional = false,
+  });
   final _StepId id;
   final String title;
   final String why;
@@ -66,13 +72,13 @@ class OnboardingScreen extends ConsumerStatefulWidget {
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with WidgetsBindingObserver {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
+    with WidgetsBindingObserver {
   final Map<_StepId, bool> _done = {};
   Timer? _poll;
   bool _activityWasGranted = false;
   bool _loaded = false;
 
-  /// Switched on in Settings, though maybe not running.
   bool _enabled = false;
   bool _stalled = false;
 
@@ -81,7 +87,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _refresh();
-    // Live status: poll while visible so steps tick off the moment they're granted.
     _poll = Timer.periodic(const Duration(seconds: 1), (_) => _refresh());
   }
 
@@ -110,14 +115,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     if (!mounted) return;
     setState(() {
       _loaded = true;
-      // Done means running, not just switched on: Android can leave it on
-      // but stopped, and then nothing is measured.
+      // Done means running: Android can leave the service on but stopped
       _done[_StepId.accessibility] = st.serviceConnected;
       _enabled = st.accessibilityEnabled;
       _stalled = st.serviceStalled;
-      // Restricted settings only matter on 13+ and only until accessibility is on.
       _done[_StepId.restricted] =
-          st.sdk < 33 || st.accessibilityEnabled || st.restrictedSettingsAllowed != false;
+          st.sdk < 33 ||
+          st.accessibilityEnabled ||
+          st.restrictedSettingsAllowed != false;
       _done[_StepId.activity] = activity;
       _done[_StepId.notifications] = notif;
       _done[_StepId.battery] = st.ignoringBatteryOptimizations;
@@ -164,26 +169,34 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     final current = _current;
     final steps = _visible;
     final doneCount = steps.where((s) => _done[s.id] == true).length;
-    // Switched on is enough to go on; if Android isn't running it, Today and
-    // Permissions say so and offer the fix.
     final canFinish = _enabled;
     return Scaffold(
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 28, 20, 32),
           children: [
-            Row(children: [
-              IconBadge(
-                size: 36,
-                background: context.colors.accentContainer,
-                child: DepthTicks(size: 20, color: context.colors.onAccentContainer),
-              ),
-              const SizedBox(width: 10),
-              Text('DoomWalk', style: t.titleMedium),
-            ]),
+            Row(
+              children: [
+                IconBadge(
+                  size: 36,
+                  background: context.colors.accentContainer,
+                  child: DepthTicks(
+                    size: 20,
+                    color: context.colors.onAccentContainer,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Text('DoomWalk', style: t.titleMedium),
+              ],
+            ),
             const SizedBox(height: 36),
-            Text('Want to scroll? Take a walk first.',
-                style: t.headlineLarge?.copyWith(fontSize: 34, letterSpacing: -1.4)),
+            Text(
+              'Want to scroll? Take a walk first.',
+              style: t.headlineLarge?.copyWith(
+                fontSize: 34,
+                letterSpacing: -1.4,
+              ),
+            ),
             const SizedBox(height: 14),
             Text(
               'Walking fills a small bank of scrolling, and social apps spend it. It starts empty every day and '
@@ -192,30 +205,39 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
               style: t.bodyLarge?.copyWith(color: context.colors.muted),
             ),
             const SizedBox(height: 32),
-            Row(children: [
-              Text('Setup', style: t.titleSmall),
-              const Spacer(),
-              Text(_loaded ? '$doneCount of ${steps.length} done' : 'Checking permissions',
-                  style: t.bodySmall?.merge(numeric)),
-            ]),
+            Row(
+              children: [
+                Text('Setup', style: t.titleSmall),
+                const Spacer(),
+                Text(
+                  _loaded
+                      ? '$doneCount of ${steps.length} done'
+                      : 'Checking permissions',
+                  style: t.bodySmall?.merge(numeric),
+                ),
+              ],
+            ),
             const SizedBox(height: 10),
-            // One segment per step, filled as each is done.
             ExcludeSemantics(
-              child: Row(children: [
-                for (var i = 0; i < steps.length; i++) ...[
-                  if (i > 0) const SizedBox(width: 4),
-                  Expanded(
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 300),
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: _loaded && _done[steps[i].id] == true ? context.colors.accent : context.colors.raised2,
-                        borderRadius: BorderRadius.circular(2),
+              child: Row(
+                children: [
+                  for (var i = 0; i < steps.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 4),
+                    Expanded(
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: _loaded && _done[steps[i].id] == true
+                              ? context.colors.accent
+                              : context.colors.raised2,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ]),
+              ),
             ),
             const SizedBox(height: 12),
             for (final s in _loaded ? steps : const <_Step>[])
@@ -228,10 +250,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                         onAct: () => _act(s),
                         why: s.id == _StepId.accessibility && _stalled
                             ? 'Scroll measuring is switched on, but Android isn\'t running it. In accessibility '
-                                'settings, switch DoomWalk off, then on again.'
+                                  'settings, switch DoomWalk off, then on again.'
                             : null,
                       )
-                    : _StepRow(step: s, done: _done[s.id] == true, onAct: () => _act(s)),
+                    : _StepRow(
+                        step: s,
+                        done: _done[s.id] == true,
+                        onAct: () => _act(s),
+                      ),
               ),
             const SizedBox(height: 24),
             if (!_loaded)
@@ -239,10 +265,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
             else if (canFinish && current == null)
               FilledButton(onPressed: _finish, child: const Text('Start'))
             else if (canFinish)
-              // The open step is the main action; skipping it is secondary.
-              OutlinedButton(onPressed: _finish, child: const Text('Continue without the rest'))
+              OutlinedButton(
+                onPressed: _finish,
+                child: const Text('Continue without the rest'),
+              )
             else
-              Text('Scroll measuring is the one step you can\'t skip.', style: t.bodySmall),
+              Text(
+                'Scroll measuring is the one step you can\'t skip.',
+                style: t.bodySmall,
+              ),
           ],
         ),
       ),
@@ -250,13 +281,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
   }
 }
 
-/// The step to do now: the only one that gets a surface.
 class _ActiveStep extends StatelessWidget {
   const _ActiveStep({required this.step, required this.onAct, this.why});
   final _Step step;
   final VoidCallback onAct;
 
-  /// Replaces the step's usual explanation (a stopped service, say).
   final String? why;
 
   @override
@@ -270,16 +299,24 @@ class _ActiveStep extends StatelessWidget {
         borderRadius: BorderRadius.circular(Radii.surface),
         border: Border.all(color: context.colors.hairline),
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        Row(children: [
-          Expanded(child: Text(step.title, style: t.titleMedium)),
-          if (step.optional) Text('Optional', style: t.bodySmall),
-        ]),
-        const SizedBox(height: 6),
-        Text(why ?? step.why, style: t.bodyMedium?.copyWith(color: context.colors.muted)),
-        const SizedBox(height: 18),
-        FilledButton(onPressed: onAct, child: Text(step.action)),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(child: Text(step.title, style: t.titleMedium)),
+              if (step.optional) Text('Optional', style: t.bodySmall),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            why ?? step.why,
+            style: t.bodyMedium?.copyWith(color: context.colors.muted),
+          ),
+          const SizedBox(height: 18),
+          FilledButton(onPressed: onAct, child: Text(step.action)),
+        ],
+      ),
     );
   }
 }
@@ -298,18 +335,25 @@ class _StepRow extends StatelessWidget {
       onTap: done ? null : onAct,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Row(children: [
-          Icon(
-            done ? PhFill.checkCircle : Ph.circle,
-            size: 22,
-            color: done ? context.colors.accent : context.colors.faint,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(step.title, style: t.bodyLarge?.copyWith(color: done ? context.colors.muted : context.colors.text)),
-          ),
-          if (step.optional && !done) Text('Optional', style: t.bodySmall),
-        ]),
+        child: Row(
+          children: [
+            Icon(
+              done ? PhFill.checkCircle : Ph.circle,
+              size: 22,
+              color: done ? context.colors.accent : context.colors.faint,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                step.title,
+                style: t.bodyLarge?.copyWith(
+                  color: done ? context.colors.muted : context.colors.text,
+                ),
+              ),
+            ),
+            if (step.optional && !done) Text('Optional', style: t.bodySmall),
+          ],
+        ),
       ),
     );
   }

@@ -3,26 +3,42 @@ import 'package:doomwalk/core/scroll_wallet.dart';
 
 void main() {
   final t0 = DateTime(2026, 10, 3, 10);
-  // Round numbers for the mechanics: 1:1 at first, +1 every 100 m up to 5,
-  // a 100 m bank. The defaults have their own tests.
-  const simple = WalletConfig(bankCapM: 100, priceTiers: [1, 2, 3, 4, 5], priceStepM: 100);
-  ScrollWallet fresh([WalletConfig c = simple]) => ScrollWallet(config: c, state: WalletState.fresh(t0));
+  const simple = WalletConfig(
+    bankCapM: 100,
+    priceTiers: [1, 2, 3, 4, 5],
+    priceStepM: 100,
+  );
+  ScrollWallet fresh([WalletConfig c = simple]) =>
+      ScrollWallet(config: c, state: WalletState.fresh(t0));
 
   group('defaults', () {
-    test('a 50 m bank; walking at 4x, then 6x, 9x, 12x and 18x, a tier per 50 m', () {
-      const c = WalletConfig();
-      expect(c.bankCapM, 50);
-      expect(<double>[0, 49.9, 50, 100, 150, 200, 1000].map((m) => priceAt(m, c)), [4, 4, 6, 9, 12, 18, 18]);
-      final w = fresh(c);
-      expect(w.applyWalk(60, t0), closeTo(15, 1e-9)); // 60 m walked at 4x
-      w.applyWalk(1000, t0);
-      expect(w.bankM, 50);
-    });
+    test(
+      'a 50 m bank; walking at 4x, then 6x, 9x, 12x and 18x, a tier per 50 m',
+      () {
+        const c = WalletConfig();
+        expect(c.bankCapM, 50);
+        expect(
+          <double>[0, 49.9, 50, 100, 150, 200, 1000].map((m) => priceAt(m, c)),
+          [4, 4, 6, 9, 12, 18, 18],
+        );
+        final w = fresh(c);
+        expect(w.applyWalk(60, t0), closeTo(15, 1e-9)); // 60 m walked at 4x
+        w.applyWalk(1000, t0);
+        expect(w.bankM, 50);
+      },
+    );
 
     test('saved tiers must be numbers of at least 1 that never go down', () {
-      List<double> tiers(Object? v) => WalletConfig.fromJson({'priceTiers': v}).priceTiers;
+      List<double> tiers(Object? v) =>
+          WalletConfig.fromJson({'priceTiers': v}).priceTiers;
       expect(tiers([2, 4, 4, 9]), [2, 4, 4, 9]);
-      for (final bad in [<Object>[], [5, 3], [0.5, 2], ['x'], 7]) {
+      for (final bad in [
+        <Object>[],
+        [5, 3],
+        [0.5, 2],
+        ['x'],
+        7,
+      ]) {
         expect(tiers(bad), WalletConfig.defaultPriceTiers, reason: '$bad');
       }
     });
@@ -114,17 +130,19 @@ void main() {
       expect(w.frostLevel, 1);
     });
 
-    test('walkToUnlock clears what is owed and fills to the amount, at the price', () {
-      final w = fresh();
-      expect(w.walkToUnlock(100), closeTo(100, 1e-9));
-      w.applyScroll(metres: 110, at: t0); // 110 owed, price now 2
-      expect(w.walkToUnlock(100), closeTo((110 + 100) * 2, 1e-9));
-      w.applyWalk(300, t0); // pays 150 of scrolling: 110 owed, 40 to the bank
-      expect(w.bankM, closeTo(40, 1e-9));
-      expect(w.walkToUnlock(100), closeTo(60 * 2, 1e-9));
-      // Never more than the bank holds (100 m).
-      expect(w.walkToUnlock(1000), closeTo(60 * 2, 1e-9));
-    });
+    test(
+      'walkToUnlock clears what is owed and fills to the amount, at the price',
+      () {
+        final w = fresh();
+        expect(w.walkToUnlock(100), closeTo(100, 1e-9));
+        w.applyScroll(metres: 110, at: t0); // 110 owed, price now 2
+        expect(w.walkToUnlock(100), closeTo((110 + 100) * 2, 1e-9));
+        w.applyWalk(300, t0); // pays 150 of scrolling: 110 owed, 40 to the bank
+        expect(w.bankM, closeTo(40, 1e-9));
+        expect(w.walkToUnlock(100), closeTo(60 * 2, 1e-9));
+        expect(w.walkToUnlock(1000), closeTo(60 * 2, 1e-9));
+      },
+    );
 
     test('a tracking gap spends the bank first, the rest is owed', () {
       final w = fresh();
@@ -137,22 +155,28 @@ void main() {
   });
 
   group('emergency pass', () {
-    test('three a day, scrolling during one is free and does not raise the price', () {
-      final w = fresh();
-      expect(w.startOverride(t0), isTrue);
-      final c = w.applyScroll(metres: 500, at: t0.add(const Duration(minutes: 1)));
-      expect(c.owedM, 0);
-      expect(w.overdraftM, 0);
-      expect(w.priceNow, 1);
-      expect(w.state.scrolledTodayM, closeTo(500, 1e-9));
-      w.endOverride();
-      expect(w.startOverride(t0), isTrue);
-      w.endOverride();
-      expect(w.startOverride(t0), isTrue);
-      w.endOverride();
-      expect(w.startOverride(t0), isFalse);
-      expect(w.overridesLeft(t0), 0);
-    });
+    test(
+      'three a day, scrolling during one is free and does not raise the price',
+      () {
+        final w = fresh();
+        expect(w.startOverride(t0), isTrue);
+        final c = w.applyScroll(
+          metres: 500,
+          at: t0.add(const Duration(minutes: 1)),
+        );
+        expect(c.owedM, 0);
+        expect(w.overdraftM, 0);
+        expect(w.priceNow, 1);
+        expect(w.state.scrolledTodayM, closeTo(500, 1e-9));
+        w.endOverride();
+        expect(w.startOverride(t0), isTrue);
+        w.endOverride();
+        expect(w.startOverride(t0), isTrue);
+        w.endOverride();
+        expect(w.startOverride(t0), isFalse);
+        expect(w.overridesLeft(t0), 0);
+      },
+    );
 
     test('a pass expires after its minutes', () {
       final w = fresh();
@@ -207,39 +231,67 @@ void main() {
 
     test('config round-trips through JSON, the cap stays in range', () {
       const c = WalletConfig(
-          bankCapM: 80, priceTiers: [2, 4, 8], priceStepM: 60, frostAtM: 30, weightKg: 90, stepGoal: 12500);
+        bankCapM: 80,
+        priceTiers: [2, 4, 8],
+        priceStepM: 60,
+        frostAtM: 30,
+        weightKg: 90,
+        stepGoal: 12500,
+      );
       expect(WalletConfig.fromJson(c.toJson()).toJson(), c.toJson());
-      expect(WalletConfig.fromJson({'bankCapM': 9000}).bankCapM, WalletConfig.maxBankCapM);
+      expect(
+        WalletConfig.fromJson({'bankCapM': 9000}).bankCapM,
+        WalletConfig.maxBankCapM,
+      );
     });
 
-    test('the step goal defaults to 10,000; an old goal in metres becomes steps', () {
-      expect(const WalletConfig().stepGoal, 10000);
-      expect(const WalletConfig(stepGoal: 8000, strideM: 0.8).walkGoalM, closeTo(6400, 1e-9));
-      // The old 5 km default is replaced by the new default.
-      expect(WalletConfig.fromJson({'walkGoalM': 5000.0, 'strideM': 0.75}).stepGoal, 10000);
-      expect(WalletConfig.fromJson({'walkGoalM': 6000.0, 'strideM': 0.75}).stepGoal, 8000);
-      expect(WalletConfig.fromJson({'stepGoal': 99999}).stepGoal, WalletConfig.maxStepGoal);
-    });
+    test(
+      'the step goal defaults to 10,000; an old goal in metres becomes steps',
+      () {
+        expect(const WalletConfig().stepGoal, 10000);
+        expect(
+          const WalletConfig(stepGoal: 8000, strideM: 0.8).walkGoalM,
+          closeTo(6400, 1e-9),
+        );
+        expect(
+          WalletConfig.fromJson({'walkGoalM': 5000.0, 'strideM': 0.75})
+              .stepGoal,
+          10000,
+        );
+        expect(
+          WalletConfig.fromJson({'walkGoalM': 6000.0, 'strideM': 0.75})
+              .stepGoal,
+          8000,
+        );
+        expect(
+          WalletConfig.fromJson({'stepGoal': 99999}).stepGoal,
+          WalletConfig.maxStepGoal,
+        );
+      },
+    );
 
-    test('an older state keeps today and lifetime totals, not its debt or bank', () {
-      final s = WalletState.fromJson({
-        'dayKey': '2026-10-03',
-        'debtM': 340.0,
-        'bankM': 120.0, // walking metres in the previous model
-        'allowanceUsedM': 200.0,
-        'scrolledTodayM': 260.0,
-        'walkedTodayM': 120.0,
-        'lifetimeScrolledM': 9000.0,
-        'lifetimeWalkedM': 40000.0,
-        'overridesUsedToday': 1,
-      });
-      expect(s.scrolledTodayM, 260);
-      expect(s.walkedTodayM, 120);
-      expect(s.lifetimeWalkedM, 40000);
-      expect(s.overdraftM, 0);
-      expect(s.bankM, 0);
-      expect(s.overridesUsedToday, 1);
-    });
+    test(
+      'an older state keeps today and lifetime totals, not its debt or bank',
+      () {
+        final s = WalletState.fromJson({
+          'dayKey': '2026-10-03',
+          'debtM': 340.0,
+          'bankM': 120.0, // walking metres in the previous model
+          'allowanceUsedM': 200.0,
+          'scrolledTodayM': 260.0,
+          'walkedTodayM': 120.0,
+          'lifetimeScrolledM': 9000.0,
+          'lifetimeWalkedM': 40000.0,
+          'overridesUsedToday': 1,
+        });
+        expect(s.scrolledTodayM, 260);
+        expect(s.walkedTodayM, 120);
+        expect(s.lifetimeWalkedM, 40000);
+        expect(s.overdraftM, 0);
+        expect(s.bankM, 0);
+        expect(s.overridesUsedToday, 1);
+      },
+    );
 
     test('an old debt-model config keeps only personal settings', () {
       final c = WalletConfig.fromLegacyJson({

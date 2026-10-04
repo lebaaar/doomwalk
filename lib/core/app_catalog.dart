@@ -1,16 +1,9 @@
-/// Which apps count, and how much. Pure Dart.
-library;
-
 const selfPackage = 'com.lebaaar.doomwalk';
 
-/// Class name Android reports for window events from our own activity.
 const selfActivity = '$selfPackage.MainActivity';
 
-/// Never counted, never frosted. The native shim adds the device's actual
-/// launcher(s) and enabled keyboards at runtime on top of this list.
 const exemptPackages = <String>{
   selfPackage,
-  // System UI, shade, settings.
   'android',
   'com.android.systemui',
   'com.android.settings',
@@ -19,7 +12,6 @@ const exemptPackages = <String>{
   'com.google.android.permissioncontroller',
   'com.google.android.packageinstaller',
   'com.android.packageinstaller',
-  // Dialers / calls.
   'com.android.dialer',
   'com.google.android.dialer',
   'com.samsung.android.dialer',
@@ -27,13 +19,11 @@ const exemptPackages = <String>{
   'com.android.phone',
   'com.android.server.telecom',
   'com.android.incallui',
-  // Emergency.
   'com.android.emergency',
   'com.google.android.apps.safetyhub',
   'com.android.cellbroadcastreceiver',
   'com.google.android.cellbroadcastreceiver',
   'com.samsung.android.emergency',
-  // Launchers.
   'com.google.android.apps.nexuslauncher',
   'com.android.launcher',
   'com.android.launcher3',
@@ -45,43 +35,35 @@ const exemptPackages = <String>{
   'com.motorola.launcher3',
   'com.nothing.launcher',
   'app.lawnchair',
-  // Keyboards.
   'com.google.android.inputmethod.latin',
   'com.samsung.android.honeyboard',
   'com.touchtype.swiftkey',
   'com.android.inputmethod.latin',
 };
 
-/// What kind of app a package is. Only some categories are restricted
-/// (counted and frosted); by default just social and video feeds. Banking,
-/// phone, messaging, maps and everything else land in [other] and are left
-/// alone unless the user restricts them explicitly.
 enum AppCategory { social, video, games, news, browser, other }
 
 extension AppCategoryX on AppCategory {
   String get label => switch (this) {
-        AppCategory.social => 'Social media',
-        AppCategory.video => 'Video and short video',
-        AppCategory.games => 'Games',
-        AppCategory.news => 'News',
-        AppCategory.browser => 'Browsers',
-        AppCategory.other => 'Everything else',
-      };
+    AppCategory.social => 'Social media',
+    AppCategory.video => 'Video and short video',
+    AppCategory.games => 'Games',
+    AppCategory.news => 'News',
+    AppCategory.browser => 'Browsers',
+    AppCategory.other => 'Everything else',
+  };
 }
 
 const defaultRestricted = {AppCategory.social, AppCategory.video};
 
-/// Android ApplicationInfo.category values passed from native.
 AppCategory categoryFromAndroid(int c) => switch (c) {
-      0 => AppCategory.games, // CATEGORY_GAME
-      2 => AppCategory.video, // CATEGORY_VIDEO
-      4 => AppCategory.social, // CATEGORY_SOCIAL
-      5 => AppCategory.news, // CATEGORY_NEWS
-      _ => AppCategory.other, // incl. undeclared (-1), maps, productivity, finance
-    };
+  0 => AppCategory.games,
+  2 => AppCategory.video,
+  4 => AppCategory.social,
+  5 => AppCategory.news,
+  _ => AppCategory.other,
+};
 
-/// Many apps don't declare a manifest category, so the big feeds are known
-/// by package name.
 const knownCategories = <String, AppCategory>{
   'com.instagram.android': AppCategory.social,
   'com.instagram.barcelona': AppCategory.social,
@@ -116,20 +98,16 @@ class AppCatalog {
     Set<String> extraExempt = const {},
     Map<String, bool> overrides = const {},
     Set<AppCategory> restricted = defaultRestricted,
-  })  : _extraExempt = {...extraExempt},
-        overrides = {...overrides},
-        restricted = {...restricted};
+  }) : _extraExempt = {...extraExempt},
+       overrides = {...overrides},
+       restricted = {...restricted};
 
   final Set<String> _extraExempt;
 
-  /// Per-app choice that beats the category rules: true = always counts,
-  /// false = never counts.
   final Map<String, bool> overrides;
 
-  /// Categories that are counted and frosted.
   final Set<AppCategory> restricted;
 
-  /// Categories reported by Android for installed apps.
   final Map<String, AppCategory> categories = {};
 
   void addExempt(Iterable<String> pkgs) => _extraExempt.addAll(pkgs);
@@ -137,12 +115,11 @@ class AppCatalog {
   bool isExempt(String pkg) =>
       pkg.isEmpty || exemptPackages.contains(pkg) || _extraExempt.contains(pkg);
 
-  AppCategory categoryOf(String pkg) => knownCategories[pkg] ?? categories[pkg] ?? AppCategory.other;
+  AppCategory categoryOf(String pkg) =>
+      knownCategories[pkg] ?? categories[pkg] ?? AppCategory.other;
 
-  /// Whether the category rules alone restrict [pkg], ignoring overrides.
   bool restrictedByDefault(String pkg) => restricted.contains(categoryOf(pkg));
 
-  /// Whether scrolling in [pkg] counts (and the app can frost).
   bool isRestricted(String pkg) {
     if (isExempt(pkg)) return false;
     return overrides[pkg] ?? restrictedByDefault(pkg);

@@ -4,15 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 
-/**
- * DEBUG BUILDS ONLY (src/debug). Lets adb simulate walking and dump state:
- *   adb shell am broadcast -n com.lebaaar.doomwalk/.DebugReceiver \
- *       -a com.lebaaar.doomwalk.DEBUG_WALK --ef metres 25
- *   adb shell am broadcast -n com.lebaaar.doomwalk/.DebugReceiver \
- *       -a com.lebaaar.doomwalk.DEBUG_SCROLL --es pkg com.instagram.android --ef metres 10
- *   adb shell am broadcast -n com.lebaaar.doomwalk/.DebugReceiver \
- *       -a com.lebaaar.doomwalk.DEBUG_DUMP
- */
+// Debug only: adb broadcasts DEBUG_WALK, DEBUG_SCROLL and DEBUG_DUMP (see tool/device_test.sh)
 class DebugReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Shim.engine(context)

@@ -1,18 +1,4 @@
-/// The scroll wallet. Pure Dart: no Flutter imports, fully deterministic given
-/// the timestamps passed in, so it is unit-tested in isolation.
-///
-/// Model (all distances in metres):
-///   * The bank holds metres of scrolling. Each day starts with it empty.
-///   * Walking adds to the bank, up to [WalletConfig.bankCapM]; walking while
-///     it is full counts for nothing. A metre walked adds 1 / price metres,
-///     where the price rises in steps with what you have scrolled today:
-///       price = priceTiers[min(floor(scrolledToday / priceStepM), last tier)]
-///   * Scrolling spends the bank. With the bank empty it runs an overdraft
-///     (metres of scrolling owed); the frost grows with it and is full at
-///     [WalletConfig.frostAtM]. Walking pays the overdraft first.
-///   * During an emergency pass scrolling is free (nothing is charged).
-///   * At local midnight everything resets: bank, overdraft and price.
-library;
+// Walking adds 1 / price metres to the bank (capped); price = priceTiers[min(floor(scrolledToday / priceStepM), last)]. Scrolling spends the bank, then runs an overdraft that walking pays first. Everything resets at local midnight
 
 import 'dart:math' as math;
 
@@ -35,46 +21,36 @@ class WalletConfig {
     this.stepGoal = defaultStepGoal,
   });
 
-  /// Most scrolling the bank can hold.
   final double bankCapM;
 
-  /// Metres walked per metre of scrolling, tier by tier through the day:
-  /// the first applies at the start, the last is the most it can cost.
+  // The first tier applies at the start of the day, the last is the most it can cost
   final List<double> priceTiers;
 
   static const defaultPriceTiers = <double>[4, 6, 9, 12, 18];
 
-  /// Every this much scrolled today, walking moves up one tier.
   final double priceStepM;
 
   static const defaultPriceStepM = 50.0;
 
-  /// The price at the start of the day.
   double get startPrice => priceTiers.first;
 
-  /// The most it can cost.
   double get maxPrice => priceTiers.last;
 
-  /// Overdraft (metres of scrolling owed) at which the frost is full.
   final double frostAtM;
 
   final int overridesPerDay;
   final int overrideMinutes;
 
-  /// Stride length used only by WalkTracker.
   final double strideM;
 
-  /// Body weight for calorie estimates.
   final double weightKg;
 
-  /// Daily walking goal, in steps.
   final int stepGoal;
 
   static const defaultStepGoal = 10000;
   static const minStepGoal = 1000;
   static const maxStepGoal = 30000;
 
-  /// The step goal as a distance, at the current stride.
   double get walkGoalM => stepGoal * strideM;
 
   static const maxBankCapM = 100.0;
@@ -90,30 +66,29 @@ class WalletConfig {
     double? strideM,
     double? weightKg,
     int? stepGoal,
-  }) =>
-      WalletConfig(
-        bankCapM: bankCapM ?? this.bankCapM,
-        priceTiers: priceTiers ?? this.priceTiers,
-        priceStepM: priceStepM ?? this.priceStepM,
-        frostAtM: frostAtM ?? this.frostAtM,
-        overridesPerDay: overridesPerDay ?? this.overridesPerDay,
-        overrideMinutes: overrideMinutes ?? this.overrideMinutes,
-        strideM: strideM ?? this.strideM,
-        weightKg: weightKg ?? this.weightKg,
-        stepGoal: stepGoal ?? this.stepGoal,
-      );
+  }) => WalletConfig(
+    bankCapM: bankCapM ?? this.bankCapM,
+    priceTiers: priceTiers ?? this.priceTiers,
+    priceStepM: priceStepM ?? this.priceStepM,
+    frostAtM: frostAtM ?? this.frostAtM,
+    overridesPerDay: overridesPerDay ?? this.overridesPerDay,
+    overrideMinutes: overrideMinutes ?? this.overrideMinutes,
+    strideM: strideM ?? this.strideM,
+    weightKg: weightKg ?? this.weightKg,
+    stepGoal: stepGoal ?? this.stepGoal,
+  );
 
   Map<String, Object?> toJson() => {
-        'bankCapM': bankCapM,
-        'priceTiers': priceTiers,
-        'priceStepM': priceStepM,
-        'frostAtM': frostAtM,
-        'overridesPerDay': overridesPerDay,
-        'overrideMinutes': overrideMinutes,
-        'strideM': strideM,
-        'weightKg': weightKg,
-        'stepGoal': stepGoal,
-      };
+    'bankCapM': bankCapM,
+    'priceTiers': priceTiers,
+    'priceStepM': priceStepM,
+    'frostAtM': frostAtM,
+    'overridesPerDay': overridesPerDay,
+    'overrideMinutes': overrideMinutes,
+    'strideM': strideM,
+    'weightKg': weightKg,
+    'stepGoal': stepGoal,
+  };
 
   factory WalletConfig.fromJson(Map<String, Object?> j) {
     const d = WalletConfig();
@@ -132,8 +107,7 @@ class WalletConfig {
     );
   }
 
-  /// The personal settings of a config saved by the old debt model (its
-  /// economy fields mean something else now and are dropped).
+  // Old debt-model configs keep only the personal settings; their economy fields mean something else now
   factory WalletConfig.fromLegacyJson(Map<String, Object?> j) {
     final old = WalletConfig.fromJson(j);
     return const WalletConfig().copyWith(
@@ -146,8 +120,7 @@ class WalletConfig {
   }
 }
 
-/// Saved price tiers, or null unless they are a non-empty list of numbers
-/// of at least 1 that never go down.
+// Null unless a non-empty list of numbers of at least 1 that never go down
 List<double>? _tiersFrom(Object? v) {
   if (v is! List || v.isEmpty) return null;
   final out = <double>[];
@@ -158,15 +131,18 @@ List<double>? _tiersFrom(Object? v) {
   return out;
 }
 
-/// A saved step goal; a goal saved in metres (older versions) becomes steps
-/// at the saved stride, except the old 5 km default, which becomes the new
-/// default.
+// A goal saved in metres by older versions becomes steps at the saved stride, except the old 5 km default
 int _stepGoalFrom(Map<String, Object?> j, double strideM) {
   final steps = (j['stepGoal'] as num?)?.toInt();
-  if (steps != null) return steps.clamp(WalletConfig.minStepGoal, WalletConfig.maxStepGoal);
+  if (steps != null)
+    return steps.clamp(WalletConfig.minStepGoal, WalletConfig.maxStepGoal);
   final metres = (j['walkGoalM'] as num?)?.toDouble();
-  if (metres == null || metres == 5000 || strideM <= 0) return WalletConfig.defaultStepGoal;
-  return (metres / strideM).round().clamp(WalletConfig.minStepGoal, WalletConfig.maxStepGoal);
+  if (metres == null || metres == 5000 || strideM <= 0)
+    return WalletConfig.defaultStepGoal;
+  return (metres / strideM).round().clamp(
+    WalletConfig.minStepGoal,
+    WalletConfig.maxStepGoal,
+  );
 }
 
 class WalletState {
@@ -189,21 +165,15 @@ class WalletState {
   String dayKey;
   double scrolledTodayM;
 
-  /// Scrolled today outside passes; sets the price.
   double pricedScrolledTodayM;
 
-  /// Metres of scrolling in the bank.
   double bankM;
 
-  /// Metres of scrolling owed: done (or charged for a tracking gap) with the
-  /// bank empty.
   double overdraftM;
   double walkedTodayM;
 
-  /// Scrolling walking added to the bank today.
   double addedTodayM;
 
-  /// Walking that counted for nothing because the bank was full.
   double overflowWalkTodayM;
   double tamperChargedTodayM;
   double lifetimeScrolledM;
@@ -214,23 +184,22 @@ class WalletState {
   factory WalletState.fresh(DateTime now) => WalletState(dayKey: dayKeyOf(now));
 
   Map<String, Object?> toJson() => {
-        'dayKey': dayKey,
-        'scrolledTodayM': scrolledTodayM,
-        'pricedScrolledTodayM': pricedScrolledTodayM,
-        'bankM': bankM,
-        'overdraftM': overdraftM,
-        'walkedTodayM': walkedTodayM,
-        'addedTodayM': addedTodayM,
-        'overflowWalkTodayM': overflowWalkTodayM,
-        'tamperChargedTodayM': tamperChargedTodayM,
-        'lifetimeScrolledM': lifetimeScrolledM,
-        'lifetimeWalkedM': lifetimeWalkedM,
-        'overridesUsedToday': overridesUsedToday,
-        'overrideUntilMs': overrideUntilMs,
-      };
+    'dayKey': dayKey,
+    'scrolledTodayM': scrolledTodayM,
+    'pricedScrolledTodayM': pricedScrolledTodayM,
+    'bankM': bankM,
+    'overdraftM': overdraftM,
+    'walkedTodayM': walkedTodayM,
+    'addedTodayM': addedTodayM,
+    'overflowWalkTodayM': overflowWalkTodayM,
+    'tamperChargedTodayM': tamperChargedTodayM,
+    'lifetimeScrolledM': lifetimeScrolledM,
+    'lifetimeWalkedM': lifetimeWalkedM,
+    'overridesUsedToday': overridesUsedToday,
+    'overrideUntilMs': overrideUntilMs,
+  };
 
-  /// Also reads a state saved by an older model: the day's totals and
-  /// lifetime figures carry over; a debt or a bank in other units does not.
+  // Also reads older saved states: day totals and lifetime figures carry over, debt or a bank in other units does not
   factory WalletState.fromJson(Map<String, Object?> j) {
     double n(String k) => (j[k] as num?)?.toDouble() ?? 0;
     final current = j.containsKey('pricedScrolledTodayM');
@@ -253,20 +222,23 @@ class WalletState {
 }
 
 class ScrollCharge {
-  const ScrollCharge({required this.rawM, required this.fromBankM, required this.owedM});
+  const ScrollCharge({
+    required this.rawM,
+    required this.fromBankM,
+    required this.owedM,
+  });
   final double rawM;
 
-  /// Paid from the bank.
   final double fromBankM;
 
-  /// Added to the overdraft.
   final double owedM;
 }
 
-/// Metres walked per metre of scrolling once [scrolled] metres have been
-/// scrolled today.
+// Metres walked per metre of scrolling once [scrolled] metres have been scrolled today
 double priceAt(double scrolled, WalletConfig c) {
-  final tiers = c.priceTiers.isEmpty ? WalletConfig.defaultPriceTiers : c.priceTiers;
+  final tiers = c.priceTiers.isEmpty
+      ? WalletConfig.defaultPriceTiers
+      : c.priceTiers;
   if (c.priceStepM <= 0) return tiers.last;
   final i = math.min((scrolled / c.priceStepM).floor(), tiers.length - 1);
   return tiers[math.max(0, i)];
@@ -282,7 +254,6 @@ class ScrollWallet {
 
   WalletConfig get config => _config;
 
-  /// Lowering the cap trims the bank to it.
   set config(WalletConfig c) {
     _config = c;
     _clampBank();
@@ -297,33 +268,30 @@ class ScrollWallet {
   double get overdraftM => state.overdraftM;
   bool get bankFull => state.bankM >= _e.bankCapM - 1e-6;
 
-  /// Metres walked per metre of scrolling, for the next metre walked.
   double get priceNow => priceAt(state.pricedScrolledTodayM, _e);
 
-  /// Walking that clears the overdraft and brings the bank to [metres]
-  /// (at most the cap), at today's price.
+  // Clears the overdraft and brings the bank to [metres] (at most the cap) at today's price
   double walkToUnlock(double metres) {
     final want = math.min(metres, _e.bankCapM);
     return (state.overdraftM + math.max(0.0, want - state.bankM)) * priceNow;
   }
 
-  /// 0 (nothing owed) .. 1 (overdraft >= frostAtM). Any overdraft at all
-  /// shows a little frost, so it starts the moment the bank runs out.
-  double get frostLevel =>
-      _e.frostAtM <= 0 ? (state.overdraftM > 0 ? 1 : 0) : (state.overdraftM / _e.frostAtM).clamp(0.0, 1.0);
+  // Any overdraft shows a little frost, so it starts the moment the bank runs out
+  double get frostLevel => _e.frostAtM <= 0
+      ? (state.overdraftM > 0 ? 1 : 0)
+      : (state.overdraftM / _e.frostAtM).clamp(0.0, 1.0);
 
   bool overrideActive(DateTime now) =>
-      state.overrideUntilMs != null && now.millisecondsSinceEpoch < state.overrideUntilMs!;
+      state.overrideUntilMs != null &&
+      now.millisecondsSinceEpoch < state.overrideUntilMs!;
 
-  /// Passes left on [now]'s day. Pure: a day nobody has rolled over to yet
-  /// simply has all of them, without rolling the wallet from a getter.
+  // Pure: a day nobody has rolled over to yet has all passes, without rolling the wallet from a getter
   int overridesLeft(DateTime now) {
     final used = state.dayKey == dayKeyOf(now) ? state.overridesUsedToday : 0;
     return math.max(0, _e.overridesPerDay - used);
   }
 
-  /// Moves the wallet to [now]'s local day. A new day (or a clock set back to
-  /// another day) starts from scratch. Returns whether the day changed.
+  // A new day, or a clock set back to another day, starts from scratch
   bool rollover(DateTime now) {
     final today = dayKeyOf(now);
     if (state.dayKey == today) return false;
@@ -342,20 +310,18 @@ class ScrollWallet {
     return true;
   }
 
-  /// Charges a scroll of [metres] in an app that counts.
   ScrollCharge applyScroll({required double metres, required DateTime at}) {
     rollover(at);
     if (metres <= 0) return const ScrollCharge(rawM: 0, fromBankM: 0, owedM: 0);
     state.scrolledTodayM += metres;
     state.lifetimeScrolledM += metres;
-    if (overrideActive(at)) return ScrollCharge(rawM: metres, fromBankM: 0, owedM: 0);
+    if (overrideActive(at))
+      return ScrollCharge(rawM: metres, fromBankM: 0, owedM: 0);
     state.pricedScrolledTodayM += metres;
     final (bank, owed) = _spend(metres);
     return ScrollCharge(rawM: metres, fromBankM: bank, owedM: owed);
   }
 
-  /// Charges [metres] of scrolling for time without tracking: from the bank
-  /// first, the rest is owed.
   double chargeGap(double metres, DateTime at) {
     rollover(at);
     if (metres <= 0) return 0;
@@ -372,9 +338,6 @@ class ScrollWallet {
     return (fromBank, metres - fromBank);
   }
 
-  /// Applies walked distance at today's price: clears the overdraft first,
-  /// then fills the bank up to its cap. Returns the scrolling added to the
-  /// bank.
   double applyWalk(double metres, DateTime at) {
     rollover(at);
     if (metres <= 0) return 0;
@@ -393,13 +356,14 @@ class ScrollWallet {
     return added;
   }
 
-  /// Starts an emergency pass if any are left today.
   bool startOverride(DateTime now) {
     rollover(now);
     if (overrideActive(now)) return true;
     if (state.overridesUsedToday >= _e.overridesPerDay) return false;
     state.overridesUsedToday++;
-    state.overrideUntilMs = now.add(Duration(minutes: _e.overrideMinutes)).millisecondsSinceEpoch;
+    state.overrideUntilMs = now
+        .add(Duration(minutes: _e.overrideMinutes))
+        .millisecondsSinceEpoch;
     return true;
   }
 

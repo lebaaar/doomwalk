@@ -1,13 +1,6 @@
 package com.lebaaar.doomwalk
 
-// Native shim for DoomWalk. Everything here exists because no plugin can
-// do it (see SPIKE.md / DECISIONS.md). All decisions live in Dart; this file
-// only forwards accessibility geometry to Dart and executes what Dart asks
-// for (frost level, notification text, settings deep links).
-//
-// Privacy: the accessibility service is configured with
-// canRetrieveWindowContent="false" and only scroll/window-state events. We
-// never call getSource(), getText() or getContentDescription().
+// All decisions live in Dart; this file only forwards accessibility geometry (canRetrieveWindowContent=false, never getSource/getText/getContentDescription) and executes what Dart asks for
 
 import android.Manifest
 import android.accessibilityservice.AccessibilityService
@@ -67,7 +60,6 @@ import java.io.ByteArrayOutputStream
 
 private const val TAG = "DoomWalk"
 
-/** Owns the single cached FlutterEngine and the method channel to Dart. */
 object Shim {
     const val ENGINE_ID = "doomwalk_engine"
     private const val CHANNEL = "com.lebaaar.doomwalk/native"
@@ -79,21 +71,19 @@ object Shim {
 
     var accessibility: ScrollAccessibilityService? = null
 
-    // Last notification content pushed by Dart.
     var notifTitle = "DoomWalk"
     var notifText = "Tracking scroll distance"
     var overridesLeft = 0
     var overrideActive = false
     var overrideUntilMs: Long? = null
 
-    /** Returns the app's engine, creating and starting main() if needed. Main thread only. */
     fun engine(context: Context): FlutterEngine {
         FlutterEngineCache.getInstance().get(ENGINE_ID)?.let { return it }
         val app = context.applicationContext
         val loader = FlutterInjector.instance().flutterLoader()
         loader.startInitialization(app)
         loader.ensureInitializationComplete(app, null)
-        val engine = FlutterEngine(app) // registers all pub plugins
+        val engine = FlutterEngine(app)
         val ch = MethodChannel(engine.dartExecutor.binaryMessenger, CHANNEL)
         ch.setMethodCallHandler { call, result -> handle(app, call, result) }
         channel = ch
@@ -104,7 +94,6 @@ object Shim {
         return engine
     }
 
-    /** Sends an event to Dart; queued until Dart has called `ready`. */
     fun send(method: String, args: Any?) {
         main.post {
             val ch = channel
@@ -244,12 +233,7 @@ object Shim {
         ) + lastExit(app)
     }
 
-    /**
-     * Why the process last died, from Android's own record. A dead process
-     * takes the accessibility service with it, and Android 10+ then treats
-     * the service as crashed and won't bind it again until it is switched
-     * off and on, so this is the "why did it stop" answer.
-     */
+    // A dead process takes the accessibility service with it and Android 10+ won't rebind it until it is switched off and on
     private fun lastExit(app: Context): Map<String, Any?> = try {
         val info = app.getSystemService(ActivityManager::class.java)
             .getHistoricalProcessExitReasons(app.packageName, 0, 1).firstOrNull()
@@ -264,16 +248,10 @@ object Shim {
         emptyMap()
     }
 
-    /** Granted only by `adb shell pm grant <pkg> android.permission.WRITE_SECURE_SETTINGS`. */
     private fun canWriteSecureSettings(app: Context) =
         app.checkSelfPermission(Manifest.permission.WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED
 
-    /**
-     * Switches our accessibility service off and on again, which is what the
-     * user would otherwise do by hand in Settings. Android clears the
-     * "crashed" mark when a service leaves the enabled list, then binds it
-     * fresh when it is added back. Needs WRITE_SECURE_SETTINGS.
-     */
+    // Android clears the crashed mark when a service leaves the enabled list and binds it fresh when re-added
     private fun restartAccessibility(app: Context): Boolean {
         if (!canWriteSecureSettings(app)) return false
         val me = ComponentName(app, ScrollAccessibilityService::class.java)
@@ -283,7 +261,6 @@ object Shim {
             .filter { it.isNotBlank() && ComponentName.unflattenFromString(it) != me }
         return try {
             Settings.Secure.putString(cr, key, others.joinToString(":"))
-            // Give the system a moment to unbind before binding again.
             main.postDelayed({
                 try {
                     Settings.Secure.putString(cr, key, (others + me.flattenToString()).joinToString(":"))
@@ -300,7 +277,6 @@ object Shim {
         }
     }
 
-    /** Android 13+ "Allow restricted settings". null = cannot tell. */
     @Suppress("DEPRECATION") // checkOpNoThrow(String…) needs API 36; minSdk is 31
     private fun restrictedSettingsAllowed(app: Context): Boolean? {
         if (Build.VERSION.SDK_INT < 33) return true
@@ -353,7 +329,6 @@ object Shim {
     }
 }
 
-/** Forwards scroll geometry + foreground changes, and hosts the frost overlay. */
 class ScrollAccessibilityService : AccessibilityService() {
     var frost: FrostOverlay? = null
         private set
@@ -367,7 +342,6 @@ class ScrollAccessibilityService : AccessibilityService() {
         Log.i(TAG, "accessibility service connected")
     }
 
-    /** Package of the last scroll forwarded to Dart. */
     private var lastScrollPkg: String? = null
 
     override fun onAccessibilityEvent(e: AccessibilityEvent) {
@@ -375,9 +349,7 @@ class ScrollAccessibilityService : AccessibilityService() {
         val now = System.currentTimeMillis()
         when (e.eventType) {
             AccessibilityEvent.TYPE_VIEW_SCROLLED -> {
-                // DoomWalk's own scrolling never counts: forward the first
-                // event (it still marks us as the open app) and drop the rest,
-                // so scrolling our own lists doesn't flood the engine.
+                // Our own scrolling is forwarded once (it marks us as the open app) and the rest dropped so our lists don't flood the engine
                 if (pkg == packageName && lastScrollPkg == pkg) return
                 lastScrollPkg = pkg
                 Shim.send(
@@ -396,8 +368,7 @@ class ScrollAccessibilityService : AccessibilityService() {
                     )
                 )
             }
-            // The class name lets Dart tell our own activity from our frost
-            // windows, which announce themselves with the same event type.
+            // The class name lets Dart tell our activity from our frost windows, which fire the same event type
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> Shim.send(
                 "onWindow", mapOf("pkg" to pkg, "cls" to (e.className?.toString() ?: ""), "t" to now)
             )
@@ -426,18 +397,7 @@ class ScrollAccessibilityService : AccessibilityService() {
     }
 }
 
-/**
- * What a frozen app looks like. A full-screen, non-touchable
- * TYPE_ACCESSIBILITY_OVERLAY frosts the app (real blur when cross-window blur
- * is on, otherwise a milky tint), and whenever there is any frost at all a
- * card in the middle of the screen says why and what to do ("Use pass",
- * "Leave app"), so frost never looks like the app has hung. Only the card
- * takes touches. Accessibility overlays are trusted windows, so with
- * FLAG_NOT_TOUCHABLE every touch outside the card reaches the app below
- * (Android 12's untrusted-touch occlusion rules don't apply).
- *
- * [notice] shows a short banner at the top that never takes touches.
- */
+// Full-screen non-touchable accessibility overlay (blur, or a milky tint without cross-window blur) plus a touchable card; trusted overlays let touches outside the card reach the app below
 class FrostOverlay(private val service: AccessibilityService) {
     private val wm = service.getSystemService(WindowManager::class.java)
     private val density = service.resources.displayMetrics.density
@@ -467,8 +427,7 @@ class FrostOverlay(private val service: AccessibilityService) {
         layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
     }
 
-    // The card is a separate, small, touchable window in the middle.
-    // FLAG_NOT_TOUCH_MODAL lets every touch outside it reach the app below.
+    // FLAG_NOT_TOUCH_MODAL lets every touch outside the card reach the app below
     private var card: LinearLayout? = null
     private var cardTitle: TextView? = null
     private var cardBody: TextView? = null
@@ -505,11 +464,8 @@ class FrostOverlay(private val service: AccessibilityService) {
     }
     private val hideBanner = Runnable { removeBanner() }
 
-    // Countdown pill at the top while an emergency pass has unlocked the app.
-    // Tapping it opens DoomWalk (where the pass can be ended early); only
-    // the pill itself takes touches.
     private var pass: TextView? = null
-    /** End of the pass on the monotonic clock, so a clock change can't skew it. */
+    // Monotonic clock so a clock change can't skew it
     private var passEndElapsed = 0L
     private val passParams = WindowManager.LayoutParams(
         WindowManager.LayoutParams.WRAP_CONTENT,
@@ -533,12 +489,10 @@ class FrostOverlay(private val service: AccessibilityService) {
             }
             val s = (left + 999) / 1000
             pass?.text = "Pass: %d:%02d left".format(s / 60, s % 60)
-            // Next whole second, so the display never skips or lingers.
             handler.postDelayed(this, (left - 1) % 1000 + 1)
         }
     }
 
-    /** The app's palette, following the system light/dark setting. */
     private class Colors(
         val surface: Int, val text: Int, val muted: Int, val hairline: Int,
         val accent: Int, val onAccent: Int, val danger: Int,
@@ -567,7 +521,6 @@ class FrostOverlay(private val service: AccessibilityService) {
     val isCardShown get() = card != null
     val passText: String? get() = pass?.text?.toString()
 
-    /** Shows, moves or (with null or a past time) hides the pass countdown. */
     fun showPass(untilMs: Long?) {
         if (untilMs == null || untilMs <= System.currentTimeMillis()) {
             removePass()
@@ -626,8 +579,7 @@ class FrostOverlay(private val service: AccessibilityService) {
         overridesLeft = passesLeft
         if (title != null) titleText = title
         if (body != null) bodyText = body
-        // cancel() also fires onAnimationEnd; clearing the field first keeps a
-        // superseded fade-in (still at level 0) from detaching the window.
+        // cancel() also fires onAnimationEnd; clearing the field first stops a superseded fade-in from detaching the window
         val old = animator
         animator = null
         old?.cancel()
@@ -649,11 +601,10 @@ class FrostOverlay(private val service: AccessibilityService) {
                 }
             })
         }
-        animator = next // before start(), so an immediate end still matches
+        animator = next
         next.start()
     }
 
-    /** A short message at the top that never takes touches; hides after [ms]. */
     fun notice(title: String, body: String, ms: Long) {
         removeBanner()
         val c = colors()
@@ -675,7 +626,6 @@ class FrostOverlay(private val service: AccessibilityService) {
         banner = ll
         try {
             wm.addView(ll, bannerParams)
-            // Drops in from above rather than just appearing.
             ll.alpha = 0f
             ll.translationY = -dp(24).toFloat()
             ll.animate().alpha(1f).translationY(0f).setDuration(280)
@@ -702,7 +652,6 @@ class FrostOverlay(private val service: AccessibilityService) {
 
     private fun dp(v: Int) = (v * density).toInt()
 
-    /** Card width: the screen less 24 dp a side, at most 440 dp. */
     private fun cardWidth(): Int {
         val screen = wm.currentWindowMetrics.bounds.width()
         return minOf(screen - dp(48), dp(440)).coerceAtLeast(dp(200))
@@ -735,8 +684,6 @@ class FrostOverlay(private val service: AccessibilityService) {
     private fun ensureCard() {
         if (card != null) return
         val c = colors()
-        // Names who put the card there, since it sits over another app:
-        // the depth-ticks mark, then the name.
         val eyebrow = LinearLayout(service).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
@@ -819,9 +766,7 @@ class FrostOverlay(private val service: AccessibilityService) {
     private fun apply(v: Float) {
         level = v
         val r = root ?: return
-        // How hidden the app is. Any debt at all should already blur it
-        // properly (half strength), growing to full as the debt does; the
-        // first 5 % of the level only fades that in.
+        // Any debt blurs at half strength, growing to full; the first 5% of the level only fades that in
         val s = if (v <= 0f) 0f else minOf(1f, 0.5f + 0.5f * v) * minOf(1f, v / 0.05f)
         val tintAlpha: Float
         if (blurEnabled) {
@@ -839,8 +784,6 @@ class FrostOverlay(private val service: AccessibilityService) {
                 params.blurBehindRadius = 0
                 try { wm.updateViewLayout(r, params) } catch (_: Exception) {}
             }
-            // No blur on this phone (battery saver, or off in developer
-            // options): a near-opaque wash hides the app instead.
             tintAlpha = 0.94f * s
         }
         r.setBackgroundColor(Color.argb((tintAlpha * 255).toInt(), 226, 240, 248))
@@ -864,12 +807,6 @@ class FrostOverlay(private val service: AccessibilityService) {
     }
 }
 
-/**
- * Keeps the process (and therefore the Dart engine, step counting and the
- * ledger) alive with a persistent notification. Type `health` once
- * ACTIVITY_RECOGNITION is granted (Android 14 requirement), `specialUse`
- * before that.
- */
 class DebtForegroundService : Service() {
     companion object {
         private const val CHANNEL_ID = "debt_status"
@@ -897,7 +834,6 @@ class DebtForegroundService : Service() {
                 .setOnlyAlertOnce(true)
                 .setShowWhen(false)
                 .setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE)
-            // A running pass counts down live in the notification.
             val until = Shim.overrideUntilMs
             if (Shim.overrideActive && until != null && until > System.currentTimeMillis()) {
                 b.setWhen(until).setShowWhen(true).setUsesChronometer(true).setChronometerCountDown(true)
@@ -929,16 +865,13 @@ class DebtForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        // startForeground first: starting the Flutter engine can take long
-        // enough on a cold start to miss Android's deadline, and a missed
-        // deadline kills the whole process, accessibility service included.
+        // startForeground first: a slow cold engine start can miss Android's deadline, which kills the whole process
         if (!goForeground()) return START_NOT_STICKY
         Shim.engine(this)
         if (intent?.action == ACTION_OVERRIDE) Shim.send("onOverrideRequested", null)
         return START_STICKY
     }
 
-    /** False if Android refused; the service has then stopped itself. */
     private fun goForeground(): Boolean {
         val notification = build(this)
         try {
@@ -956,9 +889,7 @@ class DebtForegroundService : Service() {
             running = true
             return true
         } catch (e: Exception) {
-            // A service started with startForegroundService() that never
-            // reaches startForeground() crashes the app when the deadline
-            // passes. Stop cleanly instead; tracking runs without it.
+            // Never reaching startForeground() after startForegroundService() crashes the app, so stop cleanly
             Log.w(TAG, "startForeground failed: $e")
             stopSelf()
             return false
@@ -971,7 +902,6 @@ class DebtForegroundService : Service() {
     }
 }
 
-/** Restarts tracking after reboot / app update. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {

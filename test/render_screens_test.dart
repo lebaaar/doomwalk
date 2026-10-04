@@ -1,9 +1,3 @@
-// Renders the real screens on the host with the native shim mocked.
-// Always a smoke test (no exceptions while building). With
-//   RENDER_SCREENS=1 flutter test test/render_screens_test.dart
-// it also writes PNGs to docs/screenshots/host_*.png for design review.
-// (Emoji render as boxes on the host.)
-
 import 'dart:io';
 import 'dart:ui' as ui;
 
@@ -31,28 +25,37 @@ Future<void> _loadFonts() async {
     final l = FontLoader(family);
     for (final f in files) {
       final file = File(f);
-      if (file.existsSync()) l.addFont(Future.value(ByteData.sublistView(file.readAsBytesSync())));
+      if (file.existsSync())
+        l.addFont(Future.value(ByteData.sublistView(file.readAsBytesSync())));
     }
     await l.load();
   }
 
-  await load('Geist', [for (final w in ['Regular', 'Medium', 'SemiBold', 'Bold']) 'assets/fonts/Geist-$w.ttf']);
+  await load('Geist', [
+    for (final w in ['Regular', 'Medium', 'SemiBold', 'Bold'])
+      'assets/fonts/Geist-$w.ttf',
+  ]);
   await load('Phosphor', ['assets/fonts/Phosphor-Regular.ttf']);
-  // Back arrows etc. The flutter tool sets FLUTTER_ROOT for test runs.
   final sdk = Platform.environment['FLUTTER_ROOT'] ?? '';
-  await load('MaterialIcons', ['$sdk/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf']);
+  await load('MaterialIcons', [
+    '$sdk/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf',
+  ]);
   await load('PhosphorFill', ['assets/fonts/Phosphor-Fill.ttf']);
-  // Landmark emoji (🗼, 🦒) instead of empty boxes, where the host has it.
-  await load('Noto Color Emoji', ['/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', '$sdk/../engine/src/flutter/txt/third_party/fonts/NotoColorEmoji.ttf']);
+  await load('Noto Color Emoji', [
+    '/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf',
+    '$sdk/../engine/src/flutter/txt/third_party/fonts/NotoColorEmoji.ttf',
+  ]);
 }
 
-/// The app's theme with the emoji font as a fallback: the test engine has
-/// no system fallback, so landmark emoji would otherwise be boxes.
 ThemeData _withEmoji(ThemeData t) {
   const fallback = ['Noto Color Emoji'];
   return t.copyWith(
     textTheme: t.textTheme.apply(fontFamilyFallback: fallback),
-    chipTheme: t.chipTheme.copyWith(labelStyle: t.chipTheme.labelStyle?.copyWith(fontFamilyFallback: fallback)),
+    chipTheme: t.chipTheme.copyWith(
+      labelStyle: t.chipTheme.labelStyle?.copyWith(
+        fontFamilyFallback: fallback,
+      ),
+    ),
   );
 }
 
@@ -70,9 +73,10 @@ void main() {
     late DoomWalkController c;
     await tester.runAsync(() async {
       await _loadFonts();
-      // Own directory: test files run in parallel, and the pipeline tests
-      // delete the shared database file between their cases.
-      await databaseFactory.setDatabasesPath(Directory.systemTemp.createTempSync('render').path);
+      // Own directory: test files run in parallel and the pipeline tests delete the shared database file
+      await databaseFactory.setDatabasesPath(
+        Directory.systemTemp.createTempSync('render').path,
+      );
       final f = File('${await getDatabasesPath()}/doomwalk.db');
       if (f.existsSync()) f.deleteSync();
       c = await DoomWalkController.start();
@@ -95,55 +99,73 @@ void main() {
     final screen = ValueNotifier<Widget>(const SizedBox());
     final brightness = ValueNotifier<Brightness>(Brightness.dark);
     final key = GlobalKey();
-    await tester.pumpWidget(ProviderScope(
-      overrides: [controllerProvider.overrideWith((ref) => c)],
-      child: RepaintBoundary(
-        key: key,
-        child: ValueListenableBuilder<Brightness>(
-          valueListenable: brightness,
-          builder: (_, b, _) => MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: _withEmoji(buildTheme(b)),
-            home: ValueListenableBuilder<Widget>(valueListenable: screen, builder: (_, w, _) => w),
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [controllerProvider.overrideWith((ref) => c)],
+        child: RepaintBoundary(
+          key: key,
+          child: ValueListenableBuilder<Brightness>(
+            valueListenable: brightness,
+            builder: (_, b, _) => MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: _withEmoji(buildTheme(b)),
+              home: ValueListenableBuilder<Widget>(
+                valueListenable: screen,
+                builder: (_, w, _) => w,
+              ),
+            ),
           ),
         ),
       ),
-    ));
+    );
 
     Future<void> shot(String name, Widget? child) async {
       if (child != null) screen.value = child;
-      // Small steps, like real frames: one big jump skips the end of the
-      // theme animation and leaves buttons in the old theme's colours.
+      // Small steps like real frames: one big jump skips the end of the theme animation and leaves buttons in the old colours
       for (var i = 0; i < 40; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
       expect(tester.takeException(), isNull);
       if (!_write) return;
       await tester.runAsync(() async {
-        final ro = key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+        final ro =
+            key.currentContext!.findRenderObject()! as RenderRepaintBoundary;
         final img = await ro.toImage(pixelRatio: 1.5);
         final png = await img.toByteData(format: ui.ImageByteFormat.png);
         Directory('docs/screenshots').createSync(recursive: true);
-        File('docs/screenshots/host_$name.png').writeAsBytesSync(png!.buffer.asUint8List());
+        File('docs/screenshots/host_$name.png')
+            .writeAsBytesSync(png!.buffer.asUint8List());
       });
     }
 
     Future<void> tab(String label) async {
-      await tester.tap(find.descendant(of: find.byType(NavigationBar), matching: find.text(label)));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text(label),
+        ),
+      );
       await tester.pump(const Duration(seconds: 1));
     }
 
     Future<void> open(String text) async {
       await tester.tap(find.text(text).first);
-      await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5));
+      await tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 5),
+      );
     }
 
-    Finder settingsList() =>
-        find.descendant(of: find.byType(ListView).last, matching: find.byType(Scrollable)).first;
+    Finder settingsList() => find
+        .descendant(
+          of: find.byType(ListView).last,
+          matching: find.byType(Scrollable),
+        )
+        .first;
 
     Future<void> toggleDev() async {
       final dev = find.widgetWithText(SwitchListTile, 'Developer options');
-      // The settings list builds lazily: scroll until the switch exists.
       await tester.scrollUntilVisible(dev, 300, scrollable: settingsList());
       await tester.pump();
       await tester.tap(dev);
@@ -151,7 +173,11 @@ void main() {
 
     Future<void> back() async {
       await tester.pageBack();
-      await tester.pumpAndSettle(const Duration(milliseconds: 100), EnginePhase.sendSemanticsUpdate, const Duration(seconds: 5));
+      await tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 5),
+      );
     }
 
     await shot('home', const HomeScreen());
@@ -173,8 +199,15 @@ void main() {
     await toggleDev();
     await tester.pump(const Duration(seconds: 1));
     tester.view.physicalSize = const Size(1080, 2400);
-    for (final (page, name) in [('Apps that count', 'apps_that_count'), ('Custom rules', 'custom_rules')]) {
-      await tester.scrollUntilVisible(find.text(page), -300, scrollable: settingsList());
+    for (final (page, name) in [
+      ('Apps that count', 'apps_that_count'),
+      ('Custom rules', 'custom_rules'),
+    ]) {
+      await tester.scrollUntilVisible(
+        find.text(page),
+        -300,
+        scrollable: settingsList(),
+      );
       await tester.pump();
       await open(page);
       await shot('settings_$name', null);
@@ -185,8 +218,11 @@ void main() {
     await open('Permissions');
     await shot('permissions', null);
     await back();
-    // Switched on but not running, after a permission change killed the app.
-    statusOverrides.addAll({'serviceConnected': false, 'exitReason': 8, 'exitTimeMs': DateTime.now().millisecondsSinceEpoch});
+    statusOverrides.addAll({
+      'serviceConnected': false,
+      'exitReason': 8,
+      'exitTimeMs': DateTime.now().millisecondsSinceEpoch,
+    });
     await tester.runAsync(c.refreshStatus);
     await toggleDev();
     await tester.pump(const Duration(seconds: 1));
@@ -203,9 +239,17 @@ void main() {
     await tester.runAsync(c.refreshStatus);
     await tab('Today');
     await shot('onboarding', const OnboardingScreen());
-    await shot('share_card', Scaffold(
-      body: Center(child: Padding(padding: const EdgeInsets.all(20), child: ShareCard(c: c, pkg: 'com.instagram.android'))),
-    ));
+    await shot(
+      'share_card',
+      Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: ShareCard(c: c, pkg: 'com.instagram.android'),
+          ),
+        ),
+      ),
+    );
 
     brightness.value = Brightness.light;
     await shot('home_light', const HomeScreen());
@@ -214,14 +258,12 @@ void main() {
     await shot('tab_activity_light', null);
     tester.view.physicalSize = const Size(1080, 2400);
 
-    // Tapping an app opens its share card in a sheet with the buttons inside.
     await tester.tap(find.text('Instagram').first);
     await tester.pump(const Duration(seconds: 1));
     await shot('share_dialog_light', null);
     await tester.tap(find.text('Close'));
     await tester.pump(const Duration(seconds: 1));
 
-    // The bank spent exactly, nothing owed: "take a walk first".
     await tester.runAsync(() async {
       await c.setDeveloperOptions(true);
       await c.devResetTracking();
@@ -234,8 +276,7 @@ void main() {
     brightness.value = Brightness.dark;
     await shot('home_done', null);
 
-    // A long landmark (the whale) lies under the text instead of squeezing
-    // it, with some scrolling still in the bank.
+    // A long landmark lies under the text instead of squeezing it
     await tester.runAsync(() async {
       await c.setDeveloperOptions(true);
       await c.devResetTracking();
@@ -247,15 +288,13 @@ void main() {
     await shot('home_climb_long', null);
     tester.view.physicalSize = const Size(1080, 2400);
 
-    // README shots, all phone-sized (1080 x 2400): an ordinary day with the
-    // step counter working, some walking and a bank that is part full.
+    // README shots, phone-sized (1080 x 2400)
     await tester.runAsync(() async {
       c.walkError = null; // as on a phone with activity access
       c.walkAvailable = true;
       await c.setDeveloperOptions(true);
       await c.devResetTracking();
-      // Most of today's scrolling on an emergency pass (free), so the climb
-      // reaches the Eiffel Tower while the bank still looks like a normal day.
+      // Most of today's scrolling is on an emergency pass so the climb reaches the Eiffel Tower while the bank looks normal
       c.startOverride();
       c.devAddScroll('com.instagram.android', 140);
       c.devAddScroll('com.zhiliaoapp.musically', 60);
@@ -267,8 +306,18 @@ void main() {
       // A believable week behind it (steps per day, newest first).
       final now = DateTime.now();
       c.walkHistory = [
-        for (final (i, steps) in [11800, 10400, 12500, 7200, 10100, 6100].indexed)
-          (dayKeyOf(DateTime(now.year, now.month, now.day - i - 1)), steps * c.config.strideM),
+        for (final (i, steps) in [
+          11800,
+          10400,
+          12500,
+          7200,
+          10100,
+          6100,
+        ].indexed)
+          (
+            dayKeyOf(DateTime(now.year, now.month, now.day - i - 1)),
+            steps * c.config.strideM,
+          ),
       ];
     });
     brightness.value = Brightness.dark;
@@ -278,13 +327,11 @@ void main() {
     await shot('readme_activity', null);
     await tab('Today');
 
-    // The story intro: a few slides, tapping the right side to go on.
     screen.value = IntroStories(config: c.config, onDone: () {});
     await tester.pump(const Duration(seconds: 1));
     final w = tester.view.physicalSize.width / tester.view.devicePixelRatio;
     for (var i = 0; i < 8; i++) {
       if ({0, 2, 3, 4, 7}.contains(i)) {
-        // shot() pumps 4 s more; slides move on at 7 s.
         await tester.pump(const Duration(seconds: 2));
         await shot('intro_$i', null);
       }
@@ -292,8 +339,9 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
     }
 
-    // Unmounting the scope disposes the controller (and closes the DB).
     await tester.pumpWidget(const SizedBox());
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
   });
 }

@@ -17,10 +17,6 @@ import org.robolectric.shadow.api.Shadow
 import org.robolectric.shadows.ShadowWindowManagerImpl
 import java.time.Duration
 
-/**
- * The real FrostOverlay against Robolectric's window manager: which windows
- * a frozen app gets, which of them take touches, and what they say.
- */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], manifest = Config.NONE)
 class FrostOverlayTest {

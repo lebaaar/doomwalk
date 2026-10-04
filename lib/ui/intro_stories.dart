@@ -8,13 +8,14 @@ import 'logo.dart';
 import 'price_table.dart';
 import 'theme.dart';
 
-/// How DoomWalk works, told like stories: full-screen slides with progress
-/// bars on top. Tap the right side for the next one, the left for the
-/// previous one, hold to pause; each moves on by itself after a few seconds.
 class IntroStories extends StatefulWidget {
-  const IntroStories({super.key, required this.config, required this.onDone, this.doneLabel = 'Set it up'});
+  const IntroStories({
+    super.key,
+    required this.config,
+    required this.onDone,
+    this.doneLabel = 'Set it up',
+  });
 
-  /// The numbers the slides quote (bank size, price steps, stride).
   final WalletConfig config;
   final VoidCallback onDone;
   final String doneLabel;
@@ -23,13 +24,15 @@ class IntroStories extends StatefulWidget {
   State<IntroStories> createState() => _IntroStoriesState();
 }
 
-class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderStateMixin {
+class _IntroStoriesState extends State<IntroStories>
+    with SingleTickerProviderStateMixin {
   static const _slideTime = Duration(seconds: 7);
 
-  late final AnimationController _timer = AnimationController(vsync: this, duration: _slideTime)
-    ..addStatusListener((s) {
-      if (s == AnimationStatus.completed) _next();
-    });
+  late final AnimationController _timer =
+      AnimationController(vsync: this, duration: _slideTime)
+        ..addStatusListener((s) {
+          if (s == AnimationStatus.completed) _next();
+        });
   int _index = 0;
 
   List<_Slide> get _slides => _buildSlides(widget.config);
@@ -50,7 +53,6 @@ class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderSt
     final last = _slides.length - 1;
     if (i < 0) i = 0;
     if (i > last) {
-      // The last slide waits for its button rather than closing by itself.
       _timer.stop();
       return;
     }
@@ -63,14 +65,12 @@ class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderSt
   void _next() => _go(_index + 1);
   void _previous() => _go(_index - 1);
 
-  /// A press shorter than this is a tap (go on or back); longer is a hold,
-  /// which only pauses.
   static const _tapTime = Duration(milliseconds: 250);
   int? _pointer;
   Duration? _downAt;
 
   void _onDown(PointerDownEvent e) {
-    if (_pointer != null) return; // a second finger changes nothing
+    if (_pointer != null) return;
     _pointer = e.pointer;
     _downAt = e.timeStamp;
     _timer.stop();
@@ -94,7 +94,6 @@ class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderSt
   }
 
   void _resume() {
-    // The last slide stays put once its bar is full.
     if (_timer.value < 1) _timer.forward();
   }
 
@@ -105,9 +104,6 @@ class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderSt
     final slides = _slides;
     final slide = slides[_index];
     final last = _index == slides.length - 1;
-    // Light icons on see-through status and navigation bars, so the slide
-    // runs edge to edge. (SystemUiOverlayStyle.light paints the navigation
-    // bar black.)
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: overlayStyle(Brightness.dark),
       child: Scaffold(
@@ -117,88 +113,99 @@ class _IntroStoriesState extends State<IntroStories> with SingleTickerProviderSt
             gradient: RadialGradient(
               center: const Alignment(1.0, -1.0),
               radius: 1.4,
-              colors: [col.heroTo.withValues(alpha: 0.38), col.heroTo.withValues(alpha: 0)],
+              colors: [
+                col.heroTo.withValues(alpha: 0.38),
+                col.heroTo.withValues(alpha: 0),
+              ],
             ),
           ),
           child: SafeArea(
             child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-                    child: AnimatedBuilder(
-                      animation: _timer,
-                      builder: (context, _) => Row(
-                        children: [
-                          for (var i = 0; i < slides.length; i++) ...[
-                            if (i > 0) const SizedBox(width: 4),
-                            Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(2),
-                                child: LinearProgressIndicator(
-                                  value: i < _index ? 1 : (i == _index ? _timer.value : 0),
-                                  minHeight: 3,
-                                  color: col.onHero,
-                                  backgroundColor: col.onHero.withValues(alpha: 0.25),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                  child: AnimatedBuilder(
+                    animation: _timer,
+                    builder: (context, _) => Row(
+                      children: [
+                        for (var i = 0; i < slides.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 4),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(2),
+                              child: LinearProgressIndicator(
+                                value: i < _index
+                                    ? 1
+                                    : (i == _index ? _timer.value : 0),
+                                minHeight: 3,
+                                color: col.onHero,
+                                backgroundColor: col.onHero.withValues(
+                                  alpha: 0.25,
                                 ),
                               ),
                             ),
-                          ],
+                          ),
                         ],
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 4, 0),
-                    child: Row(
-                      children: [
-                        DepthTicks(size: 22, color: col.onHero),
-                        const SizedBox(width: 8),
-                        Text('DoomWalk', style: t.titleSmall?.copyWith(color: col.onHero)),
-                        const Spacer(),
-                        TextButton(
-                          style: TextButton.styleFrom(foregroundColor: col.onHeroMuted),
-                          onPressed: widget.onDone,
-                          child: Text(last ? 'Close' : 'Skip'),
-                        ),
                       ],
                     ),
                   ),
-                  Expanded(
-                    // Raw pointers, not a long-press recognizer: the story
-                    // pauses the moment a finger lands, like Instagram's.
-                    child: LayoutBuilder(
-                      builder: (context, box) => Listener(
-                        behavior: HitTestBehavior.opaque,
-                        onPointerDown: _onDown,
-                        onPointerUp: (e) => _onUp(e, box.maxWidth),
-                        onPointerCancel: (e) => _onCancel(e),
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          child: KeyedSubtree(
-                            key: ValueKey(_index),
-                            child: _SlideView(slide: slide),
-                          ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 4, 0),
+                  child: Row(
+                    children: [
+                      DepthTicks(size: 22, color: col.onHero),
+                      const SizedBox(width: 8),
+                      Text(
+                        'DoomWalk',
+                        style: t.titleSmall?.copyWith(color: col.onHero),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        style: TextButton.styleFrom(
+                          foregroundColor: col.onHeroMuted,
+                        ),
+                        onPressed: widget.onDone,
+                        child: Text(last ? 'Close' : 'Skip'),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  // Raw pointers rather than a long-press recognizer so the story pauses the moment a finger lands
+                  child: LayoutBuilder(
+                    builder: (context, box) => Listener(
+                      behavior: HitTestBehavior.opaque,
+                      onPointerDown: _onDown,
+                      onPointerUp: (e) => _onUp(e, box.maxWidth),
+                      onPointerCancel: (e) => _onCancel(e),
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 250),
+                        child: KeyedSubtree(
+                          key: ValueKey(_index),
+                          child: _SlideView(slide: slide),
                         ),
                       ),
                     ),
                   ),
-                  if (last)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: col.onHero,
-                          foregroundColor: col.heroFrom,
-                          minimumSize: const Size.fromHeight(52),
-                        ),
-                        onPressed: widget.onDone,
-                        child: Text(widget.doneLabel),
+                ),
+                if (last)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: col.onHero,
+                        foregroundColor: col.heroFrom,
+                        minimumSize: const Size.fromHeight(52),
                       ),
-                    )
-                  else
-                    const SizedBox(height: 20),
-                ],
+                      onPressed: widget.onDone,
+                      child: Text(widget.doneLabel),
+                    ),
+                  )
+                else
+                  const SizedBox(height: 20),
+              ],
             ),
           ),
         ),
@@ -217,7 +224,9 @@ class _Slide {
 List<_Slide> _buildSlides(WalletConfig c) {
   final cap = formatRound(c.bankCapM);
   final start = formatTimes(c.startPrice);
-  final fillSteps = c.strideM <= 0 ? 0 : (c.bankCapM * c.startPrice / c.strideM).ceil();
+  final fillSteps = c.strideM <= 0
+      ? 0
+      : (c.bankCapM * c.startPrice / c.strideM).ceil();
   return [
     const _Slide(
       title: 'Want to scroll?\nTake a walk first.',
@@ -229,7 +238,11 @@ List<_Slide> _buildSlides(WalletConfig c) {
       body:
           'Every swipe in Instagram, TikTok and the like is measured in real metres. '
           'A long evening on the feed easily passes a few hundred.',
-      visual: _CountUp(to: 100, caption: 'scrolled today', icon: Ph.squaresFour),
+      visual: _CountUp(
+        to: 100,
+        caption: 'scrolled today',
+        icon: Ph.squaresFour,
+      ),
     ),
     _Slide(
       title: 'Walking fills a small bank',
@@ -259,12 +272,21 @@ List<_Slide> _buildSlides(WalletConfig c) {
     const _Slide(
       title: 'Emergency? Use a pass',
       body: 'Three a day, five minutes each. Scrolling during a pass is free.',
-      visual: _BigFigure(value: '3', caption: 'passes a day', icon: Ph.lifebuoy),
+      visual: _BigFigure(
+        value: '3',
+        caption: 'passes a day',
+        icon: Ph.lifebuoy,
+      ),
     ),
     _Slide(
       title: 'Every midnight, a fresh start',
-      body: 'The bank empties and walking is back to $start. Nothing carries over, nothing grows.',
-      visual: _BigFigure(value: '00:00', caption: 'back to $start', icon: Ph.moon),
+      body:
+          'The bank empties and walking is back to $start. Nothing carries over, nothing grows.',
+      visual: _BigFigure(
+        value: '00:00',
+        caption: 'back to $start',
+        icon: Ph.moon,
+      ),
     ),
     const _Slide(
       title: 'Nothing leaves your phone',
@@ -293,10 +315,18 @@ class _SlideView extends StatelessWidget {
           const SizedBox(height: 24),
           Text(
             slide.title,
-            style: t.headlineLarge?.copyWith(color: col.onHero, fontSize: 32, letterSpacing: -1.2, height: 1.1),
+            style: t.headlineLarge?.copyWith(
+              color: col.onHero,
+              fontSize: 32,
+              letterSpacing: -1.2,
+              height: 1.1,
+            ),
           ),
           const SizedBox(height: 12),
-          Text(slide.body, style: t.bodyLarge?.copyWith(color: col.onHeroMuted, height: 1.45)),
+          Text(
+            slide.body,
+            style: t.bodyLarge?.copyWith(color: col.onHeroMuted, height: 1.45),
+          ),
         ],
       ),
     );
@@ -307,11 +337,16 @@ class _LogoVisual extends StatelessWidget {
   const _LogoVisual();
 
   @override
-  Widget build(BuildContext context) => DepthTicks(size: 140, color: context.colors.onHero);
+  Widget build(BuildContext context) =>
+      DepthTicks(size: 140, color: context.colors.onHero);
 }
 
 class _BigFigure extends StatelessWidget {
-  const _BigFigure({required this.value, required this.caption, required this.icon});
+  const _BigFigure({
+    required this.value,
+    required this.caption,
+    required this.icon,
+  });
   final String value;
   final String caption;
   final IconData icon;
@@ -329,7 +364,12 @@ class _BigFigure extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             value,
-            style: t.displayLarge?.copyWith(color: col.onHero, fontSize: 88, letterSpacing: -4, fontFeatures: tabular),
+            style: t.displayLarge?.copyWith(
+              color: col.onHero,
+              fontSize: 88,
+              letterSpacing: -4,
+              fontFeatures: tabular,
+            ),
           ),
           Text(caption, style: t.titleMedium?.copyWith(color: col.onHeroMuted)),
         ],
@@ -338,7 +378,6 @@ class _BigFigure extends StatelessWidget {
   }
 }
 
-/// A metre count running up from 0 to [to], like a feed being scrolled.
 class _CountUp extends StatelessWidget {
   const _CountUp({required this.to, required this.caption, required this.icon});
   final double to;
@@ -347,14 +386,14 @@ class _CountUp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<double>(
-        tween: Tween(begin: 0, end: to),
-        duration: const Duration(milliseconds: 3000),
-        curve: Curves.easeOutCubic,
-        builder: (context, v, _) => _BigFigure(value: '${v.round()} m', caption: caption, icon: icon),
-      );
+    tween: Tween(begin: 0, end: to),
+    duration: const Duration(milliseconds: 3000),
+    curve: Curves.easeOutCubic,
+    builder: (context, v, _) =>
+        _BigFigure(value: '${v.round()} m', caption: caption, icon: icon),
+  );
 }
 
-/// A shield in a soft halo, over what DoomWalk never has.
 class _PrivacyVisual extends StatelessWidget {
   const _PrivacyVisual();
 
@@ -363,13 +402,13 @@ class _PrivacyVisual extends StatelessWidget {
     final col = context.colors;
     final t = Theme.of(context).textTheme;
     Widget pill(String text) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: col.onHero.withValues(alpha: 0.28)),
-          ),
-          child: Text(text, style: t.bodyMedium?.copyWith(color: col.onHero)),
-        );
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: col.onHero.withValues(alpha: 0.28)),
+      ),
+      child: Text(text, style: t.bodyMedium?.copyWith(color: col.onHero)),
+    );
     return FittedBox(
       fit: BoxFit.scaleDown,
       child: Column(
@@ -381,13 +420,19 @@ class _PrivacyVisual extends StatelessWidget {
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: col.onHero.withValues(alpha: 0.08),
-              border: Border.all(color: col.onHero.withValues(alpha: 0.16), width: 1.5),
+              border: Border.all(
+                color: col.onHero.withValues(alpha: 0.16),
+                width: 1.5,
+              ),
             ),
             alignment: Alignment.center,
             child: Container(
               width: 112,
               height: 112,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: col.onHero.withValues(alpha: 0.12)),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: col.onHero.withValues(alpha: 0.12),
+              ),
               alignment: Alignment.center,
               child: Icon(Ph.shieldCheck, size: 60, color: col.onHero),
             ),
@@ -397,7 +442,11 @@ class _PrivacyVisual extends StatelessWidget {
             spacing: 8,
             runSpacing: 8,
             alignment: WrapAlignment.center,
-            children: [pill('No internet'), pill('No accounts'), pill('No analytics')],
+            children: [
+              pill('No internet'),
+              pill('No accounts'),
+              pill('No analytics'),
+            ],
           ),
         ],
       ),
@@ -405,12 +454,10 @@ class _PrivacyVisual extends StatelessWidget {
   }
 }
 
-/// The bank bar filling from [from] to [to] of [cap].
 class _BankVisual extends StatelessWidget {
   const _BankVisual({required this.cap, required this.caption});
   final double cap;
 
-  /// Under the bar while it fills; "Bank full" once it is.
   final String caption;
 
   @override
@@ -429,7 +476,10 @@ class _BankVisual extends StatelessWidget {
             children: [
               Icon(Ph.footprints, size: 22, color: col.onHero),
               const SizedBox(width: 8),
-              Text('In the bank', style: t.titleMedium?.copyWith(color: col.onHero)),
+              Text(
+                'In the bank',
+                style: t.titleMedium?.copyWith(color: col.onHero),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -450,7 +500,9 @@ class _BankVisual extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             v >= 0.999 ? 'Bank full: walking adds nothing' : caption,
-            style: t.bodyLarge?.copyWith(color: v >= 0.999 ? col.onHero : col.onHeroMuted),
+            style: t.bodyLarge?.copyWith(
+              color: v >= 0.999 ? col.onHero : col.onHeroMuted,
+            ),
           ),
         ],
       ),
@@ -467,13 +519,15 @@ class _TableVisual extends StatelessWidget {
     final col = context.colors;
     return Container(
       padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(color: col.raised, borderRadius: BorderRadius.circular(Radii.surface)),
+      decoration: BoxDecoration(
+        color: col.raised,
+        borderRadius: BorderRadius.circular(Radii.surface),
+      ),
       child: PriceTable(config: config, currentPrice: config.startPrice),
     );
   }
 }
 
-/// A frosted phone screen with the card it shows.
 class _FrostVisual extends StatelessWidget {
   const _FrostVisual({required this.steps, required this.unlocks});
   final int steps;
@@ -487,35 +541,51 @@ class _FrostVisual extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       height: 46,
       width: w,
-      decoration: BoxDecoration(color: col.onHero.withValues(alpha: 0.22), borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: col.onHero.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(8),
+      ),
     );
     return AspectRatio(
       aspectRatio: 0.62,
       child: Container(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: col.onHero.withValues(alpha: 0.3), width: 2),
+          border: Border.all(
+            color: col.onHero.withValues(alpha: 0.3),
+            width: 2,
+          ),
           color: const Color(0xFFE2F0F8).withValues(alpha: 0.18),
         ),
         padding: const EdgeInsets.all(16),
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // As many posts as fit; the rest is cut off like a real feed.
             ClipRect(
               child: OverflowBox(
                 alignment: Alignment.topCenter,
                 maxHeight: double.infinity,
-                child: Column(children: [for (var i = 0; i < 9; i++) post(i % 3 == 2 ? 120 : double.infinity)]),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < 9; i++)
+                      post(i % 3 == 2 ? 120 : double.infinity),
+                  ],
+                ),
               ),
             ),
             Container(
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: col.raised, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(
+                color: col.raised,
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('Take a walk first', style: t.titleSmall?.copyWith(color: col.text)),
+                  Text(
+                    'Take a walk first',
+                    style: t.titleSmall?.copyWith(color: col.text),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     '${formatCount(steps)} steps put $unlocks in the bank.',

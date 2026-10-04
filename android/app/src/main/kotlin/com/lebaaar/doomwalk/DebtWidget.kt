@@ -7,11 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.widget.RemoteViews
 
-/**
- * Home-screen widgets. Dart writes display strings into the home_widget
- * plugin's SharedPreferences file and triggers an update; these providers
- * just render them. The system's updatePeriodMillis tick re-renders too.
- */
 abstract class DebtWidgetBase(private val layout: Int) : AppWidgetProvider() {
     override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {
         val p = context.getSharedPreferences("HomeWidgetPreferences", Context.MODE_PRIVATE)

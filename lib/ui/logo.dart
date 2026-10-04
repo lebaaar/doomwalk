@@ -1,11 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The DoomWalk mark: ticks that widen, thicken and brighten as they go
-/// down, so the feed seems to come towards you out of the depth. Same
-/// geometry as docs/logo/final/symbol.svg.
-///
-/// [small] drops to four fatter ticks so the mark still reads at icon size
-/// (24 dp tab bar, notification icon).
+// Same geometry as docs/logo/final/symbol.svg; [small] uses four fatter ticks to stay legible at icon size
 class DepthTicks extends StatelessWidget {
   const DepthTicks({super.key, this.size, this.color, this.small = false});
 
@@ -19,16 +14,20 @@ class DepthTicks extends StatelessWidget {
     final s = size ?? icon.size ?? 24;
     return SizedBox.square(
       dimension: s,
-      child: CustomPaint(painter: _TicksPainter(color ?? icon.color ?? const Color(0xFF0E4166), small)),
+      child: CustomPaint(
+        painter: _TicksPainter(
+          color ?? icon.color ?? const Color(0xFF0E4166),
+          small,
+        ),
+      ),
     );
   }
 }
 
-/// Tick rectangles in a 256 x 256 box: (y, width, height).
+// (y, width, height) in a 256 x 256 box
 List<(double, double, double)> depthTicks({bool small = false}) {
   final out = <(double, double, double)>[];
   if (small) {
-    // Four ticks, spread over the same height as the full mark.
     const ws = [84.0, 132.0, 180.0, 224.0];
     const hs = [26.0, 32.0, 38.0, 44.0];
     var y = 30.0;
@@ -59,14 +58,19 @@ class _TicksPainter extends CustomPainter {
     for (var i = 0; i < ticks.length; i++) {
       final (y, w, h) = ticks[i];
       final t = ticks.length == 1 ? 1.0 : i / (ticks.length - 1);
-      final paint = Paint()..color = color.withValues(alpha: color.a * (0.32 + 0.68 * t));
+      final paint = Paint()
+        ..color = color.withValues(alpha: color.a * (0.32 + 0.68 * t));
       canvas.drawRRect(
-        RRect.fromRectAndRadius(Rect.fromLTWH((128 - w / 2) * k, y * k, w * k, h * k), Radius.circular(h / 2 * k)),
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH((128 - w / 2) * k, y * k, w * k, h * k),
+          Radius.circular(h / 2 * k),
+        ),
         paint,
       );
     }
   }
 
   @override
-  bool shouldRepaint(_TicksPainter old) => old.color != color || old.small != small;
+  bool shouldRepaint(_TicksPainter old) =>
+      old.color != color || old.small != small;
 }

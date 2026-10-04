@@ -1,15 +1,4 @@
-/// Turns raw accessibility scroll events into metres. Pure Dart.
-///
-/// The native shim forwards only geometry fields of TYPE_VIEW_SCROLLED events
-/// (never text). Apps report scrolling in different ways, tried in order:
-///   1. scrollDeltaY (API 28+, set by plain Views, ScrollView, Compose)
-///   2. change of absolute scrollY for the same scroller (WebView/Chrome)
-///   3. change of the first visible item index (RecyclerView, ViewPager):
-///      items * screenHeight / visibleItems. A pager shows 1 item, so each
-///      page flip counts one screen height (TikTok / Reels / Shorts).
-///   4. nothing usable: a conservative estimate of 0.25 screen per event,
-///      rate-limited.
-library;
+// Tried in order: scrollDeltaY, absolute scrollY, first visible item index (a pager flip counts one screen), then a rate-limited 0.25 screen estimate
 
 import 'units.dart';
 
@@ -82,7 +71,6 @@ class ScrollInterpreter {
   static const estimateFraction = 0.25;
   static const estimateMinGapMs = 300;
 
-  /// Max pixels attributed to one event; guards against "jump to top".
   double get _cap => screenHeightPx * 3;
 
   InterpretedScroll interpret(RawScroll e) {
@@ -98,31 +86,31 @@ class ScrollInterpreter {
     if (e.scrollY >= 0) _lastScrollY[k] = e.scrollY;
     if (e.fromIndex >= 0) _lastFrom[k] = e.fromIndex;
 
-    // 1. Explicit vertical delta.
-    if (e.dy > 0 || e.dy < -1) return (e.dy.abs().toDouble(), ScrollSource.deltaY);
-    // Purely horizontal scroll (carousel): ignore.
+    if (e.dy > 0 || e.dy < -1)
+      return (e.dy.abs().toDouble(), ScrollSource.deltaY);
     if (e.dx != 0 && e.dx != -1 && e.dy == 0) return (0, ScrollSource.none);
 
-    // 2. Absolute vertical offset.
     if (e.scrollY >= 0 && prevY != null) {
       final d = (e.scrollY - prevY).abs();
       if (d > 0) return (d.toDouble(), ScrollSource.scrollY);
       if (e.fromIndex < 0) return (0, ScrollSource.scrollY);
     }
 
-    // 3. Item index change.
     if (e.fromIndex >= 0) {
-      if (prevFrom == null || prevFrom == e.fromIndex) return (0, ScrollSource.itemIndex);
-      final visible = (e.toIndex >= e.fromIndex) ? (e.toIndex - e.fromIndex + 1) : 1;
+      if (prevFrom == null || prevFrom == e.fromIndex)
+        return (0, ScrollSource.itemIndex);
+      final visible = (e.toIndex >= e.fromIndex)
+          ? (e.toIndex - e.fromIndex + 1)
+          : 1;
       final items = (e.fromIndex - prevFrom).abs();
       return (items * screenHeightPx / visible, ScrollSource.itemIndex);
     }
 
     if (e.scrollY >= 0) return (0, ScrollSource.scrollY);
 
-    // 4. No geometry at all.
     final last = _lastEstimate[k];
-    if (last != null && e.timeMs - last < estimateMinGapMs) return (0, ScrollSource.estimate);
+    if (last != null && e.timeMs - last < estimateMinGapMs)
+      return (0, ScrollSource.estimate);
     _lastEstimate[k] = e.timeMs;
     return (screenHeightPx * estimateFraction, ScrollSource.estimate);
   }

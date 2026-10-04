@@ -37,7 +37,10 @@ void main() {
     });
     test('sign is ignored and round trip holds', () {
       expect(pixelsToMetres(-840, 420), closeTo(0.0508, 1e-12));
-      expect(metresToPixels(pixelsToMetres(1234, 401.5), 401.5), closeTo(1234, 1e-6));
+      expect(
+        metresToPixels(pixelsToMetres(1234, 401.5), 401.5),
+        closeTo(1234, 1e-6),
+      );
     });
     test('zero dpi yields zero', () => expect(pixelsToMetres(100, 0), 0));
     test('sanitizeDpi falls back on implausible ydpi', () {
@@ -51,8 +54,14 @@ void main() {
   group('landmarks', () {
     test('tier text', () {
       expect(describeTier(759, LandmarkTier.today), '2.3 Eiffel Towers today');
-      expect(describeTier(828, LandmarkTier.week), '1.0 Burj Khalifa this week');
-      expect(describeTier(4424.5, LandmarkTier.lifetime), '0.5 Everests lifetime');
+      expect(
+        describeTier(828, LandmarkTier.week),
+        '1.0 Burj Khalifa this week',
+      );
+      expect(
+        describeTier(4424.5, LandmarkTier.lifetime),
+        '0.5 Everests lifetime',
+      );
     });
     test('nearest landmark on a log scale', () {
       expect(nearestLandmark(0), eiffel);
@@ -80,7 +89,6 @@ void main() {
       expect(q.passed, [giraffe, bus, whale, liberty]);
       expect(progressToward(5000, ladder: climb).next, everest);
       expect(progressToward(5000, ladder: climb).passed.last, triglav);
-      // The climb is sorted, smallest first.
       for (var i = 1; i < climb.length; i++) {
         expect(climb[i].heightM, greaterThan(climb[i - 1].heightM));
       }

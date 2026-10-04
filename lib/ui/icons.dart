@@ -1,8 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// Phosphor Regular (MIT, assets/fonts/MIT-Phosphor.txt), bundled as a font.
-/// The phosphor_flutter package no longer compiles on current Flutter, so
-/// the few glyphs we use are declared here directly. One family, one weight.
+// phosphor_flutter no longer compiles on current Flutter, so the glyphs are declared from the bundled font
 abstract final class Ph {
   static const _f = 'Phosphor';
   static const slidersHorizontal = IconData(0xe434, fontFamily: _f);
@@ -38,7 +36,6 @@ abstract final class Ph {
   static const arrowCounterClockwise = IconData(0xe038, fontFamily: _f);
 }
 
-/// Phosphor Fill, same code points, for selected states.
 abstract final class PhFill {
   static const _f = 'PhosphorFill';
   static const heartbeat = IconData(0xe2ac, fontFamily: _f);

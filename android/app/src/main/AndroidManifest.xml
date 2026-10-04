@@ -1,9 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Fully on-device: strip INTERNET from the release manifest even if a
-         library tries to add it. (The debug manifest re-adds it for the
-         Flutter tool only.) -->
+    <!-- Fully on-device: strip INTERNET even if a library adds it (the debug manifest re-adds it for the Flutter tool) -->
     <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
 
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
@@ -13,10 +11,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
-    <!-- Never granted by install. A developer can grant it with
-         `adb shell pm grant com.lebaaar.doomwalk android.permission.WRITE_SECURE_SETTINGS`
-         so the app can switch its own accessibility service off and on
-         after Android stops it. -->
+    <!-- Never granted by install; grant over adb so the app can restart its own accessibility service -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
         tools:ignore="ProtectedPermissions" />
 
@@ -48,7 +43,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Scroll capture + frost overlay. Privacy: see accessibility_service_config.xml -->
         <service
             android:name=".ScrollAccessibilityService"
             android:exported="true"
@@ -91,25 +85,21 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/debt_widget_large" />
         </receiver>
 
-        <!-- Don't delete the meta-data below.
-             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <!-- Don't delete: used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
 
     <queries>
-        <!-- Labels/icons for the per-app breakdown and the rates editor. -->
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent>
-        <!-- Detect the launcher(s) so they are exempt. -->
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.HOME" />
         </intent>
-        <!-- Detect keyboards so they are exempt. -->
         <intent>
             <action android:name="android.view.InputMethod" />
         </intent>

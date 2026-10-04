@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# On-device verification for DoomWalk (debug build). Run from the repo root
-# with the phone connected over USB debugging:  ./tool/device_test.sh
-# Evidence (logcat excerpts + screenshots) lands in docs/device/.
+# On-device verification (debug build): run from the repo root with the phone on USB debugging; evidence lands in docs/device/
 set -euo pipefail
 PKG=com.lebaaar.doomwalk
 SVC=$PKG/$PKG.ScrollAccessibilityService
