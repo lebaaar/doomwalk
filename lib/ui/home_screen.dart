@@ -624,7 +624,7 @@ class LedgerView extends StatelessWidget {
       children: [
         Text('How it works', style: t.titleLarge),
         const SizedBox(height: 8),
-        rule(Ph.footprints, 'Walking fills your bank. It starts empty each day and holds ${formatRound(cfg.bankCapM)}.'),
+        rule(Ph.footprints, 'Walking fills your bank. It starts empty each day and holds up to ${formatRound(cfg.bankCapM)}.'),
         rule(Ph.squaresFour, 'Scrolling spends it. When it\'s empty, apps freeze until you walk.'),
         rule(Ph.lightning, 'The more you scroll today, the more walking each metre costs:'),
         const SizedBox(height: 4),

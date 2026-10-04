@@ -241,7 +241,7 @@ List<_Slide> _buildSlides(WalletConfig c) {
     _Slide(
       title: 'Walking fills a small bank',
       body:
-          'It starts empty every day and holds $cap of scrolling, at $start from the first step: '
+          'It starts empty every day and holds up to $cap of scrolling, at $start from the first step: '
           '${formatRound(c.startPrice).replaceAll(' ', '\u00A0')} walked per metre. Once it\'s full, walking '
           'adds nothing, so a long commute can\'t buy a day of scrolling.',
       visual: _BankVisual(
