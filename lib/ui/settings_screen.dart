@@ -30,7 +30,7 @@ class SettingsScreen extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.only(bottom: 24),
       children: [
-        const SectionTitle('How strict'),
+        const SectionTitle('How strict', first: true),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
           child: Segmented<Strictness>(
@@ -391,14 +391,14 @@ class _PrivacyPage extends ConsumerWidget {
             foreground: context.colors.danger,
           ),
           title: Text('Erase all data', style: TextStyle(color: context.colors.danger)),
-          subtitle: const Text('Walking, scrolling, history and tracking gaps. Settings are kept.'),
+          subtitle: const Text('Everything, settings included. DoomWalk starts over as if just installed.'),
           onTap: () async {
             final ok = await showDialog<bool>(
               context: context,
               builder: (d) => AlertDialog(
                 title: const Text('Erase all data?'),
-                content: const Text('Walking, scrolling, history and tracking gaps are deleted. Settings are kept. '
-                    'This can\'t be undone.'),
+                content: const Text('Walking, scrolling, history, tracking gaps and all your settings are '
+                    'deleted, and DoomWalk starts over from the intro. This can\'t be undone.'),
                 actions: [
                   TextButton(onPressed: () => Navigator.pop(d, false), child: const Text('Cancel')),
                   TextButton(
@@ -409,7 +409,10 @@ class _PrivacyPage extends ConsumerWidget {
                 ],
               ),
             );
-            if (ok == true) await c.resetAll();
+            if (ok != true) return;
+            await c.eraseEverything();
+            // Back to the root, which now shows the intro stories.
+            if (context.mounted) Navigator.of(context).popUntil((r) => r.isFirst);
           },
         ),
       ]),

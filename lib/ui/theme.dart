@@ -378,8 +378,11 @@ ThemeData buildTheme(Brightness brightness) {
 /// Group heading in a list: small, muted, sitting on the margin above the
 /// group it names.
 class SectionTitle extends StatelessWidget {
-  const SectionTitle(this.text, {super.key, this.action, this.onAction});
+  const SectionTitle(this.text, {super.key, this.action, this.onAction, this.first = false});
   final String text;
+
+  /// The first thing on a page: starts 8 below the app bar, like the other tabs.
+  final bool first;
 
   /// Optional link at the end of the row, like "See all".
   final String? action;
@@ -390,7 +393,7 @@ class SectionTitle extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final col = context.colors;
     return Padding(
-      padding: EdgeInsets.fromLTRB(Gaps.margin + 4, 28, action == null ? Gaps.margin : Gaps.margin - 8, 8),
+      padding: EdgeInsets.fromLTRB(Gaps.margin + 4, first ? 8 : 28, action == null ? Gaps.margin : Gaps.margin - 8, 8),
       child: Row(children: [
         Expanded(
           child: Semantics(
