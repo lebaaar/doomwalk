@@ -42,6 +42,18 @@ Future<void> _loadFonts() async {
   final sdk = Platform.environment['FLUTTER_ROOT'] ?? '';
   await load('MaterialIcons', ['$sdk/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf']);
   await load('PhosphorFill', ['assets/fonts/Phosphor-Fill.ttf']);
+  // Landmark emoji (🗼, 🦒) instead of empty boxes, where the host has it.
+  await load('Noto Color Emoji', ['/usr/share/fonts/truetype/noto/NotoColorEmoji.ttf', '$sdk/../engine/src/flutter/txt/third_party/fonts/NotoColorEmoji.ttf']);
+}
+
+/// The app's theme with the emoji font as a fallback: the test engine has
+/// no system fallback, so landmark emoji would otherwise be boxes.
+ThemeData _withEmoji(ThemeData t) {
+  const fallback = ['Noto Color Emoji'];
+  return t.copyWith(
+    textTheme: t.textTheme.apply(fontFamilyFallback: fallback),
+    chipTheme: t.chipTheme.copyWith(labelStyle: t.chipTheme.labelStyle?.copyWith(fontFamilyFallback: fallback)),
+  );
 }
 
 void main() {
@@ -91,7 +103,7 @@ void main() {
           valueListenable: brightness,
           builder: (_, b, _) => MaterialApp(
             debugShowCheckedModeBanner: false,
-            theme: buildTheme(b),
+            theme: _withEmoji(buildTheme(b)),
             home: ValueListenableBuilder<Widget>(valueListenable: screen, builder: (_, w, _) => w),
           ),
         ),
@@ -242,6 +254,12 @@ void main() {
       c.walkAvailable = true;
       await c.setDeveloperOptions(true);
       await c.devResetTracking();
+      // Most of today's scrolling on an emergency pass (free), so the climb
+      // reaches the Eiffel Tower while the bank still looks like a normal day.
+      c.startOverride();
+      c.devAddScroll('com.instagram.android', 140);
+      c.devAddScroll('com.zhiliaoapp.musically', 60);
+      c.endOverride();
       c.devAddSteps(4812);
       c.devAddScroll('com.instagram.android', 14);
       c.devAddScroll('com.zhiliaoapp.musically', 6);

@@ -4,7 +4,7 @@
 
 <h1 align="center">DoomWalk</h1>
 
-<p align="center"><b>Want to scroll? Take a walk first.</b></p>
+<p align="center"><b>Want to scroll? Earn it by taking a walk first.</b></p>
 
 <p align="center">For Android · everything stays on your phone · no accounts, no ads, no tracking</p>
 

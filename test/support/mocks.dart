@@ -1,5 +1,7 @@
 // Shared mocks for the native shim and plugins.
 
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -21,6 +23,13 @@ const appLabels = {
   'com.reddit.frontpage': 'Reddit',
   'com.google.android.apps.maps': 'Maps',
 };
+
+/// Launcher icons for the screenshots, drawn in test/assets/icons (only
+/// some apps have one; the rest get the app's placeholder).
+Uint8List? appIcon(String pkg) {
+  final f = File('test/assets/icons/$pkg.png');
+  return f.existsSync() ? f.readAsBytesSync() : null;
+}
 
 Future<void> sendNative(String method, [Object? args]) async {
   final binding = TestDefaultBinaryMessengerBinding.instance;
@@ -74,10 +83,10 @@ void installMocks() {
         return null;
       case 'appInfo':
         final pkg = (call.arguments as Map)['pkg'] as String;
-        return {'pkg': pkg, 'label': appLabels[pkg] ?? pkg, 'category': 4};
+        return {'pkg': pkg, 'label': appLabels[pkg] ?? pkg, 'category': 4, 'icon': appIcon(pkg)};
       case 'launchableApps':
         return [
-          for (final e in appLabels.entries) {'pkg': e.key, 'label': e.value, 'category': -1},
+          for (final e in appLabels.entries) {'pkg': e.key, 'label': e.value, 'category': -1, 'icon': appIcon(e.key)},
         ];
       default:
         return null;
