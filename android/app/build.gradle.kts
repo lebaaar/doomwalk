@@ -6,7 +6,6 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// Without android/key.properties, release builds fall back to the debug key and can't update an APK signed with the real one
 val keystorePropertiesFile = rootProject.file("key.properties")
 val keystoreProperties = Properties().apply {
     if (keystorePropertiesFile.exists()) FileInputStream(keystorePropertiesFile).use { load(it) }
@@ -45,8 +44,16 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName(if (keystorePropertiesFile.exists()) "release" else "debug")
+            signingConfig = signingConfigs.getByName("release")
         }
+    }
+}
+
+// A release build signed with the debug key can't be updated or uploaded, so fail instead of producing one
+gradle.taskGraph.whenReady {
+    val releaseBuild = allTasks.any { it.name.contains("Release") && (it.name.startsWith("assemble") || it.name.startsWith("bundle")) }
+    if (releaseBuild && !keystorePropertiesFile.exists()) {
+        throw GradleException("android/key.properties is missing: copy android/example-key.properties and fill it in (see CONTRIBUTING.md)")
     }
 }
 

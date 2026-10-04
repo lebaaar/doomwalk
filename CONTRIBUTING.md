@@ -1,75 +1,40 @@
 # Contributing to DoomWalk
 
-Everything technical lives here: building, signing, permissions, testing and how the
-code is laid out. The [README](README.md) is for people who just want to use the app.
+Info about building and signing the app, permissions, testing and code structure.
+<br>
+Package id: `com.lebaaar.doomwalk`. The mark is a stack of frost-blue *depth ticks* (see [docs/logo](docs/logo/README.md)).
 
-Package id: `com.lebaaar.doomwalk`. The mark is a stack of frost-blue *depth ticks*
-(see [docs/logo](docs/logo/README.md)).
+## Prerequisites
 
-## Install (Fedora)
-
-```bash
-# Tools
-sudo dnf install android-tools git unzip java-21-openjdk-devel
-# Flutter SDK
-git clone https://github.com/flutter/flutter.git -b stable ~/flutter
-echo 'export PATH="$HOME/flutter/bin:$PATH"' >> ~/.bashrc && source ~/.bashrc
-# Android SDK: install Android Studio (Flathub: com.google.AndroidStudio) or the
-# command-line tools, then:
-flutter doctor --android-licenses
-flutter doctor
-```
-
-Enable USB debugging on the phone: Settings → About phone → tap *Build number* 7× →
-back to Settings → System → Developer options → **USB debugging** on. Plug in, accept
-the RSA prompt, then check that `adb devices` lists the phone. On Fedora, if it shows
-`no permissions`: `sudo dnf install android-udev-rules` and re-plug.
+Please ensure you have Flutter 3.13+ (with Dart 3.1+) installed and working.
 
 ```bash
 flutter pub get
 flutter build apk --debug && adb install -r build/app/outputs/flutter-apk/app-debug.apk
-# release (no INTERNET permission):
-flutter build apk --release
+# or simply:
+flutter run
 ```
 
-## Release build
+## Tests
 
-A release build is optimised (no debug banner or slow debug checks), has no
-INTERNET permission, no adb debug hooks and no `SD` logging. Sign it with your
-own key so later releases can update it in place.
+```bash
+flutter analyze
+flutter test # unit, pipeline and widget tests
+RENDER_SCREENS=1 flutter test test/render_screens_test.dart # regenerates docs/screenshots
+```
 
-1. Create a key once and keep it safe (back it up: without it you can't ship
-   updates to the installed app):
-   ```bash
-   keytool -genkey -v -keystore ~/doomwalk-upload.jks -keyalg RSA -keysize 2048 \
-     -validity 10000 -alias upload
-   ```
-2. Create `android/key.properties` (git-ignored, never commit it):
-   ```properties
-   storePassword=<the password you chose>
-   keyPassword=<the password you chose>
-   keyAlias=upload
-   storeFile=/home/<you>/doomwalk-upload.jks
-   ```
-3. Raise `version:` in `pubspec.yaml` for every release (`1.0.1+2`: the number
-   after `+` must go up, or Android refuses the update).
-4. Build and install:
-   ```bash
-   flutter build apk --release
-   adb install -r build/app/outputs/flutter-apk/app-release.apk
-   # or, for Google Play:
-   flutter build appbundle --release   # build/app/outputs/bundle/release/app-release.aab
-   ```
-5. Check it: `aapt2 dump permissions build/app/outputs/flutter-apk/app-release.apk`
-   must not list `android.permission.INTERNET`.
+## Code structure
 
-Without `key.properties` the release build is signed with the debug key. It
-runs, but it can't update (or be updated by) an APK signed with your real key:
-uninstall first, which erases the app's data. The first install of a properly
-signed build over a debug one needs that uninstall too.
-
-A sideloaded release APK needs *Allow restricted settings* before Android lets
-you turn on the accessibility service (see Permissions).
+```
+lib/core/       pure Dart (no Flutter): ScrollWallet, units, ScrollInterpreter,
+                landmarks, AppCatalog, presets, tamper, WalkTracker
+lib/services/   controller (orchestration), sqflite store, native bridge
+lib/ui/         dashboard, onboarding, settings, share card
+android/.../DoomWalkShim.kt   accessibility service, frost overlay, FGS, engine host
+android/.../DebtWidget.kt       home-screen widget providers (2×1, 4×2)
+android/app/src/debug/          debug-only adb hooks
+test/           unit + pipeline + render tests
+```
 
 ## Permissions
 
@@ -83,26 +48,15 @@ The onboarding screen walks through each one with a deep link and a live tick:
 | Notifications | permission dialog | `adb shell pm grant com.lebaaar.doomwalk android.permission.POST_NOTIFICATIONS` |
 | Battery optimisation | system dialog | `adb shell dumpsys deviceidle whitelist +com.lebaaar.doomwalk` |
 
-**Privacy:** the accessibility service sets `canRetrieveWindowContent="false"` and only
-subscribes to scroll and window-state events. It reads scroll geometry and the package
-name, never screen content.
-
-## Tests
-
-```bash
-flutter analyze
-flutter test                                        # unit, pipeline and widget tests
-RENDER_SCREENS=1 flutter test test/render_screens_test.dart   # regenerates docs/screenshots
-```
+**Privacy:** the accessibility service sets `canRetrieveWindowContent="false"` and only subscribes to scroll and window-state events.
+It reads scroll geometry and the package name, never screen content.
 
 ## Automated device check
 
 ```bash
 ./tool/device_test.sh          # SCROLL_APP=com.instagram.android SWIPES=120 to change target
 ```
-It installs, grants everything, enables the service, swipes, screenshots the frost,
-tests tap-through, exempt apps, swipe-from-recents survival, walk-off (debug hook) and
-persistence, and checks the release APK for INTERNET. The results go to `docs/device/`.
+It installs, grants everything, enables the service, swipes, screenshots the frost, tests tap-through, exempt apps, swipe-from-recents survival, walk-off (debug hook) and persistence, and checks the release APK for INTERNET (so it needs `android/key.properties`). The results go to `docs/device/`.
 
 Debug-only adb hooks (absent from release builds):
 ```bash
@@ -112,53 +66,44 @@ adb shell am broadcast -n com.lebaaar.doomwalk/.DebugReceiver -a com.lebaaar.doo
 adb logcat -s flutter | grep 'SD '
 ```
 
-## Demo script (under 2 minutes)
-1. Before going on stage: the app is installed and onboarded, cross-window blur is on
-   (Developer options → *Allow window-level blurs*, normally on by default), and
-   battery saver is **off** because it disables blur.
-2. Start with an empty bank: DoomWalk → ⚙ → Developer options → *Reset tracking*.
-3. Open Instagram and scroll the feed. The bank is empty, so the frost fades in
-   within a few dozen flicks (full at 20 m owed), with a "Take a walk" card in the
-   middle. Tap a post to show that touches still work through the frost.
-4. Pull down the notification: "Frozen. Walk x steps to unlock 50 m", with the
-   **Emergency pass** button.
-5. Open DoomWalk: the *Today* card turns navy, with the bank empty, what's owed and
-   the steps to walk, and Instagram is at the top of *Most scrolled today*.
-6. Walk about 30 steps around the stage. What's owed counts down and back in
-   Instagram the frost melts. (Backup: Settings → Developer options → *Add steps to today*.)
-7. *Activity* → *Scrolling by app* → tap Instagram → **Share** for the
-   "Instagram: … this week" card.
+## Releasing to Google Play
 
-## Model, precisely
-A bank of scrolling, reset at local midnight (`lib/core/scroll_wallet.dart`):
+Release builds must be signed with the uploaded `key.properties` (see `android/example-key.properties` for structure).
+Release build fails without `android/key.properties`, so that debug-signed APK can never be shipped to production by accident.
 
-* `bank` holds metres of scrolling, `0 ≤ bank ≤ bankCapM` (default 50 m, 20–100 m).
-* Walking `w` metres adds `w / price` metres (after paying anything owed first), where
-  `price = priceTiers[min(floor(scrolledToday / priceStepM), priceTiers.length - 1)]`.
-  Scrolling during an emergency pass doesn't count toward `scrolledToday`.
-* Scrolling spends the bank; with it empty the rest is owed, and the frost is
-  `owed / frostAtM` (full at 20 m).
-* Midnight resets the bank, what's owed and the price.
-* Tracking gaps (accessibility off, force-stop) are charged as scrolling at the user's
-  average rate (25 m/h until there is history), from the bank first.
+### One-time setup
 
-| Preset | `priceTiers` | `priceStepM` |
-|---|---|---|
-| Gentle | 3, 4, 6, 9, 12 | 50 m |
-| Balanced (default) | 4, 6, 9, 12, 18 | 50 m |
-| Strict | 6, 9, 12, 18, 25 | 25 m |
+1. Create the upload key and store it somewhere safe:
+   ```bash
+   keytool -genkey -v -keystore ~/doomwalk-upload.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+   ```
+2. Copy `android/example-key.properties` to `android/key.properties` and fill it in. It is git-ignored; never commit it or the `.jks`.
+3. In Play Console, create the app (package `com.lebaaar.doomwalk`) and keep *Play App Signing* on. Play re-signs with its own key, your upload key only proves the upload is yours.
+4. Fill in the store pages with the text in [docs/google-play/listing.md](docs/google-play/listing.md): short and full description, the accessibility API declaration, the foreground service declarations, the data safety form (no data collected) and the privacy policy URL ([PRIVACY.md](PRIVACY.md) on GitHub). Add an icon (512 px: `docs/logo/final/png/icon-rounded-512.png`), a feature graphic (1024 x 500) and phone screenshots (`docs/screenshots`, 1080 x 2400 ones from `render_screens_test.dart`).
+5. Google reviews apps that use the accessibility API; expect a few days and a possible request for a short demo video of the service doing what the declaration says.
 
-The reasoning behind each choice is in [DECISIONS.md](DECISIONS.md), plugin findings in
-[SPIKE.md](SPIKE.md), and status in [PROGRESS.md](PROGRESS.md).
+### Every release
 
-## Layout
-```
-lib/core/       pure Dart (no Flutter): ScrollWallet, units, ScrollInterpreter,
-                landmarks, AppCatalog, presets, tamper, WalkTracker
-lib/services/   controller (orchestration), sqflite store, native bridge
-lib/ui/         dashboard, altitude gauge, onboarding, settings, share card
-android/.../DoomWalkShim.kt   accessibility service, frost overlay, FGS, engine host
-android/.../DebtWidget.kt       home-screen widget providers (2×1, 4×2)
-android/app/src/debug/          debug-only adb hooks
-test/           unit + pipeline + render tests
-```
+1. Run `flutter analyze` and `flutter test`.
+2. Raise `version:` in `pubspec.yaml` (example: `1.0.1+2`).
+3. Build:
+   ```bash
+   flutter build appbundle --release # build/app/outputs/bundle/release/app-release.aab, for Play
+   flutter build apk --release       # build/app/outputs/flutter-apk/app-release.apk, for GitHub / sideloading
+   ```
+4. Check the APK has no `INTERNET` permission (`tool/device_test.sh` does this too):
+   ```bash
+   "$ANDROID_HOME"/build-tools/*/aapt2 dump permissions build/app/outputs/flutter-apk/app-release.apk
+   ```
+5. Install it on a phone (`adb install -r ...`) and run through onboarding once. Uninstall any debug build first: different signing keys can't update each other, and uninstalling erases the app's data.
+6. Commit the version bump (`release 1.0.1+2`), tag it and push:
+   ```bash
+   git tag v1.0.1 && git push origin main v1.0.1
+   ```
+7. GitHub: publish the APK so the README link works.
+   ```bash
+   gh release create v1.0.1 build/app/outputs/flutter-apk/app-release.apk --title "DoomWalk 1.0.1" --generate-notes
+   ```
+8. Play: Console → Testing or Production → *Create new release* → upload the `.aab`, add release notes and roll out. For a first release, run a closed test first if your account type requires it.
+
+A sideloaded APK needs *Allow restricted settings* (App info → ⋮) before Android lets you turn on the accessibility service. Play installs don't.
