@@ -394,3 +394,17 @@ are gone).
 * Steps are always walked metres over the stride (`DoomWalkController.stepsToday`,
   `stepsLifetime`, `stepGoal`), so changing the stride re-reads history.
 * `formatCount` replaces the settings-only `_thousands`, which broke past a million.
+
+## Round 14: blank screen after an update
+* **Cause:** `main()` awaited `SystemChrome.setEnabledSystemUIMode` before
+  `runApp`. When a service starts the engine (after `adb install -r`, a reboot
+  or a kill, with scroll measuring on) there is no activity yet, and Flutter's
+  Android `PlatformChannel` drops the call without ever replying. The await
+  never returned, `runApp` never ran, and the activity attached to a cached
+  engine with nothing to draw. The accessibility service keeps the process
+  alive, so reopening the app didn't help either.
+* **Fix:** the call is fired without awaiting and re-applied by an
+  `AppLifecycleListener` whenever the activity resumes.
+  `test/startup_test.dart` gives the platform channel a handler that never
+  answers and checks that `main()` still reaches `runApp` (it times out on the
+  old code).
