@@ -10,14 +10,14 @@
 
 ---
 
-DoomWalk turns walking into scrolling. It measures how far you scroll in your social
-and video apps, in real **metres**, and only lets you scroll as far as you've walked.
-Run out, and the app you're in slowly **frosts over** until you get up and take a walk.
+DoomWalk makes you walk before you can doomscroll. It measures how far you scroll in
+your social and video apps, in real **metres**, and only lets you scroll as far as
+you've walked. Run out, and those apps are **blocked** until you get up and take a walk.
 
 <p align="center">
   <img src="docs/screenshots/host_intro_0.png" width="200" alt="Intro: want to scroll? Take a walk first">
   <img src="docs/screenshots/host_tab_today.png" width="200" alt="Today: steps and the bank">
-  <img src="docs/screenshots/host_intro_4.png" width="200" alt="Bank empty? The app freezes">
+  <img src="docs/screenshots/host_intro_4.png" width="200" alt="Bank empty? The app is blocked">
 </p>
 
 ## How it works
@@ -37,8 +37,8 @@ Run out, and the app you're in slowly **frosts over** until you get up and take 
    | 150–199 m | 10× | 667 steps |
    | 200 m and more | 15× (max) | 1,000 steps |
 
-4. **Bank empty? The app freezes.** It fades behind a blur with a card that says how
-   many steps get you going again. Taps still work, it's just no fun.
+4. **Bank empty? The app is blocked.** It fades behind a blur with a card that says
+   how many steps get you going again. Taps still work, it's just no fun.
 5. **Emergencies happen.** Three passes a day unlock everything for five minutes.
 6. **Every midnight is a fresh start.** The bank empties and prices go back down.
 
@@ -53,8 +53,8 @@ and set the bank anywhere from 20 to 100 m.
   your streak, and which apps you scroll most.
 * **Landmarks:** your scrolling measured in giraffes, Eiffel Towers and Everests, with
   a card to share (`#DoomWalk`).
-* **Notification and home-screen widget** with what's left in the bank and an
-  emergency-pass button.
+* **A notification** with what's left in the bank and an emergency-pass button, and
+  **a home-screen widget** with the bank or the steps you need.
 * **Light and dark mode.**
 
 ## Privacy
