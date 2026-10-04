@@ -7,17 +7,17 @@ void main() {
     expect(Strictness.of(const WalletConfig()), Strictness.balanced);
   });
 
-  test('applying a preset sets the economy rules and keeps the rest', () {
-    final c = Strictness.strict.applyTo(const WalletConfig(weightKg: 82, overridesPerDay: 1));
+  test('applying a preset sets the price rules and keeps the rest, bank size included', () {
+    final c = Strictness.strict.applyTo(const WalletConfig(weightKg: 82, overridesPerDay: 1, bankCapM: 400));
     expect(Strictness.of(c), Strictness.strict);
-    expect(c.allowanceM, 50);
     expect(c.priceStepM, 50);
+    expect(c.bankCapM, 400);
     expect(c.weightKg, 82);
     expect(c.overridesPerDay, 1);
   });
 
-  test('any customised rule means no preset', () {
-    expect(Strictness.of(const WalletConfig(allowanceM: 60)), isNull);
+  test('the bank size is not part of a preset; price rules are', () {
+    expect(Strictness.of(const WalletConfig(bankCapM: 100)), Strictness.balanced);
     expect(Strictness.of(const WalletConfig(maxPrice: 4)), isNull);
   });
 }

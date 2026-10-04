@@ -40,7 +40,7 @@ class FrostOverlayTest {
     private fun fullScreen(v: View) = params(v).width == WindowManager.LayoutParams.MATCH_PARENT
 
     @Test fun fullFrostShowsCardOverAppAndLetsTouchesThrough() {
-        overlay.animateTo(1f, "Instagram is frozen", "Take a walk: 133 steps unlocks 100 m of scrolling.", 0, 3)
+        overlay.animateTo(1f, "Instagram is frozen", "Take a walk: 134 steps puts 100 m of scrolling in the bank.", 0, 3)
         idle()
         val w = windows()
         assertEquals("frost + card", 2, w.size)
@@ -51,15 +51,15 @@ class FrostOverlayTest {
         assertTrue("card takes touches (its buttons)", touchable(card))
         assertTrue("touches outside the card go to the app",
             params(card).flags and WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL != 0)
-        assertEquals(listOf("DoomWalk", "Instagram is frozen", "Take a walk: 133 steps unlocks 100 m of scrolling.", "Use pass (3)", "Leave app"), texts(card))
+        assertEquals(listOf("DoomWalk", "Instagram is frozen", "Take a walk: 134 steps puts 100 m of scrolling in the bank.", "Use pass (3)", "Leave app"), texts(card))
         assertTrue("card narrower than the screen", params(card).width > 0)
     }
 
     @Test fun lightFrostStillExplainsItself() {
-        overlay.animateTo(0.1f, "Take a walk first", "You're out of earned scrolling. 133 steps unlocks 100 m.", 0, 0)
+        overlay.animateTo(0.1f, "Take a walk first", "Your bank is empty. 134 steps puts 100 m in it.", 0, 0)
         idle()
         val card = windows().single { !fullScreen(it) }
-        assertEquals(listOf("DoomWalk", "Take a walk first", "You're out of earned scrolling. 133 steps unlocks 100 m.", "Leave app"), texts(card))
+        assertEquals(listOf("DoomWalk", "Take a walk first", "Your bank is empty. 134 steps puts 100 m in it.", "Leave app"), texts(card))
     }
 
     @Test fun frostClearsCompletely() {

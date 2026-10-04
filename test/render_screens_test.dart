@@ -12,7 +12,6 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:doomwalk/core/scroll_wallet.dart';
 import 'package:doomwalk/services/controller.dart';
 import 'package:doomwalk/ui/home_screen.dart';
 import 'package:doomwalk/ui/onboarding_screen.dart';
@@ -63,7 +62,6 @@ void main() {
       final f = File('${await getDatabasesPath()}/doomwalk.db');
       if (f.existsSync()) f.deleteSync();
       c = await DoomWalkController.start();
-      await c.updateConfig(const WalletConfig(allowanceM: 60));
       final t0 = DateTime.now().millisecondsSinceEpoch;
       Future<void> scroll(String pkg, int n, int dy, int gapMs) async {
         await sendNative('onWindow', {'pkg': pkg, 't': 0});
@@ -198,10 +196,11 @@ void main() {
     await tester.tap(find.text('Close'));
     await tester.pump(const Duration(seconds: 1));
 
-    // Free scrolling used up exactly, nothing banked: "take a walk first".
+    // The bank spent exactly, nothing owed: "take a walk first".
     await tester.runAsync(() async {
       await c.setDeveloperOptions(true);
       await c.devResetTracking();
+      c.devAddSteps(80);
       c.devAddScroll('com.instagram.android', 60);
       await c.setDeveloperOptions(false);
     });
@@ -210,10 +209,12 @@ void main() {
     brightness.value = Brightness.dark;
     await shot('home_done', null);
 
-    // A long landmark (the whale) lies under the text instead of squeezing it.
+    // A long landmark (the whale) lies under the text instead of squeezing
+    // it, with some scrolling still in the bank.
     await tester.runAsync(() async {
       await c.setDeveloperOptions(true);
       await c.devResetTracking();
+      c.devAddSteps(200);
       c.devAddScroll('com.instagram.android', 17.5);
       await c.setDeveloperOptions(false);
     });

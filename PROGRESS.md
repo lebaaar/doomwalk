@@ -14,7 +14,7 @@ is at most **partial: code complete, host-verified**. What *was* verified here:
 | Check | Result |
 |---|---|
 | `flutter analyze` | No issues found |
-| `flutter test` | 80 tests pass: unit tests (ScrollWallet price steps, bank, overdraft and midnight reset, pixel→metres, landmarks, tamper gaps, WalkTracker, ScrollInterpreter, AppCatalog, presets), a full Dart pipeline test with the native channel mocked, and a UI render smoke test |
+| `flutter test` | 81 tests pass: unit tests (ScrollWallet price, capped bank, overdraft and midnight reset, pixel→metres, landmarks, tamper gaps, WalkTracker, ScrollInterpreter, AppCatalog, presets), a full Dart pipeline test with the native channel mocked, and a UI render smoke test |
 | Kotlin shim | Type-checks with `kotlinc` 2.2.20 against the Android 16 framework classes (Robolectric android-all) and the Flutter embedding jar of this engine. Only `androidx.lifecycle` was stubbed. |
 | Android XML | All resource/manifest XML is well-formed. It has **not** been compiled by aapt2. |
 | UI | Rendered on the host: `docs/screenshots/host_*.png` (emoji show as boxes on the host only) |
@@ -29,7 +29,7 @@ swipes in Chrome, takes screenshots and greps logcat into `docs/device/`.
 |---|---|---|---|
 | 0 | Spike | partial (source review, not run) | SPIKE.md |
 | 1 | Scroll capture, live per-app metres | partial | `ScrollAccessibilityService` → `ScrollInterpreter`; `test/scroll_test.dart`, `test/pipeline_test.dart` ("scroll -> overdraft -> frost") |
-| 2 | Scroll wallet: allowance, walk bank, rising price (pedometer, FGS), persisted | partial | `test/scroll_wallet_test.dart`; pipeline test restarts the controller and reads state back from SQLite |
+| 2 | Scroll wallet: capped bank, rising price (pedometer, FGS), persisted | partial | `test/scroll_wallet_test.dart`; pipeline test restarts the controller and reads state back from SQLite |
 | 3 | Frost overlay (blur-behind / translucent), touch-through, not over exempt apps | partial | `FrostOverlay` compiles; pipeline test checks frost 1 → 0 on dialer → 1 → 0 on override → cleared by walking. Real rendering is **unverified**. |
 | 4 | Onboarding with deep links, live status, auto-advance | partial | `host_onboarding.png` |
 | 5 | Home widget 2×1 / 4×2 | partial | provider + layouts written; pipeline test checks the pushed data. **Not seen on a home screen.** |
@@ -40,7 +40,7 @@ swipes in Chrome, takes screenshots and greps logcat into `docs/device/`.
 | 10 | Share card | partial | `host_share_card.png`; the share sheet itself is untested |
 | 11 | ~~Overnight interest~~ → midnight reset | partial | wallet tests (reset, clock set back) |
 | 12 | Tamper detection | partial | `test/tamper_walk_test.dart`, pipeline tamper test |
-| 13 | Demo mode | partial | wallet + pipeline tests (frost full at 5 m owed) |
+| 13 | Demo mode | partial | wallet + pipeline tests (30 m bank, frost full at 5 m owed) |
 
 ## Known risks / likely flaky on device
 * **Instagram/TikTok event shape.** We assume RecyclerView index changes arrive with

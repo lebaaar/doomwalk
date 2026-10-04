@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import '../core/units.dart';
 import '../services/controller.dart';
 import 'icons.dart';
 import 'logo.dart';
@@ -185,8 +186,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                 style: t.headlineLarge?.copyWith(fontSize: 34, letterSpacing: -1.4)),
             const SizedBox(height: 14),
             Text(
-              'You get a little free scrolling each day. After that, you scroll as far as you walk: 1 m for 1 m at '
-              'first, and more walking per metre the more you scroll. Run out, and social apps freeze until you go.',
+              'Walking fills a bank of scrolling, and social apps spend it. It starts empty every day and holds '
+              '${formatRound(_c.bankCapM)}. At first 1 m walked buys 1 m of scrolling, and the more you scroll, the more walking it '
+              'takes. Run out, and the apps freeze until you go.',
               style: t.bodyLarge?.copyWith(color: context.colors.muted),
             ),
             const SizedBox(height: 32),

@@ -2,18 +2,16 @@
 /// the timestamps passed in, so it is unit-tested in isolation.
 ///
 /// Model (all distances in metres):
-///   * Every counted scroll uses the daily free allowance first.
-///   * Walking fills a bank. Past the allowance, scrolling is paid from the
-///     bank at a price (metres walked per metre scrolled) that rises in steps
-///     with how much you have scrolled past the allowance today:
-///       price = min(maxPrice, 1 + floor(earned / priceStepM))
-///     so the first [WalletConfig.priceStepM] cost 1:1, the next 2:1, and so on.
-///   * Scrolling with an empty bank runs an overdraft (metres to walk). The
-///     frost grows with it and is full at [WalletConfig.frostAtM]. Walking
-///     clears the overdraft first, then fills the bank.
+///   * The bank holds metres of scrolling. Each day starts with it empty.
+///   * Walking adds to the bank, up to [WalletConfig.bankCapM]; walking while
+///     it is full counts for nothing. A metre walked adds 1 / price metres,
+///     where the price rises in steps with what you have scrolled today:
+///       price = min(maxPrice, 1 + floor(scrolledToday / priceStepM))
+///   * Scrolling spends the bank. With the bank empty it runs an overdraft
+///     (metres of scrolling owed); the frost grows with it and is full at
+///     [WalletConfig.frostAtM]. Walking pays the overdraft first.
 ///   * During an emergency pass scrolling is free (nothing is charged).
-///   * At local midnight everything resets: allowance, price, bank and
-///     overdraft. No interest, nothing carried over.
+///   * At local midnight everything resets: bank, overdraft and price.
 library;
 
 import 'dart:math' as math;
@@ -26,7 +24,7 @@ String dayKeyOf(DateTime t) {
 
 class WalletConfig {
   const WalletConfig({
-    this.allowanceM = 150,
+    this.bankCapM = 250,
     this.priceStepM = 100,
     this.maxPrice = 5,
     this.frostAtM = 20,
@@ -38,16 +36,17 @@ class WalletConfig {
     this.walkGoalM = 5000,
   });
 
-  /// Free scroll distance per local day.
-  final double allowanceM;
+  /// Most scrolling the bank can hold.
+  final double bankCapM;
 
-  /// Scrolling past the allowance after which the price goes up by 1.
+  /// Every this much scrolled today, a metre of scrolling costs one more
+  /// metre of walking.
   final double priceStepM;
 
   /// The price never goes above this many metres walked per metre scrolled.
   final double maxPrice;
 
-  /// Overdraft (metres to walk) at which the frost reaches full strength.
+  /// Overdraft (metres of scrolling owed) at which the frost is full.
   final double frostAtM;
 
   final int overridesPerDay;
@@ -56,7 +55,7 @@ class WalletConfig {
   /// Stride length used only by WalkTracker.
   final double strideM;
 
-  /// Stage demo: tiny allowance, fast price steps, frost after a few metres.
+  /// Stage demo: small bank, fast price steps, frost after a few metres.
   final bool demoMode;
 
   /// Body weight for calorie estimates.
@@ -65,12 +64,15 @@ class WalletConfig {
   /// Daily walking goal.
   final double walkGoalM;
 
-  static const demo = WalletConfig(allowanceM: 2, priceStepM: 5, maxPrice: 3, frostAtM: 5);
+  static const maxBankCapM = 500.0;
+  static const minBankCapM = 50.0;
+
+  static const demo = WalletConfig(bankCapM: 30, priceStepM: 5, maxPrice: 3, frostAtM: 5);
 
   /// The values the wallet actually uses (demo mode overrides the economy).
   WalletConfig get effective => demoMode
       ? copyWith(
-          allowanceM: demo.allowanceM,
+          bankCapM: demo.bankCapM,
           priceStepM: demo.priceStepM,
           maxPrice: demo.maxPrice,
           frostAtM: demo.frostAtM,
@@ -78,7 +80,7 @@ class WalletConfig {
       : this;
 
   WalletConfig copyWith({
-    double? allowanceM,
+    double? bankCapM,
     double? priceStepM,
     double? maxPrice,
     double? frostAtM,
@@ -90,7 +92,7 @@ class WalletConfig {
     double? walkGoalM,
   }) =>
       WalletConfig(
-        allowanceM: allowanceM ?? this.allowanceM,
+        bankCapM: bankCapM ?? this.bankCapM,
         priceStepM: priceStepM ?? this.priceStepM,
         maxPrice: maxPrice ?? this.maxPrice,
         frostAtM: frostAtM ?? this.frostAtM,
@@ -103,7 +105,7 @@ class WalletConfig {
       );
 
   Map<String, Object?> toJson() => {
-        'allowanceM': allowanceM,
+        'bankCapM': bankCapM,
         'priceStepM': priceStepM,
         'maxPrice': maxPrice,
         'frostAtM': frostAtM,
@@ -120,7 +122,7 @@ class WalletConfig {
     double n(String k, double def) => (j[k] as num?)?.toDouble() ?? def;
     int i(String k, int def) => (j[k] as num?)?.toInt() ?? def;
     return WalletConfig(
-      allowanceM: n('allowanceM', d.allowanceM),
+      bankCapM: n('bankCapM', d.bankCapM).clamp(minBankCapM, maxBankCapM),
       priceStepM: n('priceStepM', d.priceStepM),
       maxPrice: n('maxPrice', d.maxPrice),
       frostAtM: n('frostAtM', d.frostAtM),
@@ -151,13 +153,13 @@ class WalletConfig {
 class WalletState {
   WalletState({
     required this.dayKey,
-    this.allowanceUsedM = 0,
     this.scrolledTodayM = 0,
-    this.earnedScrolledTodayM = 0,
+    this.pricedScrolledTodayM = 0,
     this.bankM = 0,
     this.overdraftM = 0,
     this.walkedTodayM = 0,
-    this.spentTodayM = 0,
+    this.addedTodayM = 0,
+    this.overflowWalkTodayM = 0,
     this.tamperChargedTodayM = 0,
     this.lifetimeScrolledM = 0,
     this.lifetimeWalkedM = 0,
@@ -166,21 +168,24 @@ class WalletState {
   });
 
   String dayKey;
-  double allowanceUsedM;
   double scrolledTodayM;
 
-  /// Scrolled past the allowance today (outside passes); sets the price.
-  double earnedScrolledTodayM;
+  /// Scrolled today outside passes; sets the price.
+  double pricedScrolledTodayM;
 
-  /// Walked metres not yet spent on scrolling.
+  /// Metres of scrolling in the bank.
   double bankM;
 
-  /// Metres to walk: scrolling (or a tracking gap) the bank couldn't cover.
+  /// Metres of scrolling owed: done (or charged for a tracking gap) with the
+  /// bank empty.
   double overdraftM;
   double walkedTodayM;
 
-  /// Walking spent today: bank and overdraft charges for scrolling and gaps.
-  double spentTodayM;
+  /// Scrolling walking added to the bank today.
+  double addedTodayM;
+
+  /// Walking that counted for nothing because the bank was full.
+  double overflowWalkTodayM;
   double tamperChargedTodayM;
   double lifetimeScrolledM;
   double lifetimeWalkedM;
@@ -191,13 +196,13 @@ class WalletState {
 
   Map<String, Object?> toJson() => {
         'dayKey': dayKey,
-        'allowanceUsedM': allowanceUsedM,
         'scrolledTodayM': scrolledTodayM,
-        'earnedScrolledTodayM': earnedScrolledTodayM,
+        'pricedScrolledTodayM': pricedScrolledTodayM,
         'bankM': bankM,
         'overdraftM': overdraftM,
         'walkedTodayM': walkedTodayM,
-        'spentTodayM': spentTodayM,
+        'addedTodayM': addedTodayM,
+        'overflowWalkTodayM': overflowWalkTodayM,
         'tamperChargedTodayM': tamperChargedTodayM,
         'lifetimeScrolledM': lifetimeScrolledM,
         'lifetimeWalkedM': lifetimeWalkedM,
@@ -205,19 +210,20 @@ class WalletState {
         'overrideUntilMs': overrideUntilMs,
       };
 
-  /// Also reads a state saved by the old debt model: the day's totals and
-  /// lifetime figures carry over, its debt does not.
+  /// Also reads a state saved by an older model: the day's totals and
+  /// lifetime figures carry over; a debt or a bank in other units does not.
   factory WalletState.fromJson(Map<String, Object?> j) {
     double n(String k) => (j[k] as num?)?.toDouble() ?? 0;
+    final current = j.containsKey('pricedScrolledTodayM');
     return WalletState(
       dayKey: j['dayKey'] as String,
-      allowanceUsedM: n('allowanceUsedM'),
       scrolledTodayM: n('scrolledTodayM'),
-      earnedScrolledTodayM: n('earnedScrolledTodayM'),
-      bankM: n('bankM'),
-      overdraftM: n('overdraftM'),
+      pricedScrolledTodayM: current ? n('pricedScrolledTodayM') : 0,
+      bankM: current ? n('bankM') : 0,
+      overdraftM: current ? n('overdraftM') : 0,
       walkedTodayM: n('walkedTodayM'),
-      spentTodayM: n('spentTodayM'),
+      addedTodayM: n('addedTodayM'),
+      overflowWalkTodayM: n('overflowWalkTodayM'),
       tamperChargedTodayM: n('tamperChargedTodayM'),
       lifetimeScrolledM: n('lifetimeScrolledM'),
       lifetimeWalkedM: n('lifetimeWalkedM'),
@@ -228,92 +234,58 @@ class WalletState {
 }
 
 class ScrollCharge {
-  const ScrollCharge({
-    required this.rawM,
-    required this.freeM,
-    required this.costM,
-  });
+  const ScrollCharge({required this.rawM, required this.fromBankM, required this.owedM});
   final double rawM;
-  final double freeM;
 
-  /// Walking this scroll cost (from the bank and/or as overdraft).
-  final double costM;
+  /// Paid from the bank.
+  final double fromBankM;
+
+  /// Added to the overdraft.
+  final double owedM;
 }
 
-/// Metres walked per metre scrolled once [earned] metres past the allowance
-/// have been scrolled today.
-double priceAt(double earned, WalletConfig c) {
-  if (c.priceStepM <= 0) return math.max(1, c.maxPrice);
-  final p = 1 + (earned / c.priceStepM).floor();
-  return math.min(p.toDouble(), math.max(1, c.maxPrice));
-}
-
-/// Walking needed to scroll [metres] more, starting [earned] metres past the
-/// allowance. Walks the price steps one at a time.
-double walkCost(double earned, double metres, WalletConfig c) {
-  var cost = 0.0;
-  var x = earned;
-  var left = metres;
-  while (left > 1e-12) {
-    final price = priceAt(x, c);
-    final capped = price >= math.max(1, c.maxPrice) || c.priceStepM <= 0;
-    final room = capped ? left : math.min(left, _nextStep(x, c) - x);
-    cost += room * price;
-    x += room;
-    left -= room;
-  }
-  return cost;
-}
-
-/// How far [bank] metres of walking lets you scroll, starting [earned]
-/// metres past the allowance. The inverse of [walkCost].
-double scrollFor(double earned, double bank, WalletConfig c) {
-  var scroll = 0.0;
-  var x = earned;
-  var left = bank;
-  while (left > 1e-12) {
-    final price = priceAt(x, c);
-    final capped = price >= math.max(1, c.maxPrice) || c.priceStepM <= 0;
-    if (capped) return scroll + left / price;
-    final room = _nextStep(x, c) - x;
-    final take = math.min(room, left / price);
-    scroll += take;
-    x += take;
-    left -= take * price;
-    if (take < room) break;
-  }
-  return scroll;
-}
-
-/// The start of the price step after the one [x] is in. Rounding can leave
-/// x a hair below a boundary, so tiny gaps jump to the next one.
-double _nextStep(double x, WalletConfig c) {
-  final next = ((x / c.priceStepM).floor() + 1) * c.priceStepM;
-  return next - x < 1e-9 ? next + c.priceStepM : next;
+/// Metres walked per metre of scrolling once [scrolled] metres have been
+/// scrolled today.
+double priceAt(double scrolled, WalletConfig c) {
+  final cap = math.max(1.0, c.maxPrice);
+  if (c.priceStepM <= 0) return cap;
+  return math.min(1.0 + (scrolled / c.priceStepM).floor(), cap);
 }
 
 class ScrollWallet {
-  ScrollWallet({required this.config, required this.state});
+  ScrollWallet({required this._config, required this.state}) {
+    _clampBank();
+  }
 
-  WalletConfig config;
+  WalletConfig _config;
   final WalletState state;
 
-  WalletConfig get _e => config.effective;
+  WalletConfig get config => _config;
 
-  double get allowanceLeftM => math.max(0, _e.allowanceM - state.allowanceUsedM);
+  /// Lowering the cap trims the bank to it.
+  set config(WalletConfig c) {
+    _config = c;
+    _clampBank();
+  }
+
+  WalletConfig get _e => _config.effective;
+
+  void _clampBank() => state.bankM = math.min(state.bankM, _e.bankCapM);
+
   double get bankM => state.bankM;
+  double get bankCapM => _e.bankCapM;
   double get overdraftM => state.overdraftM;
+  bool get bankFull => state.bankM >= _e.bankCapM - 1e-6;
 
-  /// Price of the next metre scrolled past the allowance.
-  double get priceNow => priceAt(state.earnedScrolledTodayM, _e);
+  /// Metres walked per metre of scrolling, for the next metre walked.
+  double get priceNow => priceAt(state.pricedScrolledTodayM, _e);
 
-  /// How far the bank lets you scroll at today's prices.
-  double get earnedScrollLeftM => scrollFor(state.earnedScrolledTodayM, state.bankM, _e);
-
-  /// Walking that unlocks [metres] more scrolling past the allowance, on top
-  /// of what is owed (the overdraft is cleared first).
-  double walkToUnlock(double metres) =>
-      state.overdraftM + math.max(0, walkCost(state.earnedScrolledTodayM, metres, _e) - state.bankM);
+  /// Walking that clears the overdraft and brings the bank to [metres]
+  /// (at most the cap), at today's price.
+  double walkToUnlock(double metres) {
+    final want = math.min(metres, _e.bankCapM);
+    return (state.overdraftM + math.max(0.0, want - state.bankM)) * priceNow;
+  }
 
   /// 0 (nothing owed) .. 1 (overdraft >= frostAtM). Any overdraft at all
   /// shows a little frost, so it starts the moment the bank runs out.
@@ -337,13 +309,13 @@ class ScrollWallet {
     if (state.dayKey == today) return false;
     state
       ..dayKey = today
-      ..allowanceUsedM = 0
       ..scrolledTodayM = 0
-      ..earnedScrolledTodayM = 0
+      ..pricedScrolledTodayM = 0
       ..bankM = 0
       ..overdraftM = 0
       ..walkedTodayM = 0
-      ..spentTodayM = 0
+      ..addedTodayM = 0
+      ..overflowWalkTodayM = 0
       ..tamperChargedTodayM = 0
       ..overridesUsedToday = 0
       ..overrideUntilMs = null;
@@ -353,50 +325,52 @@ class ScrollWallet {
   /// Charges a scroll of [metres] in an app that counts.
   ScrollCharge applyScroll({required double metres, required DateTime at}) {
     rollover(at);
-    if (metres <= 0) return const ScrollCharge(rawM: 0, freeM: 0, costM: 0);
+    if (metres <= 0) return const ScrollCharge(rawM: 0, fromBankM: 0, owedM: 0);
     state.scrolledTodayM += metres;
     state.lifetimeScrolledM += metres;
-    if (overrideActive(at)) return ScrollCharge(rawM: metres, freeM: metres, costM: 0);
-    final free = math.min(metres, allowanceLeftM);
-    state.allowanceUsedM += free;
-    final excess = metres - free;
-    if (excess <= 0) return ScrollCharge(rawM: metres, freeM: free, costM: 0);
-    final cost = walkCost(state.earnedScrolledTodayM, excess, _e);
-    state.earnedScrolledTodayM += excess;
-    _spend(cost);
-    return ScrollCharge(rawM: metres, freeM: free, costM: cost);
+    if (overrideActive(at)) return ScrollCharge(rawM: metres, fromBankM: 0, owedM: 0);
+    state.pricedScrolledTodayM += metres;
+    final (bank, owed) = _spend(metres);
+    return ScrollCharge(rawM: metres, fromBankM: bank, owedM: owed);
   }
 
-  /// Charges [cost] metres of walking for time without tracking: from the
-  /// bank first, the rest as overdraft.
-  double chargeGap(double cost, DateTime at) {
+  /// Charges [metres] of scrolling for time without tracking: from the bank
+  /// first, the rest is owed.
+  double chargeGap(double metres, DateTime at) {
     rollover(at);
-    if (cost <= 0) return 0;
-    _spend(cost);
-    state.tamperChargedTodayM += cost;
-    return cost;
+    if (metres <= 0) return 0;
+    _spend(metres);
+    state.tamperChargedTodayM += metres;
+    return metres;
   }
 
-  void _spend(double cost) {
-    final fromBank = math.min(state.bankM, cost);
+  (double, double) _spend(double metres) {
+    final fromBank = math.min(state.bankM, metres);
     state.bankM -= fromBank;
-    state.overdraftM += cost - fromBank;
-    state.spentTodayM += cost;
+    if (state.bankM < 1e-9) state.bankM = 0;
+    state.overdraftM += metres - fromBank;
+    return (fromBank, metres - fromBank);
   }
 
-  /// Applies walked distance: clears the overdraft first, the rest goes to
-  /// the bank. Returns the metres that went to the bank.
+  /// Applies walked distance at today's price: clears the overdraft first,
+  /// then fills the bank up to its cap. Returns the scrolling added to the
+  /// bank.
   double applyWalk(double metres, DateTime at) {
     rollover(at);
     if (metres <= 0) return 0;
     state.walkedTodayM += metres;
     state.lifetimeWalkedM += metres;
-    final paid = math.min(state.overdraftM, metres);
+    final price = priceNow;
+    var scroll = metres / price;
+    final paid = math.min(state.overdraftM, scroll);
     state.overdraftM -= paid;
     if (state.overdraftM < 1e-9) state.overdraftM = 0;
-    final banked = metres - paid;
-    state.bankM += banked;
-    return banked;
+    scroll -= paid;
+    final added = math.max(0.0, math.min(scroll, _e.bankCapM - state.bankM));
+    state.bankM += added;
+    state.addedTodayM += added;
+    state.overflowWalkTodayM += (scroll - added) * price;
+    return added;
   }
 
   /// Starts an emergency pass if any are left today.

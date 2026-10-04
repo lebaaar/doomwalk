@@ -23,7 +23,7 @@ abstract class DebtWidgetBase(private val layout: Int) : AppWidgetProvider() {
         for (id in ids) {
             val v = RemoteViews(context.packageName, layout)
             v.setTextViewText(R.id.w_debt, p.getString("debt_text", "0 m"))
-            v.setTextViewText(R.id.w_caption, p.getString("caption_text", "left to scroll"))
+            v.setTextViewText(R.id.w_caption, p.getString("caption_text", "in the bank"))
             v.setProgressBar(R.id.w_progress, 100, p.getInt("progress", 100), false)
             v.setTextViewText(R.id.w_scrolled, p.getString("scrolled_text", "0 m scrolled today"))
             v.setTextViewText(R.id.w_landmark, p.getString("landmark_text", ""))

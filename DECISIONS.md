@@ -355,3 +355,29 @@ are gone).
 * **Widget:** the big figure is scrolling left (free + earned), or the steps to
   unlock 100 m when frozen. Its bar is now today's walking goal.
 * **Demo mode:** 2 m free, price +1 every 5 m up to 3:1, full frost at 5 m owed.
+
+## Round 12: an empty, capped bank instead of a free allowance
+* **The problem with round 11:** the step counter sees all walking, so an
+  ordinary 5 km day banked about 1.2 km of scrolling without any decision to
+  walk. And the Today card had two pots (free, then earned), which read badly.
+* **No allowance.** The day starts with 0 m in the bank. Scrolling first thing
+  means walking first.
+* **The bank holds scrolling, capped** (`bankCapM`, 250 m, 50-500 m in
+  Settings → Bank). Walking while it's full adds nothing, and Today says
+  "Bank full". The cap is a setting of its own, outside the presets, so moving
+  it doesn't turn the rules "custom".
+* **The price is paid when you walk:** a metre walked adds `1 / price` metres,
+  `price = min(maxPrice, 1 + floor(scrolledToday / priceStepM))`. Units in the
+  bank are always metres of scrolling, so the cap and the Today number mean the
+  same thing. Scrolling during a pass doesn't raise the price.
+* **Owed is in metres of scrolling too;** the frost is full at 20 m owed, and
+  walking pays it at today's price before anything goes in the bank.
+* **Asks are capped by the bank:** "x steps put 100 m in the bank" uses
+  100 m or the cap if it is smaller.
+* **Tracking gaps** are charged as scrolling (25 m/h fallback, or your average),
+  from the bank first.
+* **Today card:** "In the bank" with metres and a battery bar of the cap,
+  "Running low" under a quarter, "Bank full", "Take a walk first" (steps, not
+  red: it's how every day starts), "Time for a walk" when frozen.
+* **Migration:** a state saved by an older model keeps today's and lifetime
+  totals but not its bank (it was in metres walked) or debt.

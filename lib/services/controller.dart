@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -83,23 +84,24 @@ class DoomWalkController extends ChangeNotifier {
   WalletConfig get config => _engine.config;
   WalletState get state => _engine.state;
 
-  /// Metres to walk before scrolling past the allowance is possible again.
+  /// Metres of scrolling owed: done with the bank empty.
   double get overdraftM => _engine.overdraftM;
+
+  /// Metres of scrolling in the bank.
   double get bankM => _engine.bankM;
+  double get bankCapM => _engine.bankCapM;
+  bool get bankFull => _engine.bankFull;
   double get frostLevel => _engine.frostLevel;
-  double get allowanceLeftM => _engine.allowanceLeftM;
 
-  /// How far today's walking still lets you scroll past the allowance.
-  double get earnedScrollLeftM => _engine.earnedScrollLeftM;
-
-  /// Metres walked per metre scrolled for the next earned metre.
+  /// Metres walked per metre of scrolling, for the next metre walked.
   double get priceNow => _engine.priceNow;
 
-  /// Walking (overdraft included) that unlocks [metres] more scrolling.
+  /// Walking (overdraft included) that brings the bank to [metres].
   double walkToUnlock(double metres) => _engine.walkToUnlock(metres);
 
-  /// The chunk of scrolling the walking asks are phrased in.
-  static const unlockChunkM = 100.0;
+  /// The chunk of scrolling the walking asks are phrased in: 100 m, or the
+  /// whole bank when it holds less.
+  double get unlockChunkM => math.min(100, bankCapM);
   double get weekRawM => _weekPriorRawM + state.scrolledTodayM;
   bool get overrideActive => _engine.overrideActive(DateTime.now());
   int get overridesLeft => _engine.overridesLeft(DateTime.now());
@@ -276,13 +278,13 @@ class DoomWalkController extends ChangeNotifier {
     if (!catalog.isRestricted(pkg) || metres <= 0) return null;
     _syncDay(at);
     final before = state.scrolledTodayM;
-    final allowanceBefore = allowanceLeftM;
+    final bankBefore = bankM;
     final charge = _engine.applyScroll(metres: metres, at: at);
-    _addAppDelta(pkg, charge.rawM, charge.costM);
+    _addAppDelta(pkg, charge.rawM, charge.fromBankM + charge.owedM);
     _ensureMeta(pkg);
-    if (allowanceBefore >= 0.5 && allowanceLeftM < 0.5) _noticeIfUsedUp(force: true);
+    if (bankBefore >= 0.5 && bankM < 0.5) _noticeIfEmpty(force: true);
     _log('scroll pkg=$pkg src=$source m=${metres.toStringAsFixed(3)} '
-        'cost=${charge.costM.toStringAsFixed(3)} bank=${bankM.toStringAsFixed(2)} '
+        'bank=${bankM.toStringAsFixed(2)} '
         'owed=${overdraftM.toStringAsFixed(2)} '
         'today=${todayApps[pkg]!.rawM.toStringAsFixed(2)}');
     final hit = _celebrate(before, state.scrolledTodayM);
@@ -344,31 +346,31 @@ class DoomWalkController extends ChangeNotifier {
     _ensureMeta(pkg);
     unawaited(flush()); // batch boundary on app switch
     _pushFrost(animateMs: 250);
-    _noticeIfUsedUp();
+    _noticeIfEmpty();
     _changed();
   }
 
   final _lastNotice = <String, DateTime>{};
 
-  /// Free scrolling used up, nothing owed yet (so no frost): say so,
-  /// briefly, over the app, with how much walking has earned. On opening an
-  /// app at most once per app every 10 minutes; [force] is the moment the
-  /// allowance runs out while scrolling.
-  void _noticeIfUsedUp({bool force = false}) {
+  /// Bank empty, nothing owed yet (so no frost): say so, briefly, over the
+  /// app, with the walk that refills it. On opening an app at most once per
+  /// app every 10 minutes; [force] is the moment the bank runs out while
+  /// scrolling.
+  void _noticeIfEmpty({bool force = false}) {
     final fg = foreground;
     if (fg == null || !_foregroundFrostable || overrideActive || !status.serviceConnected) return;
-    if (overdraftM >= 0.05 || allowanceLeftM >= 0.5) return;
+    if (overdraftM >= 0.05 || bankM >= 0.5) return;
     final now = DateTime.now();
     final last = _lastNotice[fg];
     if (!force && last != null && now.difference(last) < const Duration(minutes: 10)) return;
     _lastNotice[fg] = now;
-    final earned = earnedScrollLeftM;
     final walk = walkToUnlock(unlockChunkM);
+    final chunk = unlockChunkM;
     unawaited(_safe(() async {
       // Usually a first visit today, so the name may still be loading.
       final name = _knownLabel(fg) ?? (await _native.appInfo(fg))?.label ?? 'this app';
       if (foreground != fg) return;
-      final notice = usedUpNotice(name, earnedM: earned, walkM: walk, strideM: config.strideM);
+      final notice = emptyBankNotice(name, walkM: walk, unlocksM: chunk, strideM: config.strideM);
       await _native.showNotice(notice.$1, notice.$2);
     }));
   }
@@ -465,7 +467,7 @@ class DoomWalkController extends ChangeNotifier {
   }
 
   /// Adds [metres] of scrolling to [pkg], priced exactly like real scrolling
-  /// (allowance, then the bank at today's price). Exempt apps and apps that
+  /// (from the bank, owed once it is empty). Exempt apps and apps that
   /// don't count are ignored, as they would be for real.
   Milestone? _fakeScroll(String pkg, double metres) {
     if (catalog.isExempt(pkg)) {
@@ -709,10 +711,11 @@ class DoomWalkController extends ChangeNotifier {
 
   void _pushNotification() {
     final title = walletHeadline(
-      allowanceLeftM: allowanceLeftM,
-      earnedLeftM: earnedScrollLeftM,
+      bankM: bankM,
+      full: bankFull,
       overdraftM: overdraftM,
       walkToUnlockM: walkToUnlock(unlockChunkM),
+      unlocksM: unlockChunkM,
       strideM: config.strideM,
     );
     final text = overrideActive
@@ -746,10 +749,11 @@ class DoomWalkController extends ChangeNotifier {
     _lastWidgetPush = DateTime.now();
     unawaited(_safe(() async {
       final (big, caption) = widgetFigure(
-        allowanceLeftM: allowanceLeftM,
-        earnedLeftM: earnedScrollLeftM,
+        bankM: bankM,
+        full: bankFull,
         overdraftM: overdraftM,
         walkToUnlockM: walkToUnlock(unlockChunkM),
+        unlocksM: unlockChunkM,
         strideM: config.strideM,
       );
       await Future.wait([
@@ -915,13 +919,13 @@ class DoomWalkController extends ChangeNotifier {
     final fresh = WalletState.fresh(DateTime.now());
     state
       ..dayKey = fresh.dayKey
-      ..allowanceUsedM = 0
       ..scrolledTodayM = 0
-      ..earnedScrolledTodayM = 0
+      ..pricedScrolledTodayM = 0
       ..bankM = 0
       ..overdraftM = 0
       ..walkedTodayM = 0
-      ..spentTodayM = 0
+      ..addedTodayM = 0
+      ..overflowWalkTodayM = 0
       ..tamperChargedTodayM = 0
       ..lifetimeScrolledM = 0
       ..lifetimeWalkedM = 0
@@ -1007,46 +1011,42 @@ String stepsText(double metres, double strideM) {
   final time = walkMinutes(walkM);
   final nudge = walkNudges[seed % walkNudges.length];
   return full
-      ? ('$name is frozen', 'Take a walk: $steps ($time) unlocks $unlocks of scrolling.\n\n$nudge')
+      ? ('$name is frozen', 'Take a walk: $steps ($time) puts $unlocks of scrolling in the bank.\n\n$nudge')
       : ('Take a walk first',
-          'You\'re out of earned scrolling. $steps ($time) unlocks $unlocks. Scrolling more freezes $name.\n\n$nudge');
+          'Your bank is empty. $steps ($time) puts $unlocks in it. Scrolling more freezes $name.\n\n$nudge');
 }
 
-/// The banner when free scrolling runs out in an app that counts.
-(String, String) usedUpNotice(String app, {required double earnedM, required double walkM, required double strideM}) =>
-    earnedM >= 0.5
-        ? ('Free scrolling used up', 'Now spending your walk: ${formatRound(earnedM)} earned left for $app and the rest.')
-        : ('Free scrolling used up', 'Take a walk first: ${stepsText(walkM, strideM)} unlocks 100 m in $app.');
+/// The banner when the bank is empty in an app that counts.
+(String, String) emptyBankNotice(String app,
+        {required double walkM, required double unlocksM, required double strideM}) =>
+    ('Your bank is empty', 'Take a walk first: ${stepsText(walkM, strideM)} puts ${formatRound(unlocksM)} in it for $app.');
 
 /// One line for the status notification.
 String walletHeadline({
-  required double allowanceLeftM,
-  required double earnedLeftM,
+  required double bankM,
+  required bool full,
   required double overdraftM,
   required double walkToUnlockM,
+  required double unlocksM,
   required double strideM,
 }) {
-  if (overdraftM >= 0.05) return 'Frozen. Walk ${stepsText(walkToUnlockM, strideM)} to unlock 100 m';
-  if (allowanceLeftM >= 0.5) {
-    final extra = earnedLeftM >= 0.5 ? ' + ${formatRound(earnedLeftM)} earned' : '';
-    return '${formatRound(allowanceLeftM)} free scrolling left$extra';
-  }
-  if (earnedLeftM >= 0.5) return '${formatRound(earnedLeftM)} of earned scrolling left';
-  return 'Take a walk: ${stepsText(walkToUnlockM, strideM)} unlocks 100 m';
+  final walk = stepsText(walkToUnlockM, strideM);
+  if (overdraftM >= 0.05) return 'Frozen. Walk $walk to unlock ${formatRound(unlocksM)}';
+  if (full) return 'Bank full: ${formatRound(bankM)} to scroll';
+  if (bankM >= 0.5) return '${formatRound(bankM)} in the bank';
+  return 'Bank empty. Walk $walk for ${formatRound(unlocksM)}';
 }
 
 /// The home-screen widget's big figure and the caption under it.
 (String, String) widgetFigure({
-  required double allowanceLeftM,
-  required double earnedLeftM,
+  required double bankM,
+  required bool full,
   required double overdraftM,
   required double walkToUnlockM,
+  required double unlocksM,
   required double strideM,
 }) {
-  final total = allowanceLeftM + earnedLeftM;
-  if (overdraftM < 0.05 && total >= 0.5) {
-    return (formatRound(total), allowanceLeftM >= 0.5 ? 'left to scroll' : 'earned, left to scroll');
-  }
+  if (overdraftM < 0.05 && bankM >= 0.5) return (formatRound(bankM), full ? 'bank full' : 'in the bank');
   final n = strideM <= 0 ? 0 : (walkToUnlockM / strideM).ceil();
-  return ('$n', 'steps to unlock 100 m');
+  return ('$n', 'steps for ${formatRound(unlocksM)}');
 }

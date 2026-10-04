@@ -44,12 +44,31 @@ class SettingsScreen extends ConsumerWidget {
                 ? 'Demo mode is on and replaces these rules. Turn it off in Developer options.'
                 : preset == null
                     ? 'You\'re using custom rules. Pick a level to replace them.'
-                    : '${formatRound(cfg.allowanceM)} of free scrolling a day. After that, you scroll as far '
-                        'as you walk: 1:1 at first, 1 more metre of walking every ${formatRound(cfg.priceStepM)}, '
-                        'up to ${_x(cfg.maxPrice)}:1.',
+                    : 'You scroll as far as you walk: 1:1 at first, then 1 more metre of walking for every '
+                        '${formatRound(cfg.priceStepM)} you scroll in a day, up to ${_x(cfg.maxPrice)}:1.',
             style: t.bodyMedium?.copyWith(color: context.colors.muted),
           ),
         ),
+        const SectionTitle('Bank'),
+        TileGroup(children: [
+          _SliderRow(
+            label: 'Bank holds up to',
+            value: cfg.bankCapM,
+            min: WalletConfig.minBankCapM,
+            max: WalletConfig.maxBankCapM,
+            divisions: 18,
+            format: (v) => '${v.toStringAsFixed(0)} m',
+            onChanged: (v) => c.updateConfig(cfg.copyWith(bankCapM: v)),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Gaps.margin, 0, Gaps.margin, 14),
+            child: Text(
+              'The most scrolling you can save up. It starts empty every day, and walking while it\'s '
+              'full adds nothing, so walk when you want to scroll.',
+              style: t.bodyMedium?.copyWith(color: context.colors.muted),
+            ),
+          ),
+        ]),
         const SectionTitle('Rules'),
         TileGroup(dividerIndent: 64, children: [
           _NavTile(
@@ -67,7 +86,7 @@ class SettingsScreen extends ConsumerWidget {
           const _NavTile(
             icon: Ph.sliders,
             title: 'Custom rules',
-            subtitle: 'Free scrolling, how fast walking gets dearer, freezing',
+            subtitle: 'How fast walking gets dearer, freezing',
             page: _CustomRulesPage(),
           ),
         ]),
@@ -185,8 +204,8 @@ class _AppsThatCountPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(controllerProvider);
     return _SubPage(title: 'Apps that count', children: [
-      const _Help('Scrolling in these apps uses your free scrolling, then your walking, and they freeze '
-          'when both run out. Everything else, like banking, calls and maps, is never touched.'),
+      const _Help('Scrolling in these apps spends your bank, and they freeze '
+          'when it runs out. Everything else, like banking, calls and maps, is never touched.'),
       TileGroup(children: [
         for (final cat in AppCategory.values)
           SwitchListTile(
@@ -247,15 +266,6 @@ class _CustomRulesPage extends ConsumerWidget {
           ? 'Demo mode is on and replaces these rules until you turn it off.'
           : 'Changing any of these switches How strict to custom.'),
       TileGroup(children: [
-        _SliderRow(
-          label: 'Free scrolling per day',
-          value: cfg.allowanceM,
-          min: 0,
-          max: 1000,
-          divisions: 40,
-          format: (v) => '${v.toStringAsFixed(0)} m',
-          onChanged: (v) => set(cfg.copyWith(allowanceM: v)),
-        ),
         _SliderRow(
           label: 'Walking gets dearer every',
           value: cfg.priceStepM,
@@ -440,7 +450,7 @@ class _DeveloperToolsState extends State<DeveloperTools> {
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       SwitchListTile(
         title: const Text('Demo mode'),
-        subtitle: Text('${demo.allowanceM.toStringAsFixed(0)} m free, walking gets dearer every '
+        subtitle: Text('Bank of ${demo.bankCapM.toStringAsFixed(0)} m, walking gets dearer every '
             '${demo.priceStepM.toStringAsFixed(0)} m, apps freeze after ${demo.frostAtM.toStringAsFixed(0)} m unpaid. '
             'Scroll, freeze, walk and unlock fit in two minutes.'),
         value: c.config.demoMode,
@@ -464,7 +474,7 @@ class _DeveloperToolsState extends State<DeveloperTools> {
         ]),
       ),
       heading('Add scrolling'),
-      const _Help('Priced like real scrolling: free allowance first, then your walking at today\'s price.'),
+      const _Help('Spent like real scrolling: from the bank, owed once it\'s empty.'),
       FutureBuilder<List<AppMeta>>(
         future: _apps,
         builder: (context, snap) {

@@ -13,14 +13,13 @@
 ---
 
 Every flick of your thumb has a distance. DoomWalk measures how far you scroll, in
-**metres**, across your social and video apps. You get a little free scrolling each
-day. After that you can only scroll as far as you have **walked**, and every extra
-100 m costs a bit more walking. Run out and the app you're in **frosts over** until
-you take a walk.
+**metres**, across your social and video apps. Walking fills a **bank** of scrolling and
+scrolling spends it. The bank starts empty every day and holds 250 m, so you walk when
+you want to scroll. Run out and the app you're in **frosts over** until you take a walk.
 
-| You scroll | You walk | It frosts |
+| You walk | You scroll | It frosts |
 |---|---|---|
-| 150 m of feed a day is free. | Walking fills a bank. Past the free part, the first 100 m of scrolling cost 1 m of walking per metre, the next 100 m cost 2 m, and so on up to 5. | With the bank empty, the app fades behind a blur and says how many steps unlock the next 100 m. Touches still work, but it's no fun. |
+| Walking fills the bank, up to 250 m. At first 1 m walked adds 1 m of scrolling; the more you scroll in a day, the more walking each metre takes. | Scrolling spends the bank. | With the bank empty, the app fades behind a blur and says how many steps put 100 m back in it. Touches still work, but it's no fun. |
 
 <p align="center">
   <img src="docs/screenshots/host_tab_today.png" width="220" alt="Today dashboard">
@@ -138,9 +137,9 @@ adb logcat -s flutter | grep 'SD '
    (Developer options → *Allow window-level blurs*, normally on by default), and
    battery saver is **off** because it disables blur.
 2. Open DoomWalk → ⚙ → **Demo mode** on → back. The dashboard shows *DEMO*:
-   2 m free, the price goes up every 5 m (up to 3:1), full frost at 5 m unpaid.
-3. Open Instagram and doom-scroll the feed for about 30-45 s (around 60-80 flicks).
-   The frost fades in as you go, with a "Take a walk" card in the middle. Tap a post
+   a 30 m bank, the price goes up every 5 m (up to 3:1), full frost at 5 m unpaid.
+3. Open Instagram and scroll the feed. The bank starts empty, so the frost fades in
+   within a few flicks, with a "Take a walk" card in the middle. Tap a post
    to show that touches still work through the frost.
 4. Pull down the notification: "Frozen. Walk x steps to unlock 100 m", with the
    **Emergency pass** button.
@@ -153,31 +152,31 @@ adb logcat -s flutter | grep 'SD '
 8. Demo mode off afterwards.
 
 ## Model
-A scroll wallet, reset at local midnight:
+A bank of scrolling, reset at local midnight:
 
-1. **Free allowance:** counted scrolling uses it first (Balanced: 150 m).
-2. **Walk bank:** every metre walked goes in, including walking done before the
-   allowance runs out.
-3. **Rising price:** past the allowance, scrolling is paid from the bank at
-   `price = min(maxPrice, 1 + floor(scrolledPastFree / priceStep))` metres walked per
-   metre scrolled. Balanced: 100 m steps, up to 5:1, so 100 m cost 100 m of walking,
-   200 m cost 300 m, 300 m cost 600 m.
-4. **Overdraft and frost:** with the bank empty, scrolling is owed as walking. The
-   frost grows with it and is full at 20 m owed. Walking clears what's owed first, then
-   fills the bank.
-5. **Passes:** 3 a day, 5 minutes each. Scrolling during a pass costs nothing.
-6. **Midnight:** allowance, price, bank and what's owed all start over. No interest.
+1. **Starts empty.** Every day begins with 0 m in the bank.
+2. **Walking fills it, up to a cap** (250 m by default, 50-500 m in Settings → Bank).
+   Walking while it's full counts for nothing, so a long commute can't buy a day of
+   scrolling.
+3. **Rising price:** a metre walked adds `1 / price` metres of scrolling, where
+   `price = min(maxPrice, 1 + floor(scrolledToday / priceStep))`. Balanced: +1 every
+   100 m scrolled, up to 5:1.
+4. **Scrolling spends it.** With the bank empty, scrolling is owed and the frost grows
+   with it, full at 20 m owed. Walking pays what's owed first, then fills the bank.
+5. **Passes:** 3 a day, 5 minutes each. Scrolling during a pass costs nothing and
+   doesn't raise the price.
+6. **Midnight:** bank, what's owed and the price all start over. No interest.
 
-| Preset | Free a day | Price +1 every | Cap |
-|---|---|---|---|
-| Gentle | 300 m | 200 m | 3:1 |
-| Balanced | 150 m | 100 m | 5:1 |
-| Strict | 50 m | 50 m | 5:1 |
+| Preset | Price +1 every | Cap |
+|---|---|---|
+| Gentle | 200 m | 3:1 |
+| Balanced | 100 m | 5:1 |
+| Strict | 50 m | 5:1 |
 
-Tracking gaps (accessibility switched off, app force-stopped) are charged as walking at
-your average scroll rate, from the bank first. The reasoning is in
-[DECISIONS.md](DECISIONS.md), plugin findings in [SPIKE.md](SPIKE.md), and status in
-[PROGRESS.md](PROGRESS.md).
+The bank size is its own setting, independent of the preset. Tracking gaps
+(accessibility switched off, app force-stopped) are charged as scrolling at your
+average rate, from the bank first. The reasoning is in [DECISIONS.md](DECISIONS.md),
+plugin findings in [SPIKE.md](SPIKE.md), and status in [PROGRESS.md](PROGRESS.md).
 
 ## Layout
 ```
