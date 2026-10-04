@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -20,8 +19,6 @@ class PermissionsScreen extends ConsumerStatefulWidget {
   @override
   ConsumerState<PermissionsScreen> createState() => _PermissionsScreenState();
 }
-
-const _grantCommand = 'adb shell pm grant com.lebaaar.doomwalk android.permission.WRITE_SECURE_SETTINGS';
 
 class _PermissionsScreenState extends ConsumerState<PermissionsScreen> with WidgetsBindingObserver {
   Timer? _poll;
@@ -278,36 +275,6 @@ class _StoppedCard extends StatelessWidget {
             FilledButton(onPressed: onRestart, child: const Text('Open accessibility settings')),
             const SizedBox(height: 8),
             Text('Switch DoomWalk off, then on again, and come back.', style: t.bodySmall),
-          ],
-          if (showAdbHint && !status.canRestartService) ...[
-            const SizedBox(height: 16),
-            const Divider(),
-            const SizedBox(height: 12),
-            Text('Let the app restart it by itself', style: t.titleSmall),
-            const SizedBox(height: 4),
-            Text(
-              'Run this once with the phone connected. The app then restarts scroll measuring '
-              'on its own whenever Android stops it.',
-              style: t.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            Material(
-              color: col.raised2,
-              borderRadius: BorderRadius.circular(Radii.small),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(Radii.small),
-                onTap: () {
-                  Clipboard.setData(const ClipboardData(text: _grantCommand));
-                  ScaffoldMessenger.of(context)
-                    ..clearSnackBars()
-                    ..showSnackBar(const SnackBar(content: Text('Command copied')));
-                },
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(_grantCommand, style: t.bodySmall?.copyWith(color: col.text)),
-                ),
-              ),
-            ),
           ],
         ]),
       ),
