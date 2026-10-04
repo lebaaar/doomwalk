@@ -409,6 +409,8 @@ class DeveloperTools extends StatefulWidget {
 }
 
 class _DeveloperToolsState extends State<DeveloperTools> {
+  static const _defaultScrollApp = 'com.instagram.android';
+
   late final Future<List<AppMeta>> _apps;
   String? _pkg;
 
@@ -472,7 +474,12 @@ class _DeveloperToolsState extends State<DeveloperTools> {
             ..sort((a, b) => a.label.toLowerCase().compareTo(b.label.toLowerCase()));
           // Pin the choice once made (or defaulted), so what the dropdown
           // shows is always what the buttons charge, even if the list re-sorts.
-          if (_pkg == null || !apps.any((a) => a.pkg == _pkg)) _pkg = apps.isEmpty ? null : apps.first.pkg;
+          // Instagram by default, the usual feed to test with.
+          if (_pkg == null || !apps.any((a) => a.pkg == _pkg)) {
+            _pkg = apps.any((a) => a.pkg == _defaultScrollApp)
+                ? _defaultScrollApp
+                : (apps.isEmpty ? null : apps.first.pkg);
+          }
           final pkg = _pkg;
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
