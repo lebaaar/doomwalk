@@ -57,12 +57,6 @@ and set the bank anywhere from 20 to 100 m.
   emergency-pass button.
 * **Light and dark mode.**
 
-<p align="center">
-  <img src="docs/screenshots/host_intro_4.png" width="200" alt="Intro: the more you scroll, the more it costs">
-  <img src="docs/screenshots/host_tab_activity.png" width="200" alt="Activity">
-  <img src="docs/screenshots/host_share_card.png" width="200" alt="Share card">
-</p>
-
 ## Privacy
 
 DoomWalk has **no internet permission**: nothing ever leaves your phone. It needs
