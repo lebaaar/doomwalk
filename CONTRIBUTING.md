@@ -23,6 +23,10 @@ flutter test # unit, pipeline and widget tests
 RENDER_SCREENS=1 flutter test test/render_screens_test.dart # regenerates docs/screenshots
 ```
 
+## Developer options
+
+Debug builds Developer section is shown in Settings automatically. To unlock it in release builds, open the Settings tab and tap the title 20 times fast.
+
 ## Code structure
 
 ```
