@@ -7,14 +7,14 @@ import 'onboarding_screen.dart';
 import 'providers.dart';
 import 'theme.dart';
 
-class ScrollDebtApp extends ConsumerWidget {
-  const ScrollDebtApp({super.key});
+class DoomWalkApp extends ConsumerWidget {
+  const DoomWalkApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(controllerProvider.select((c) => c.themeMode));
     return MaterialApp(
-      title: 'Scroll Debt',
+      title: 'DoomWalk',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(Brightness.light),
       darkTheme: buildTheme(Brightness.dark),

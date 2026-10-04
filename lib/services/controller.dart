@@ -25,8 +25,8 @@ void _log(String msg) {
 
 /// Owns the ledger and everything that feeds it. Lives for the whole process
 /// in the cached engine, whether or not the UI is attached.
-class ScrollDebtController extends ChangeNotifier {
-  ScrollDebtController._(this._store, this._native, this._engine, this._walk, this.catalog);
+class DoomWalkController extends ChangeNotifier {
+  DoomWalkController._(this._store, this._native, this._engine, this._walk, this.catalog);
 
   final Store _store;
   final NativeBridge _native;
@@ -95,7 +95,7 @@ class ScrollDebtController extends ChangeNotifier {
       ? null
       : DateTime.fromMillisecondsSinceEpoch(state.overrideUntilMs!);
 
-  static Future<ScrollDebtController> start() async {
+  static Future<DoomWalkController> start() async {
     final store = await Store.open();
     final kv = await store.readKv();
     final now = DateTime.now();
@@ -113,7 +113,7 @@ class ScrollDebtController extends ChangeNotifier {
       strideM: config.strideM,
       baseline: int.tryParse(kv['walk.sensor_baseline'] ?? ''),
     );
-    final c = ScrollDebtController._(
+    final c = DoomWalkController._(
       store,
       NativeBridge(),
       DebtEngine(config: config, state: state),
@@ -273,7 +273,7 @@ class ScrollDebtController extends ChangeNotifier {
 
   /// Pops up a milestone over the open app when today's scrolling has just
   /// passed one. Each fires once a day, since today's total only grows.
-  /// While Scroll Debt itself is open (developer tools) there is no banner:
+  /// While DoomWalk itself is open (developer tools) there is no banner:
   /// the caller shows it in its own single message instead.
   Milestone? _celebrate(double before, double after) {
     if (!milestoneToasts) return null;
@@ -310,7 +310,7 @@ class ScrollDebtController extends ChangeNotifier {
   void _onWindow(String pkg, String cls) {
     if (pkg.isEmpty || _keyboards.contains(pkg)) return;
     // Showing the frost adds windows of our own, and Android announces each
-    // with a window-state event from our package. Taking that as "Scroll Debt
+    // with a window-state event from our package. Taking that as "DoomWalk
     // is open" lifted the frost the moment it appeared. Only our activity
     // means the user really switched to this app.
     if (pkg == selfPackage && cls.isNotEmpty && cls != selfActivity) return;
@@ -727,8 +727,8 @@ class ScrollDebtController extends ChangeNotifier {
             'scrolled_text', '${formatMetres(state.scrolledTodayM)} scrolled today'),
         HomeWidget.saveWidgetData<String>('landmark_text', nearestText(state.scrolledTodayM)),
       ]);
-      await HomeWidget.updateWidget(qualifiedAndroidName: 'com.lan.scrolldebt.DebtWidgetSmall');
-      await HomeWidget.updateWidget(qualifiedAndroidName: 'com.lan.scrolldebt.DebtWidgetLarge');
+      await HomeWidget.updateWidget(qualifiedAndroidName: 'com.lebaaar.doomwalk.DebtWidgetSmall');
+      await HomeWidget.updateWidget(qualifiedAndroidName: 'com.lebaaar.doomwalk.DebtWidgetLarge');
       _log('widget pushed debt=${debtM.toStringAsFixed(2)}');
     }));
   }

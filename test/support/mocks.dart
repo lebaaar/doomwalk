@@ -3,7 +3,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-const nativeChannel = 'com.lan.scrolldebt/native';
+const nativeChannel = 'com.lebaaar.doomwalk/native';
 const codec = StandardMethodCodec();
 
 final frostCalls = <double>[];

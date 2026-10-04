@@ -1,4 +1,4 @@
-package com.lan.scrolldebt
+package com.lebaaar.doomwalk
 
 import android.content.Context
 import android.os.Bundle

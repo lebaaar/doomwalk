@@ -1,6 +1,6 @@
-package com.lan.scrolldebt
+package com.lebaaar.doomwalk
 
-// Native shim for Scroll Debt. Everything here exists because no plugin can
+// Native shim for DoomWalk. Everything here exists because no plugin can
 // do it (see SPIKE.md / DECISIONS.md). All decisions live in Dart; this file
 // only forwards accessibility geometry to Dart and executes what Dart asks
 // for (frost level, notification text, settings deep links).
@@ -63,12 +63,12 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 
-private const val TAG = "ScrollDebt"
+private const val TAG = "DoomWalk"
 
 /** Owns the single cached FlutterEngine and the method channel to Dart. */
 object Shim {
-    const val ENGINE_ID = "scrolldebt_engine"
-    private const val CHANNEL = "com.lan.scrolldebt/native"
+    const val ENGINE_ID = "doomwalk_engine"
+    private const val CHANNEL = "com.lebaaar.doomwalk/native"
 
     private val main = Handler(Looper.getMainLooper())
     private var channel: MethodChannel? = null
@@ -78,7 +78,7 @@ object Shim {
     var accessibility: ScrollAccessibilityService? = null
 
     // Last notification content pushed by Dart.
-    var notifTitle = "Scroll Debt"
+    var notifTitle = "DoomWalk"
     var notifText = "Tracking scroll distance"
     var overridesLeft = 0
     var overrideActive = false
@@ -453,7 +453,7 @@ class FrostOverlay(private val service: AccessibilityService) {
             WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
         PixelFormat.TRANSLUCENT
     ).apply {
-        title = "ScrollDebtFrost"
+        title = "DoomWalkFrost"
         layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
     }
 
@@ -475,7 +475,7 @@ class FrostOverlay(private val service: AccessibilityService) {
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
         PixelFormat.TRANSLUCENT
     ).apply {
-        title = "ScrollDebtFrostCard"
+        title = "DoomWalkFrostCard"
         gravity = Gravity.CENTER
     }
 
@@ -489,14 +489,14 @@ class FrostOverlay(private val service: AccessibilityService) {
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
         PixelFormat.TRANSLUCENT
     ).apply {
-        title = "ScrollDebtNotice"
+        title = "DoomWalkNotice"
         gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
         y = (56 * density).toInt()
     }
     private val hideBanner = Runnable { removeBanner() }
 
     // Countdown pill at the top while an emergency pass has unlocked the app.
-    // Tapping it opens Scroll Debt (where the pass can be ended early); only
+    // Tapping it opens DoomWalk (where the pass can be ended early); only
     // the pill itself takes touches.
     private var pass: TextView? = null
     /** End of the pass on the monotonic clock, so a clock change can't skew it. */
@@ -510,7 +510,7 @@ class FrostOverlay(private val service: AccessibilityService) {
             WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
         PixelFormat.TRANSLUCENT
     ).apply {
-        title = "ScrollDebtPass"
+        title = "DoomWalkPass"
         gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
         y = (40 * density).toInt()
     }
@@ -726,7 +726,7 @@ class FrostOverlay(private val service: AccessibilityService) {
         if (card != null) return
         val c = colors()
         // Names who put the card there, since it sits over another app.
-        val eyebrow = text("Scroll Debt", 13f, c.muted, bold = true)
+        val eyebrow = text("DoomWalk", 13f, c.muted, bold = true)
         val title = text(titleText, 22f, c.text, bold = true)
         val body = text(bodyText, 15f, c.muted)
         val pass = button("Use pass", filled = false, c) { Shim.send("onOverrideRequested", null) }
@@ -853,7 +853,7 @@ class DebtForegroundService : Service() {
     companion object {
         private const val CHANNEL_ID = "debt_status"
         private const val NOTIF_ID = 42
-        const val ACTION_OVERRIDE = "com.lan.scrolldebt.OVERRIDE"
+        const val ACTION_OVERRIDE = "com.lebaaar.doomwalk.OVERRIDE"
         private var running = false
 
         fun refresh(context: Context) {

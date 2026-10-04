@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scrolldebt/core/landmarks.dart';
-import 'package:scrolldebt/core/units.dart';
+import 'package:doomwalk/core/landmarks.dart';
+import 'package:doomwalk/core/units.dart';
 
 void main() {
   test('round figures drop needless decimals', () {

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scrolldebt/core/health.dart';
+import 'package:doomwalk/core/health.dart';
 
 void main() {
   test('kcal scales with weight and distance', () {

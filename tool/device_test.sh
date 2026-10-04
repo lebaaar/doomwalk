@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# On-device verification for Scroll Debt (debug build). Run from the repo root
+# On-device verification for DoomWalk (debug build). Run from the repo root
 # with the phone connected over USB debugging:  ./tool/device_test.sh
 # Evidence (logcat excerpts + screenshots) lands in docs/device/.
 set -euo pipefail
-PKG=com.lan.scrolldebt
+PKG=com.lebaaar.doomwalk
 SVC=$PKG/$PKG.ScrollAccessibilityService
 OUT=docs/device
 mkdir -p "$OUT"
@@ -50,7 +50,7 @@ shot 02_frosted_app
 adb logcat -d -s flutter | grep 'SD ' > "$OUT/scroll_log.txt" || true
 grep -c 'SD scroll' "$OUT/scroll_log.txt" | sed 's/^/  scroll events: /'
 grep 'SD frost' "$OUT/scroll_log.txt" | tail -3
-adb shell dumpsys window windows | grep -i -A3 ScrollDebtFrost > "$OUT/frost_window.txt" || true
+adb shell dumpsys window windows | grep -i -A3 DoomWalkFrost > "$OUT/frost_window.txt" || true
 
 log "touch passthrough: tap still reaches the app under the frost"
 adb shell input tap $((X/2)) $((Y/2)); sleep 1; shot 03_tap_through
@@ -76,7 +76,7 @@ adb shell am broadcast -n $PKG/.DebugReceiver -a $PKG.DEBUG_WALK --ef metres 100
 sleep 2; shot 05_cleared
 adb logcat -d -s flutter | grep -E 'SD (walk|frost)' | tail -4 | tee "$OUT/walk_log.txt"
 
-log "5. widget: add 'Scroll Debt (4x2)' to the home screen by hand, then press Enter"; read -r _
+log "5. widget: add 'DoomWalk (4x2)' to the home screen by hand, then press Enter"; read -r _
 adb shell input keyevent KEYCODE_HOME; sleep 2; shot 06_widget
 
 log "persistence: force-stop + restart"

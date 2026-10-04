@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scrolldebt/core/debt_engine.dart';
-import 'package:scrolldebt/core/presets.dart';
+import 'package:doomwalk/core/debt_engine.dart';
+import 'package:doomwalk/core/presets.dart';
 
 void main() {
   test('the default config is Balanced', () {

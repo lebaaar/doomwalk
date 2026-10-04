@@ -368,7 +368,7 @@ class _PrivacyPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final c = ref.watch(controllerProvider);
     return _SubPage(title: 'Privacy and data', children: [
-      const _Help('Scroll Debt has no internet permission and no analytics. It sees how far you scroll and '
+      const _Help('DoomWalk has no internet permission and no analytics. It sees how far you scroll and '
           'which app is open, never what is on the screen. All data stays on this phone.'),
       const SizedBox(height: 8),
       TileGroup(children: [
@@ -411,7 +411,7 @@ class _PrivacyPage extends ConsumerWidget {
 /// and every controller call it makes checks that flag again.
 class DeveloperTools extends StatefulWidget {
   const DeveloperTools({super.key, required this.c});
-  final ScrollDebtController c;
+  final DoomWalkController c;
 
   @override
   State<DeveloperTools> createState() => _DeveloperToolsState();
@@ -615,7 +615,7 @@ class _SliderRow extends StatelessWidget {
 
 class _RatesEditor extends StatefulWidget {
   const _RatesEditor({required this.c});
-  final ScrollDebtController c;
+  final DoomWalkController c;
 
   @override
   State<_RatesEditor> createState() => _RatesEditorState();

@@ -27,7 +27,7 @@ for (const [d, s] of [['mdpi', 48], ['hdpi', 72], ['xhdpi', 96], ['xxhdpi', 144]
   const t = '/tmp/claude-0/logo-r/';
   await p.setViewportSize({ width: 1200, height: 520 });
   await p.setContent(`<body style="margin:0;padding:28px;background:#F2F2F7;font:500 15px Roboto,sans-serif;color:#1C1C1E">
-   <h2 style="margin:0 0 18px">Scroll Debt, final icon</h2><div style="display:flex;gap:28px;align-items:flex-end">
+   <h2 style="margin:0 0 18px">DoomWalk, final icon</h2><div style="display:flex;gap:28px;align-items:flex-end">
    ${[['icon.svg', '40px', 'Rounded square'], [t + 'adaptive-clean.svg', '50%', 'Android circle'], [t + 'adaptive-clean.svg', '30%', 'Android squircle'],
       [t + 'themed.svg', '50%', 'Themed (Android 13)'], ['icon-dark.svg', '40px', 'Dark variant'], [t + 'adaptive.svg', '0', 'Safe zone (red)']]
      .map(([f, r, l]) => `<figure style="margin:0"><img src="${uri(f)}" style="width:160px;height:160px;border-radius:${r};display:block;box-shadow:0 4px 14px rgba(0,0,0,.15)"><figcaption style="margin-top:8px">${l}</figcaption></figure>`).join('')}

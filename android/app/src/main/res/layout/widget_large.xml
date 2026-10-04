@@ -10,7 +10,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:letterSpacing="0"
-        android:text="Scroll Debt"
+        android:text="DoomWalk"
         android:textColor="@color/widget_caption"
         android:textSize="12sp" />
     <LinearLayout

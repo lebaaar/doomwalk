@@ -1,4 +1,4 @@
-package com.lan.scrolldebt
+package com.lebaaar.doomwalk
 
 import android.os.Looper
 import android.view.View
@@ -51,7 +51,7 @@ class FrostOverlayTest {
         assertTrue("card takes touches (its buttons)", touchable(card))
         assertTrue("touches outside the card go to the app",
             params(card).flags and WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL != 0)
-        assertEquals(listOf("Scroll Debt", "Instagram is locked", "Daily limit hit. Walk 512.6 m to unlock it.", "Use pass (3)", "Leave app"), texts(card))
+        assertEquals(listOf("DoomWalk", "Instagram is locked", "Daily limit hit. Walk 512.6 m to unlock it.", "Use pass (3)", "Leave app"), texts(card))
         assertTrue("card narrower than the screen", params(card).width > 0)
     }
 
@@ -59,7 +59,7 @@ class FrostOverlayTest {
         overlay.animateTo(0.1f, "Daily limit hit", "Instagram stays blurred until you walk 20 m.", 0, 0)
         idle()
         val card = windows().single { !fullScreen(it) }
-        assertEquals(listOf("Scroll Debt", "Daily limit hit", "Instagram stays blurred until you walk 20 m.", "Leave app"), texts(card))
+        assertEquals(listOf("DoomWalk", "Daily limit hit", "Instagram stays blurred until you walk 20 m.", "Leave app"), texts(card))
     }
 
     @Test fun frostClearsCompletely() {

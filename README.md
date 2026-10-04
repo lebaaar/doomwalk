@@ -1,9 +1,38 @@
-# Scroll Debt
+<p align="center">
+  <img src="docs/logo/final/png/icon-256.png" width="128" alt="DoomWalk icon">
+</p>
 
-Android app (12+) that measures how far you scroll in **metres** across all apps. Past a
-daily free allowance that distance becomes a debt, the app you're in **frosts over**,
-and the frost clears as you **walk** the debt back. Fully on-device: no INTERNET
-permission in release, no analytics.
+<h1 align="center">DoomWalk</h1>
+
+<p align="center"><b>Doomscroll now, walk it off later.</b></p>
+
+<p align="center">
+  Android 12+ · Flutter · fully on-device · no INTERNET permission · no analytics
+</p>
+
+---
+
+Every flick of your thumb has a distance. DoomWalk measures how far you scroll, in
+**metres**, across all your apps. Past a daily free allowance that distance turns into
+**debt**: the app you're in slowly **frosts over**, and the only way to clear it is to
+get up and **walk** the debt back, step by step.
+
+| You scroll | It frosts | You walk |
+|---|---|---|
+| 200 m of feed a day is free. Scroll past that and every metre counts double. | The app you're in fades behind a blur. Touches still work, but it's no fun. | Steps pay the debt down and the frost melts away. |
+
+<p align="center">
+  <img src="docs/screenshots/host_tab_today.png" width="220" alt="Today dashboard">
+  <img src="docs/screenshots/overlay_card_light.png" width="220" alt="Frost overlay over a locked app">
+  <img src="docs/screenshots/host_share_card.png" width="220" alt="Share card">
+</p>
+
+**Why "DoomWalk"?** Doomscrolling plus a walk: the scroll is the crime, the walk is
+the sentence. The name comes with a hashtag for the share card: `#DoomWalk`.
+
+**Brand basics:** the name is written **DoomWalk**, one word with a capital W. The
+mark is a stack of frost-blue *depth ticks* (see [docs/logo](docs/logo/README.md)).
+Package id: `com.lebaaar.doomwalk`.
 
 ## Install (Fedora)
 
@@ -40,7 +69,7 @@ own key so later releases can update it in place.
 1. Create a key once and keep it safe (back it up: without it you can't ship
    updates to the installed app):
    ```bash
-   keytool -genkey -v -keystore ~/scrolldebt-upload.jks -keyalg RSA -keysize 2048 \
+   keytool -genkey -v -keystore ~/doomwalk-upload.jks -keyalg RSA -keysize 2048 \
      -validity 10000 -alias upload
    ```
 2. Create `android/key.properties` (git-ignored, never commit it):
@@ -48,7 +77,7 @@ own key so later releases can update it in place.
    storePassword=<the password you chose>
    keyPassword=<the password you chose>
    keyAlias=upload
-   storeFile=/home/<you>/scrolldebt-upload.jks
+   storeFile=/home/<you>/doomwalk-upload.jks
    ```
 3. Raise `version:` in `pubspec.yaml` for every release (`1.0.1+2`: the number
    after `+` must go up, or Android refuses the update).
@@ -76,11 +105,11 @@ The onboarding screen walks through each one with a deep link and a live tick:
 
 | Step | Where | adb shortcut |
 |---|---|---|
-| Restricted settings (Android 13+, sideloaded) | App info → ⋮ → *Allow restricted settings* | `adb shell appops set com.lan.scrolldebt ACCESS_RESTRICTED_SETTINGS allow` |
-| Scroll measuring (accessibility) | Settings → Accessibility → Scroll Debt | `adb shell settings put secure enabled_accessibility_services com.lan.scrolldebt/com.lan.scrolldebt.ScrollAccessibilityService` and `adb shell settings put secure accessibility_enabled 1` |
-| Physical activity | permission dialog | `adb shell pm grant com.lan.scrolldebt android.permission.ACTIVITY_RECOGNITION` |
-| Notifications | permission dialog | `adb shell pm grant com.lan.scrolldebt android.permission.POST_NOTIFICATIONS` |
-| Battery optimisation | system dialog | `adb shell dumpsys deviceidle whitelist +com.lan.scrolldebt` |
+| Restricted settings (Android 13+, sideloaded) | App info → ⋮ → *Allow restricted settings* | `adb shell appops set com.lebaaar.doomwalk ACCESS_RESTRICTED_SETTINGS allow` |
+| Scroll measuring (accessibility) | Settings → Accessibility → DoomWalk | `adb shell settings put secure enabled_accessibility_services com.lebaaar.doomwalk/com.lebaaar.doomwalk.ScrollAccessibilityService` and `adb shell settings put secure accessibility_enabled 1` |
+| Physical activity | permission dialog | `adb shell pm grant com.lebaaar.doomwalk android.permission.ACTIVITY_RECOGNITION` |
+| Notifications | permission dialog | `adb shell pm grant com.lebaaar.doomwalk android.permission.POST_NOTIFICATIONS` |
+| Battery optimisation | system dialog | `adb shell dumpsys deviceidle whitelist +com.lebaaar.doomwalk` |
 
 **Privacy:** the accessibility service sets `canRetrieveWindowContent="false"` and only
 subscribes to scroll and window-state events. It reads scroll geometry and the package
@@ -97,9 +126,9 @@ persistence, and checks the release APK for INTERNET. The results go to `docs/de
 
 Debug-only adb hooks (absent from release builds):
 ```bash
-adb shell am broadcast -n com.lan.scrolldebt/.DebugReceiver -a com.lan.scrolldebt.DEBUG_SCROLL --es pkg com.instagram.android --ef metres 10
-adb shell am broadcast -n com.lan.scrolldebt/.DebugReceiver -a com.lan.scrolldebt.DEBUG_WALK --ef metres 25
-adb shell am broadcast -n com.lan.scrolldebt/.DebugReceiver -a com.lan.scrolldebt.DEBUG_DUMP
+adb shell am broadcast -n com.lebaaar.doomwalk/.DebugReceiver -a com.lebaaar.doomwalk.DEBUG_SCROLL --es pkg com.instagram.android --ef metres 10
+adb shell am broadcast -n com.lebaaar.doomwalk/.DebugReceiver -a com.lebaaar.doomwalk.DEBUG_WALK --ef metres 25
+adb shell am broadcast -n com.lebaaar.doomwalk/.DebugReceiver -a com.lebaaar.doomwalk.DEBUG_DUMP
 adb logcat -s flutter | grep 'SD '
 ```
 
@@ -107,13 +136,13 @@ adb logcat -s flutter | grep 'SD '
 1. Before going on stage: the app is installed and onboarded, cross-window blur is on
    (Developer options → *Allow window-level blurs*, normally on by default), and
    battery saver is **off** because it disables blur.
-2. Open Scroll Debt → ⚙ → **Demo mode** on → back. The dashboard shows *DEMO*:
+2. Open DoomWalk → ⚙ → **Demo mode** on → back. The dashboard shows *DEMO*:
    2 m free, 1:1, full frost at 15 m.
 3. Open Instagram and doom-scroll the feed for about 30-45 s (around 60-80 flicks).
    The frost fades in as you go, with an "x m to walk" label at the top. Tap a post
    to show that touches still work through the frost.
 4. Pull down the notification: "x m owed", with the **Emergency pass** button (3× cost).
-5. Open Scroll Debt: the *Today* card turns navy with "Time for a walk" and the
+5. Open DoomWalk: the *Today* card turns navy with "Time for a walk" and the
    debt as a large number, and Instagram is at the top of *Most scrolled today*.
 6. Walk about 20-30 steps around the stage. Debt counts down and back in Instagram
    the frost melts. (Backup: Settings → Developer options → *Add steps to today*.)
@@ -135,7 +164,7 @@ lib/core/       pure Dart (no Flutter): DebtEngine, units, ScrollInterpreter,
                 FlickWeigher, landmarks, AppCatalog, tamper, WalkTracker
 lib/services/   controller (orchestration), sqflite store, native bridge
 lib/ui/         dashboard, altitude gauge, onboarding, settings, share card
-android/.../ScrollDebtShim.kt   accessibility service, frost overlay, FGS, engine host
+android/.../DoomWalkShim.kt   accessibility service, frost overlay, FGS, engine host
 android/.../DebtWidget.kt       home-screen widget providers (2×1, 4×2)
 android/app/src/debug/          debug-only adb hooks
 test/           unit + pipeline + render tests

@@ -12,13 +12,13 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scrolldebt/core/debt_engine.dart';
-import 'package:scrolldebt/services/controller.dart';
-import 'package:scrolldebt/ui/home_screen.dart';
-import 'package:scrolldebt/ui/onboarding_screen.dart';
-import 'package:scrolldebt/ui/providers.dart';
-import 'package:scrolldebt/ui/share_card.dart';
-import 'package:scrolldebt/ui/theme.dart';
+import 'package:doomwalk/core/debt_engine.dart';
+import 'package:doomwalk/services/controller.dart';
+import 'package:doomwalk/ui/home_screen.dart';
+import 'package:doomwalk/ui/onboarding_screen.dart';
+import 'package:doomwalk/ui/providers.dart';
+import 'package:doomwalk/ui/share_card.dart';
+import 'package:doomwalk/ui/theme.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'support/mocks.dart';
@@ -54,15 +54,15 @@ void main() {
     addTearDown(tester.view.reset);
     installMocks();
 
-    late ScrollDebtController c;
+    late DoomWalkController c;
     await tester.runAsync(() async {
       await _loadFonts();
       // Own directory: test files run in parallel, and the pipeline tests
       // delete the shared database file between their cases.
       await databaseFactory.setDatabasesPath(Directory.systemTemp.createTempSync('render').path);
-      final f = File('${await getDatabasesPath()}/scrolldebt.db');
+      final f = File('${await getDatabasesPath()}/doomwalk.db');
       if (f.existsSync()) f.deleteSync();
-      c = await ScrollDebtController.start();
+      c = await DoomWalkController.start();
       await c.updateConfig(const DebtConfig(allowanceM: 60));
       final t0 = DateTime.now().millisecondsSinceEpoch;
       Future<void> scroll(String pkg, int n, int dy, int gapMs) async {

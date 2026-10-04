@@ -1,4 +1,4 @@
-package com.lan.scrolldebt
+package com.lebaaar.doomwalk
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scrolldebt/core/debt_engine.dart';
-import 'package:scrolldebt/core/tamper.dart';
-import 'package:scrolldebt/core/walk_tracker.dart';
+import 'package:doomwalk/core/debt_engine.dart';
+import 'package:doomwalk/core/tamper.dart';
+import 'package:doomwalk/core/walk_tracker.dart';
 
 void main() {
   group('tamper gaps', () {

@@ -122,7 +122,7 @@ class AppMeta {
 
 /// Thin wrapper over the shim's MethodChannel.
 class NativeBridge {
-  static const _ch = MethodChannel('com.lan.scrolldebt/native');
+  static const _ch = MethodChannel('com.lebaaar.doomwalk/native');
 
   void setHandler(Future<Object?> Function(MethodCall call) handler) =>
       _ch.setMethodCallHandler(handler);

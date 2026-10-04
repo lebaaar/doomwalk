@@ -52,7 +52,7 @@ const _steps = [
   _Step(
     _StepId.battery,
     'Keep running in the background',
-    'Exempt Scroll Debt from battery optimisation so Android doesn\'t stop the tracker.',
+    'Exempt DoomWalk from battery optimisation so Android doesn\'t stop the tracker.',
     'Allow',
     optional: true,
   ),
@@ -96,7 +96,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
     super.dispose();
   }
 
-  ScrollDebtController get _c => ref.read(controllerProvider);
+  DoomWalkController get _c => ref.read(controllerProvider);
 
   Future<void> _refresh() async {
     final st = await _c.refreshStatus();
@@ -178,7 +178,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                 child: DepthTicks(size: 20, color: context.colors.onAccentContainer),
               ),
               const SizedBox(width: 10),
-              Text('Scroll Debt', style: t.titleMedium),
+              Text('DoomWalk', style: t.titleMedium),
             ]),
             const SizedBox(height: 36),
             Text('Every metre you scroll, you walk back.',
@@ -226,7 +226,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> with Widget
                         onAct: () => _act(s),
                         why: s.id == _StepId.accessibility && _stalled
                             ? 'Scroll measuring is switched on, but Android isn\'t running it. In accessibility '
-                                'settings, switch Scroll Debt off, then on again.'
+                                'settings, switch DoomWalk off, then on again.'
                             : null,
                       )
                     : _StepRow(step: s, done: _done[s.id] == true, onAct: () => _act(s)),

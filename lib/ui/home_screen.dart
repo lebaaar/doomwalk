@@ -127,7 +127,7 @@ class _Panel extends StatelessWidget {
 
 class _TodayTab extends StatelessWidget {
   const _TodayTab({required this.c, required this.onOpenActivity});
-  final ScrollDebtController c;
+  final DoomWalkController c;
   final VoidCallback onOpenActivity;
 
   @override
@@ -214,7 +214,7 @@ class _Notice extends StatelessWidget {
 }
 
 /// "Instagram, TikTok and 2 more".
-String _appList(ScrollDebtController c, List<String> pkgs) {
+String _appList(DoomWalkController c, List<String> pkgs) {
   final names = pkgs.map(c.labelFor).toList();
   if (names.isEmpty) return 'restricted apps';
   if (names.length == 1) return names.first;
@@ -230,7 +230,7 @@ enum _Verdict { walk, unfrozen, limit, low, free }
 /// and the two things it comes from, walked and scrolled today.
 class _TodayCard extends StatefulWidget {
   const _TodayCard({required this.c, required this.onOpenActivity});
-  final ScrollDebtController c;
+  final DoomWalkController c;
   final VoidCallback onOpenActivity;
 
   @override
@@ -431,7 +431,7 @@ class _TodayCardState extends State<_TodayCard> {
   }
 }
 
-String _countdown(ScrollDebtController c) {
+String _countdown(DoomWalkController c) {
   final s = c.overrideUntil!.difference(DateTime.now()).inSeconds.clamp(0, 99999);
   return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
 }
@@ -457,7 +457,7 @@ class _Status extends StatelessWidget {
 /// Walked and scrolled today, side by side between two hairlines.
 class _Tally extends StatelessWidget {
   const _Tally({required this.c, required this.fg, required this.muted, required this.onOpenActivity});
-  final ScrollDebtController c;
+  final DoomWalkController c;
   final Color fg;
   final Color muted;
   final VoidCallback onOpenActivity;
@@ -516,7 +516,7 @@ class _Tally extends StatelessWidget {
 
 class _PassButton extends StatelessWidget {
   const _PassButton({required this.c, required this.fg, required this.muted});
-  final ScrollDebtController c;
+  final DoomWalkController c;
   final Color fg;
   final Color muted;
 
@@ -563,7 +563,7 @@ class _PassButton extends StatelessWidget {
 
 class _TopAppsCard extends StatelessWidget {
   const _TopAppsCard({required this.c});
-  final ScrollDebtController c;
+  final DoomWalkController c;
 
   @override
   Widget build(BuildContext context) {
@@ -587,7 +587,7 @@ class _TopAppsCard extends StatelessWidget {
 
 /// Bottom sheet that shows how the debt adds up, as a sum that ends at the
 /// number on the Today card.
-Future<void> showLedgerSheet(BuildContext context, ScrollDebtController c) => showModalBottomSheet<void>(
+Future<void> showLedgerSheet(BuildContext context, DoomWalkController c) => showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -604,7 +604,7 @@ Future<void> showLedgerSheet(BuildContext context, ScrollDebtController c) => sh
 
 class LedgerView extends StatelessWidget {
   const LedgerView({super.key, required this.c, this.scroll});
-  final ScrollDebtController c;
+  final DoomWalkController c;
   final ScrollController? scroll;
 
   @override
@@ -682,7 +682,7 @@ class LedgerView extends StatelessWidget {
 
 class _ActivityTab extends StatefulWidget {
   const _ActivityTab({required this.c});
-  final ScrollDebtController c;
+  final DoomWalkController c;
 
   @override
   State<_ActivityTab> createState() => _ActivityTabState();
@@ -708,7 +708,7 @@ class _ActivityTabState extends State<_ActivityTab> {
 
 class _WalkingPanel extends StatelessWidget {
   const _WalkingPanel({required this.c, required this.week});
-  final ScrollDebtController c;
+  final DoomWalkController c;
   final bool week;
 
   @override
@@ -806,7 +806,7 @@ class _WalkingPanel extends StatelessWidget {
 
 class _AppsPanel extends StatelessWidget {
   const _AppsPanel({required this.c, required this.week});
-  final ScrollDebtController c;
+  final DoomWalkController c;
   final bool week;
 
   @override
@@ -830,7 +830,7 @@ class _AppsPanel extends StatelessWidget {
 
 class _AppRow extends StatelessWidget {
   const _AppRow({required this.c, required this.row, required this.max, this.compact = false});
-  final ScrollDebtController c;
+  final DoomWalkController c;
   final AppTotals row;
   final double max;
 
@@ -907,7 +907,7 @@ class _AppRow extends StatelessWidget {
 /// all-time total.
 class _Climb extends StatelessWidget {
   const _Climb({required this.c});
-  final ScrollDebtController c;
+  final DoomWalkController c;
 
   @override
   Widget build(BuildContext context) {

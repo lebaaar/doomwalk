@@ -21,7 +21,7 @@ Landmark shareLandmark(double weekMetres) => nearestLandmark(weekMetres, ladder:
 String shareHeadline(String label, double weekMetres) =>
     '$label: ${shareLandmark(weekMetres).count(weekMetres)} this week';
 
-Future<void> showShareCard(BuildContext context, ScrollDebtController c, String pkg) {
+Future<void> showShareCard(BuildContext context, DoomWalkController c, String pkg) {
   return showDialog<void>(
     context: context,
     builder: (_) => _ShareDialog(c: c, pkg: pkg),
@@ -30,7 +30,7 @@ Future<void> showShareCard(BuildContext context, ScrollDebtController c, String 
 
 class _ShareDialog extends StatefulWidget {
   const _ShareDialog({required this.c, required this.pkg});
-  final ScrollDebtController c;
+  final DoomWalkController c;
   final String pkg;
 
   @override
@@ -53,12 +53,12 @@ class _ShareDialogState extends State<_ShareDialog> {
       final image = await ro.toImage(pixelRatio: 3);
       final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
       final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/scroll-debt-${widget.pkg}.png');
+      final file = File('${dir.path}/doomwalk-${widget.pkg}.png');
       await file.writeAsBytes(bytes!.buffer.asUint8List());
       final week = widget.c.weekApps[widget.pkg]?.rawM ?? 0;
       await SharePlus.instance.share(ShareParams(
         files: [XFile(file.path, mimeType: 'image/png')],
-        text: '${shareHeadline(widget.c.labelFor(widget.pkg), week)}. Paying it back on foot. #ScrollDebt',
+        text: '${shareHeadline(widget.c.labelFor(widget.pkg), week)}. Paying it back on foot. #DoomWalk',
       ));
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -99,7 +99,7 @@ class _ShareDialogState extends State<_ShareDialog> {
 
 class ShareCard extends StatelessWidget {
   const ShareCard({super.key, required this.c, required this.pkg});
-  final ScrollDebtController c;
+  final DoomWalkController c;
   final String pkg;
 
   @override
@@ -148,7 +148,7 @@ class ShareCard extends StatelessWidget {
             const SizedBox(width: 12),
             DepthTicks(size: 16, small: true, color: col.muted),
             const SizedBox(width: 6),
-            Text('Scroll Debt', style: t.bodySmall),
+            Text('DoomWalk', style: t.bodySmall),
           ]),
           // The landmark, filled up to how much of it the week covers.
           Expanded(

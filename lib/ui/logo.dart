@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-/// The Scroll Debt mark: ticks that widen, thicken and brighten as they go
+/// The DoomWalk mark: ticks that widen, thicken and brighten as they go
 /// down, so the feed seems to come towards you out of the depth. Same
 /// geometry as docs/logo/final/symbol.svg.
 ///

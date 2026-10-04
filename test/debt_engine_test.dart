@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scrolldebt/core/debt_engine.dart';
+import 'package:doomwalk/core/debt_engine.dart';
 
 void main() {
   final t0 = DateTime(2026, 10, 3, 10);

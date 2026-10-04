@@ -1,7 +1,7 @@
 /// Which apps count, and how much. Pure Dart.
 library;
 
-const selfPackage = 'com.lan.scrolldebt';
+const selfPackage = 'com.lebaaar.doomwalk';
 
 /// Class name Android reports for window events from our own activity.
 const selfActivity = '$selfPackage.MainActivity';

@@ -1,4 +1,4 @@
-# Scroll Debt logo
+# DoomWalk logo
 
 The mark is a stack of **depth ticks**: six rounded bars that get wider, thicker
 and more solid as they go down, so the feed seems to come towards you out of the

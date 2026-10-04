@@ -5,9 +5,9 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scrolldebt/core/app_catalog.dart';
-import 'package:scrolldebt/core/debt_engine.dart';
-import 'package:scrolldebt/services/controller.dart';
+import 'package:doomwalk/core/app_catalog.dart';
+import 'package:doomwalk/core/debt_engine.dart';
+import 'package:doomwalk/services/controller.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import 'support/mocks.dart';
@@ -21,7 +21,7 @@ void main() {
 
   setUp(() async {
     final dir = await getDatabasesPath();
-    final f = File('$dir/scrolldebt.db');
+    final f = File('$dir/doomwalk.db');
     if (f.existsSync()) f.deleteSync();
     frostCalls.clear();
     frostArgs.clear();
@@ -34,7 +34,7 @@ void main() {
   });
 
   test('scroll -> debt -> frost -> walk -> clear, persisted', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.updateConfig(const DebtConfig(demoMode: true)); // 2 m free, ratio 1, frost at 15 m
 
     // Instagram comes to the foreground and the user scrolls hard.
@@ -83,7 +83,7 @@ void main() {
     final scrolled = c.state.scrolledTodayM;
     c.dispose();
     await Future<void>.delayed(const Duration(milliseconds: 50));
-    final c2 = await ScrollDebtController.start();
+    final c2 = await DoomWalkController.start();
     expect(c2.state.scrolledTodayM, closeTo(scrolled, 1e-9));
     expect(c2.config.demoMode, isTrue);
     expect(c2.todayApps['com.instagram.android']!.rawM, closeTo(scrolled, 1e-6));
@@ -91,9 +91,9 @@ void main() {
   });
 
   test('0x and exempt apps are not counted', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     final t0 = DateTime.now().millisecondsSinceEpoch;
-    for (final pkg in ['com.google.android.apps.maps', 'com.android.settings', 'com.lan.scrolldebt']) {
+    for (final pkg in ['com.google.android.apps.maps', 'com.android.settings', 'com.lebaaar.doomwalk']) {
       await sendNative('onScroll', scrollEvent(pkg, t0, 4000));
     }
     expect(c.state.scrolledTodayM, 0);
@@ -104,7 +104,7 @@ void main() {
   });
 
   test('accessibility switched off then on is charged as a tamper gap', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     final t0 = DateTime.now().millisecondsSinceEpoch;
     await sendNative('onScroll', scrollEvent('com.android.chrome', t0, 400));
     // Pretend the service was disabled 2 hours ago and is now back.
@@ -118,7 +118,7 @@ void main() {
   });
 
   test('developer tools do nothing until developer options are on', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.updateConfig(const DebtConfig(allowanceM: 0));
     c.devAddScroll('com.instagram.android', 10);
     c.devAddSteps(1000);
@@ -133,7 +133,7 @@ void main() {
   });
 
   test('developer reset zeroes walking, scrolling and debt but keeps settings', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.updateConfig(const DebtConfig(allowanceM: 0));
     await c.setDeveloperOptions(true);
     c.devAddScroll('com.instagram.android', 10);
@@ -153,7 +153,7 @@ void main() {
   });
 
   test('a stopped service is restarted once confirmed, at most once a minute', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     statusOverrides.addAll({'serviceConnected': false, 'canRestartService': true});
     await c.refreshStatus(); // first sighting: may still be connecting
     expect(restartCalls, 0);
@@ -171,7 +171,7 @@ void main() {
       'exitReason': 8,
       'exitTimeMs': 1700000000000,
     });
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.refreshStatus();
     await c.refreshStatus();
     expect(restartCalls, 0);
@@ -181,7 +181,7 @@ void main() {
   });
 
   test('a frozen app gets a card saying why and how far to walk', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.updateConfig(const DebtConfig(demoMode: true)); // full frost at 15 m
     await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
     await c.setDeveloperOptions(true);
@@ -198,7 +198,7 @@ void main() {
   });
 
   test('a running pass counts down over the app it unfroze and in the notification', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.updateConfig(const DebtConfig(demoMode: true));
     await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
     await c.setDeveloperOptions(true);
@@ -220,7 +220,7 @@ void main() {
   });
 
   test('opening an app with free scrolling used up shows a notice, once', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.updateConfig(const DebtConfig(allowanceM: 5));
     await c.setDeveloperOptions(true);
     await c.setMilestoneToasts(false); // only the used-up notice here
@@ -240,7 +240,7 @@ void main() {
   });
 
   test('passing a milestone pops up once, and can be switched off', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.setDeveloperOptions(true);
     await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'X', 't': 0});
     c.devAddScroll('com.instagram.android', 0.5);
@@ -255,7 +255,7 @@ void main() {
     // Survives a restart, and switched off it stays quiet.
     await c.setMilestoneToasts(false);
     c.dispose();
-    final c2 = await ScrollDebtController.start();
+    final c2 = await DoomWalkController.start();
     expect(c2.milestoneToasts, isFalse);
     await c2.setDeveloperOptions(true);
     c2.devAddScroll('com.instagram.android', 10);
@@ -264,10 +264,10 @@ void main() {
     c2.dispose();
   });
 
-  test('inside Scroll Debt a milestone comes back to the caller, not as a banner', () async {
-    final c = await ScrollDebtController.start();
+  test('inside DoomWalk a milestone comes back to the caller, not as a banner', () async {
+    final c = await DoomWalkController.start();
     await c.setDeveloperOptions(true);
-    await sendNative('onWindow', {'pkg': 'com.lan.scrolldebt', 'cls': 'com.lan.scrolldebt.MainActivity', 't': 0});
+    await sendNative('onWindow', {'pkg': 'com.lebaaar.doomwalk', 'cls': 'com.lebaaar.doomwalk.MainActivity', 't': 0});
     expect(c.devAddScroll('com.instagram.android', 0.5), isNull);
     expect(c.devAddScroll('com.instagram.android', 30)!.title, contains('whale'));
     await Future<void>.delayed(Duration.zero);
@@ -276,7 +276,7 @@ void main() {
   });
 
   test('turning developer options off also ends demo mode', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.setDeveloperOptions(true);
     await c.updateConfig(c.config.copyWith(demoMode: true));
     await c.setDeveloperOptions(false);
@@ -286,7 +286,7 @@ void main() {
   });
 
   test('developer scroll is priced like real scrolling', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.setDeveloperOptions(true);
     await c.updateConfig(const DebtConfig(allowanceM: 5));
     c.devAddScroll('com.instagram.android', 10); // 5 free, 5 * 2x * ratio 2
@@ -306,7 +306,7 @@ void main() {
   });
 
   test('widget data is pushed with metres only', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.flush();
     expect(widgetData['debt_text'], '0.0 m');
     expect(widgetData['progress'], 100);
@@ -316,7 +316,7 @@ void main() {
   });
 
   test('our own frost windows do not lift the frost', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.updateConfig(const DebtConfig(demoMode: true));
     await sendNative('onWindow', {'pkg': 'com.instagram.android', 'cls': 'com.instagram.mainactivity.MainActivity', 't': 0});
     await c.setDeveloperOptions(true);
@@ -330,7 +330,7 @@ void main() {
     expect(c.foreground, 'com.instagram.android');
     expect(frostCalls.last, 1);
 
-    // Opening Scroll Debt itself still lifts it.
+    // Opening DoomWalk itself still lifts it.
     await sendNative('onWindow', {'pkg': selfPackage, 'cls': selfActivity, 't': 0});
     expect(c.foreground, selfPackage);
     expect(frostCalls.last, 0);
@@ -338,7 +338,7 @@ void main() {
   });
 
   test('a day change from a pass or a getter reloads today', () async {
-    final c = await ScrollDebtController.start();
+    final c = await DoomWalkController.start();
     await c.setDeveloperOptions(true);
     await c.updateConfig(const DebtConfig(allowanceM: 0, overridesPerDay: 2));
     c.devAddScroll('com.instagram.android', 1);

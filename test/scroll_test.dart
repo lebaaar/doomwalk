@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scrolldebt/core/app_catalog.dart';
-import 'package:scrolldebt/core/flick_weigher.dart';
-import 'package:scrolldebt/core/scroll_interpreter.dart';
+import 'package:doomwalk/core/app_catalog.dart';
+import 'package:doomwalk/core/flick_weigher.dart';
+import 'package:doomwalk/core/scroll_interpreter.dart';
 
 void main() {
   group('ScrollInterpreter', () {

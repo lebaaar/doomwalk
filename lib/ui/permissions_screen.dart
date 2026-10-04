@@ -21,7 +21,7 @@ class PermissionsScreen extends ConsumerStatefulWidget {
   ConsumerState<PermissionsScreen> createState() => _PermissionsScreenState();
 }
 
-const _grantCommand = 'adb shell pm grant com.lan.scrolldebt android.permission.WRITE_SECURE_SETTINGS';
+const _grantCommand = 'adb shell pm grant com.lebaaar.doomwalk android.permission.WRITE_SECURE_SETTINGS';
 
 class _PermissionsScreenState extends ConsumerState<PermissionsScreen> with WidgetsBindingObserver {
   Timer? _poll;
@@ -29,7 +29,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen> with Widg
   bool _notifications = false;
   bool _restarting = false;
 
-  ScrollDebtController get _c => ref.read(controllerProvider);
+  DoomWalkController get _c => ref.read(controllerProvider);
 
   @override
   void initState() {
@@ -277,7 +277,7 @@ class _StoppedCard extends StatelessWidget {
           else ...[
             FilledButton(onPressed: onRestart, child: const Text('Open accessibility settings')),
             const SizedBox(height: 8),
-            Text('Switch Scroll Debt off, then on again, and come back.', style: t.bodySmall),
+            Text('Switch DoomWalk off, then on again, and come back.', style: t.bodySmall),
           ],
           if (showAdbHint && !status.canRestartService) ...[
             const SizedBox(height: 16),

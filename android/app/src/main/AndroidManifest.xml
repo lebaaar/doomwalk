@@ -14,7 +14,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Never granted by install. A developer can grant it with
-         `adb shell pm grant com.lan.scrolldebt android.permission.WRITE_SECURE_SETTINGS`
+         `adb shell pm grant com.lebaaar.doomwalk android.permission.WRITE_SECURE_SETTINGS`
          so the app can switch its own accessibility service off and on
          after Android stops it. -->
     <uses-permission android:name="android.permission.WRITE_SECURE_SETTINGS"
@@ -23,7 +23,7 @@
     <uses-feature android:name="android.hardware.sensor.stepcounter" android:required="false" />
 
     <application
-        android:label="Scroll Debt"
+        android:label="DoomWalk"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
@@ -52,7 +52,7 @@
         <service
             android:name=".ScrollAccessibilityService"
             android:exported="true"
-            android:label="Scroll Debt"
+            android:label="DoomWalk"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
             <intent-filter>
                 <action android:name="android.accessibilityservice.AccessibilityService" />
@@ -78,13 +78,13 @@
             </intent-filter>
         </receiver>
 
-        <receiver android:name=".DebtWidgetSmall" android:exported="true" android:label="Scroll Debt (2×1)">
+        <receiver android:name=".DebtWidgetSmall" android:exported="true" android:label="DoomWalk (2×1)">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/debt_widget_small" />
         </receiver>
-        <receiver android:name=".DebtWidgetLarge" android:exported="true" android:label="Scroll Debt (4×2)">
+        <receiver android:name=".DebtWidgetLarge" android:exported="true" android:label="DoomWalk (4×2)">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>

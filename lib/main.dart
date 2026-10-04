@@ -13,9 +13,9 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Draw behind the status and navigation bars (see overlayStyle).
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  final controller = await ScrollDebtController.start();
+  final controller = await DoomWalkController.start();
   runApp(ProviderScope(
     overrides: [controllerProvider.overrideWith((ref) => controller)],
-    child: const ScrollDebtApp(),
+    child: const DoomWalkApp(),
   ));
 }

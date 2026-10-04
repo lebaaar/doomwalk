@@ -26,7 +26,7 @@ class Store {
   static Future<Store> open() async {
     final dir = await getDatabasesPath();
     final db = await openDatabase(
-      p.join(dir, 'scrolldebt.db'),
+      p.join(dir, 'doomwalk.db'),
       version: 2,
       onUpgrade: (db, from, _) async {
         if (from < 2) await _createWalkDay(db);
