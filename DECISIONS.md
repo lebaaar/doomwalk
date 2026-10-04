@@ -408,3 +408,11 @@ are gone).
   `test/startup_test.dart` gives the platform channel a handler that never
   answers and checks that `main()` still reaches `runApp` (it times out on the
   old code).
+
+## Round 15: the walking goal is in steps
+* `WalletConfig.stepGoal` (default 10,000, 1,000-30,000 in Settings → You in
+  steps of 500) replaces the 5 km `walkGoalM`, which is now derived as
+  `stepGoal × stride` for the goal bar, streaks and the widget.
+* **Migration:** a goal saved in metres becomes steps at the saved stride; the
+  untouched old default (5 km) becomes the new 10,000.
+* The Activity tab's walking panel counts steps too ("of 10,000 steps today").

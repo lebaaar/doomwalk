@@ -33,7 +33,7 @@ class WalletConfig {
     this.strideM = 0.75,
     this.demoMode = false,
     this.weightKg = 70,
-    this.walkGoalM = 5000,
+    this.stepGoal = defaultStepGoal,
   });
 
   /// Most scrolling the bank can hold.
@@ -61,8 +61,15 @@ class WalletConfig {
   /// Body weight for calorie estimates.
   final double weightKg;
 
-  /// Daily walking goal.
-  final double walkGoalM;
+  /// Daily walking goal, in steps.
+  final int stepGoal;
+
+  static const defaultStepGoal = 10000;
+  static const minStepGoal = 1000;
+  static const maxStepGoal = 30000;
+
+  /// The step goal as a distance, at the current stride.
+  double get walkGoalM => stepGoal * strideM;
 
   static const maxBankCapM = 500.0;
   static const minBankCapM = 50.0;
@@ -89,7 +96,7 @@ class WalletConfig {
     double? strideM,
     bool? demoMode,
     double? weightKg,
-    double? walkGoalM,
+    int? stepGoal,
   }) =>
       WalletConfig(
         bankCapM: bankCapM ?? this.bankCapM,
@@ -101,7 +108,7 @@ class WalletConfig {
         strideM: strideM ?? this.strideM,
         demoMode: demoMode ?? this.demoMode,
         weightKg: weightKg ?? this.weightKg,
-        walkGoalM: walkGoalM ?? this.walkGoalM,
+        stepGoal: stepGoal ?? this.stepGoal,
       );
 
   Map<String, Object?> toJson() => {
@@ -114,7 +121,7 @@ class WalletConfig {
         'strideM': strideM,
         'demoMode': demoMode,
         'weightKg': weightKg,
-        'walkGoalM': walkGoalM,
+        'stepGoal': stepGoal,
       };
 
   factory WalletConfig.fromJson(Map<String, Object?> j) {
@@ -131,7 +138,7 @@ class WalletConfig {
       strideM: n('strideM', d.strideM),
       demoMode: j['demoMode'] as bool? ?? d.demoMode,
       weightKg: n('weightKg', d.weightKg),
-      walkGoalM: n('walkGoalM', d.walkGoalM),
+      stepGoal: _stepGoalFrom(j, n('strideM', d.strideM)),
     );
   }
 
@@ -145,9 +152,20 @@ class WalletConfig {
       strideM: old.strideM,
       demoMode: old.demoMode,
       weightKg: old.weightKg,
-      walkGoalM: old.walkGoalM,
+      stepGoal: old.stepGoal,
     );
   }
+}
+
+/// A saved step goal; a goal saved in metres (older versions) becomes steps
+/// at the saved stride, except the old 5 km default, which becomes the new
+/// default.
+int _stepGoalFrom(Map<String, Object?> j, double strideM) {
+  final steps = (j['stepGoal'] as num?)?.toInt();
+  if (steps != null) return steps.clamp(WalletConfig.minStepGoal, WalletConfig.maxStepGoal);
+  final metres = (j['walkGoalM'] as num?)?.toDouble();
+  if (metres == null || metres == 5000 || strideM <= 0) return WalletConfig.defaultStepGoal;
+  return (metres / strideM).round().clamp(WalletConfig.minStepGoal, WalletConfig.maxStepGoal);
 }
 
 class WalletState {

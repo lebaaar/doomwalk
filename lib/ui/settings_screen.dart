@@ -95,7 +95,7 @@ class SettingsScreen extends ConsumerWidget {
           _NavTile(
             icon: Ph.user,
             title: 'You',
-            subtitle: '${cfg.weightKg.toStringAsFixed(0)} kg, ${formatRound(cfg.walkGoalM)} goal, '
+            subtitle: '${formatCount(cfg.stepGoal)} steps a day, ${cfg.weightKg.toStringAsFixed(0)} kg, '
                 '${cfg.strideM.toStringAsFixed(2)} m stride',
             page: const _YouPage(),
           ),
@@ -307,16 +307,16 @@ class _YouPage extends ConsumerWidget {
     final cfg = c.config;
     void set(WalletConfig n) => c.updateConfig(n);
     return _SubPage(title: 'You', children: [
-      const _Help('Used for calorie estimates and to turn steps into metres.'),
+      const _Help('Your daily step goal, and what turns steps into metres and calories.'),
       TileGroup(children: [
         _SliderRow(
-          label: 'Daily walking goal',
-          value: cfg.walkGoalM / 1000,
-          min: 1,
-          max: 15,
-          divisions: 28,
-          format: (v) => '${v.toStringAsFixed(1)} km',
-          onChanged: (v) => set(cfg.copyWith(walkGoalM: v * 1000)),
+          label: 'Daily step goal',
+          value: cfg.stepGoal.toDouble(),
+          min: WalletConfig.minStepGoal.toDouble(),
+          max: WalletConfig.maxStepGoal.toDouble(),
+          divisions: (WalletConfig.maxStepGoal - WalletConfig.minStepGoal) ~/ 500,
+          format: (v) => '${formatCount(v.round())} steps',
+          onChanged: (v) => set(cfg.copyWith(stepGoal: v.round())),
         ),
         _SliderRow(
           label: 'Body weight',

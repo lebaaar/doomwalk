@@ -729,10 +729,11 @@ class _WalkingPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [
-            Text(formatMetres(week ? c.weekWalkedM : c.state.walkedTodayM), style: t.headlineLarge?.merge(numeric)),
+            Text(formatCount(c.stepsFor(week ? c.weekWalkedM : c.state.walkedTodayM)),
+                style: t.headlineLarge?.merge(numeric)),
             const SizedBox(width: 8),
             Flexible(
-              child: Text(week ? 'in 7 days' : 'of ${formatRound(goal)} today',
+              child: Text(week ? 'steps in 7 days' : 'of ${formatCount(c.stepGoal)} steps today',
                   style: t.bodyMedium?.copyWith(color: col.muted)),
             ),
           ],
@@ -742,7 +743,7 @@ class _WalkingPanel extends StatelessWidget {
         Semantics(
           label: 'Walking per day, last 7 days: '
               '${[for (var i = 0; i < 7; i++) formatRound(series[i])].join(', ')}. '
-              'Goal ${formatRound(goal)}.',
+              'Goal ${formatCount(c.stepGoal)} steps.',
           excludeSemantics: true,
           child: SizedBox(
             height: barMax + 40,

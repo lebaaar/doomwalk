@@ -192,9 +192,18 @@ void main() {
     });
 
     test('config round-trips through JSON, the cap stays in range', () {
-      const c = WalletConfig(bankCapM: 400, priceStepM: 60, maxPrice: 4, frostAtM: 30, weightKg: 90);
+      const c = WalletConfig(bankCapM: 400, priceStepM: 60, maxPrice: 4, frostAtM: 30, weightKg: 90, stepGoal: 12500);
       expect(WalletConfig.fromJson(c.toJson()).toJson(), c.toJson());
       expect(WalletConfig.fromJson({'bankCapM': 9000}).bankCapM, WalletConfig.maxBankCapM);
+    });
+
+    test('the step goal defaults to 10,000; an old goal in metres becomes steps', () {
+      expect(const WalletConfig().stepGoal, 10000);
+      expect(const WalletConfig(stepGoal: 8000, strideM: 0.8).walkGoalM, closeTo(6400, 1e-9));
+      // The old 5 km default is replaced by the new default.
+      expect(WalletConfig.fromJson({'walkGoalM': 5000.0, 'strideM': 0.75}).stepGoal, 10000);
+      expect(WalletConfig.fromJson({'walkGoalM': 6000.0, 'strideM': 0.75}).stepGoal, 8000);
+      expect(WalletConfig.fromJson({'stepGoal': 99999}).stepGoal, WalletConfig.maxStepGoal);
     });
 
     test('an older state keeps today and lifetime totals, not its debt or bank', () {
@@ -232,7 +241,7 @@ void main() {
       expect(c.frostAtM, const WalletConfig().frostAtM);
       expect(c.strideM, 0.7);
       expect(c.weightKg, 64);
-      expect(c.walkGoalM, 8000);
+      expect(c.stepGoal, 11429); // 8 km at a 0.7 m stride
       expect(c.overridesPerDay, 2);
     });
   });

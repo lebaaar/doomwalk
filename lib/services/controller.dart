@@ -836,10 +836,10 @@ class DoomWalkController extends ChangeNotifier {
   double get kcalToday => kcalForWalk(state.walkedTodayM, config.weightKg);
 
   /// Steps are only ever walked metres over the stride.
-  int _stepsFor(double metres) => config.strideM <= 0 ? 0 : (metres / config.strideM).round();
-  int get stepsToday => _stepsFor(state.walkedTodayM);
-  int get stepsLifetime => _stepsFor(state.lifetimeWalkedM);
-  int get stepGoal => _stepsFor(config.walkGoalM);
+  int stepsFor(double metres) => config.strideM <= 0 ? 0 : (metres / config.strideM).round();
+  int get stepsToday => stepsFor(state.walkedTodayM);
+  int get stepsLifetime => stepsFor(state.lifetimeWalkedM);
+  int get stepGoal => config.stepGoal;
 
   /// Walked metres over the last 7 days, today included.
   double get weekWalkedM =>
