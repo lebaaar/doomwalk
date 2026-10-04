@@ -26,9 +26,9 @@ String formatMetres(double m, {int decimals = 1}) {
 // Rounds before picking the unit, so 999.6 is "1 km", not "1000 m"
 String formatRound(double m) {
   if (m.round().abs() >= 1000) {
-    return '${_trim((m / 1000).toStringAsFixed(1))} km';
+    return '${_trim((m / 1000).toStringAsFixed(1))}km';
   }
-  return '${m.round()} m';
+  return '${m.round()}m';
 }
 
 String formatTimes(double v) => '${_trim(v.toStringAsFixed(1))}×';

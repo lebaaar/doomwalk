@@ -885,7 +885,6 @@ class DoomWalkController extends ChangeNotifier {
   int stepsFor(double metres) =>
       config.strideM <= 0 ? 0 : (metres / config.strideM).round();
   int get stepsToday => stepsFor(state.walkedTodayM);
-  int get stepsLifetime => stepsFor(state.lifetimeWalkedM);
   int get stepGoal => config.stepGoal;
 
   double get weekWalkedM =>

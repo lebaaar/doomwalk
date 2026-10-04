@@ -156,6 +156,13 @@ Path _round(double l, double t, double w, double h, double r) => Path()
     RRect.fromRectAndRadius(Rect.fromLTWH(l, t, w, h), Radius.circular(r)),
   );
 
+// A thin stroke down a face from just under a summit, widest in the middle and pointed at both ends
+Path _ridge(double x1, double y1, double x2, double y2, double w) {
+  final mx = (x1 + x2) / 2;
+  final my = (y1 + y2) / 2;
+  return _d('M$x1 $y1 L${mx + w / 2} $my L$x2 $y2 L${mx - w / 2} $my Z');
+}
+
 Path _union(List<Path> parts) =>
     parts.reduce((a, b) => Path.combine(PathOperation.union, a, b));
 
@@ -292,26 +299,26 @@ final Map<LandmarkShape, _Shape> _shapes = {
       [_rect(19.4, 30, 1.2, 70), _rect(12, 66, 1, 34), _rect(27, 60, 1, 40)],
     ),
   ),
+  // Three heads: the main summit with a lower one on each side
   LandmarkShape.triglav: _Shape(
     const Size(100, 60),
     () => _cut(
       _d(
-        'M0 60 L18 34 L24 38 L34 20 L42 28 L52 3 L62 26 L70 19 L80 33 L86 30 L100 60 Z',
+        'M0 60 C6 54 11 48 16 44 L23 39 L31 26 L36.5 30.5 L50 4 L52 4.6 '
+        'L61.5 24 L69.5 17 L77 28 L84 33 C90 42 95 51 100 60 Z',
       ),
-      [_d('M44 23 L52 3 L60.6 23 L57.6 20.2 L54.6 24.6 L51.6 20.4 L48.4 25 Z')],
+      [_ridge(50.6, 7.5, 44.5, 40, 1.6), _ridge(69.8, 20.5, 67.5, 38, 1.3)],
     ),
   ),
+  // Everest's pyramid between Nuptse's long ridge and Lhotse
   LandmarkShape.mountain: _Shape(
     const Size(100, 62),
     () => _cut(
       _d(
-        'M0 62 L14 41 L20 44 L31 27 L37 31 L52 2 L60 14 L64 12 L73 23 L79 21 L88 36 L100 62 Z',
+        'M0 62 C5 55 9 49 13 44 L21 27 L25 25 L31 28.5 L38 25 L44 18 L55 2.5 L57 3 '
+        'L66 15 L71 19 L78.5 11.5 L85 22 L91 31 C95 41 98 52 100 62 Z',
       ),
-      [
-        _d(
-          'M42.6 20.4 L52 2 L60 14 L64 12 L67 15.6 L63.2 15 L60 19.6 L56.4 16.6 L53 22.6 L49.6 18.4 L46 23.6 Z',
-        ),
-      ],
+      [_ridge(55.6, 6, 48.5, 40, 1.6), _ridge(78.8, 15, 80.5, 34, 1.3)],
     ),
   ),
   LandmarkShape.rocket: _Shape(

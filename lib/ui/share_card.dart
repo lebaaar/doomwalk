@@ -219,7 +219,7 @@ class ShareCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              '${lm.emoji} scrolled this week. ${formatMetres(week)} of thumb travel.',
+              'Scrolled this week. ${formatMetres(week)} of thumb travel.',
               style: t.bodyMedium?.copyWith(color: col.muted),
             ),
           ],

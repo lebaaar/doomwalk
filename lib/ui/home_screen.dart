@@ -346,35 +346,36 @@ class _TodayCardState extends State<_TodayCard> {
           child: InkWell(
             onTap: () => showLedgerSheet(context, c),
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(22, 22, 22, 10),
+              padding: const EdgeInsets.fromLTRB(22, 20, 22, 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Ph.footprints,
+                        size: 18,
+                        color: locked ? fg : col.accent,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Steps today',
+                        style: t.labelLarge?.copyWith(
+                          color: locked ? fg : col.accent,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const Spacer(),
+                      _PriceChip(c: c, locked: locked, fg: fg),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
                   Semantics(
                     label: '${formatCount(steps)} steps today. $goalSub',
                     excludeSemantics: true,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Ph.footprints,
-                              size: 18,
-                              color: locked ? fg : col.accent,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Steps today',
-                              style: t.labelLarge?.copyWith(
-                                color: locked ? fg : col.accent,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
                         TweenAnimationBuilder<double>(
                           tween: Tween(end: steps.toDouble()),
                           duration: const Duration(milliseconds: 700),
@@ -389,7 +390,6 @@ class _TodayCardState extends State<_TodayCard> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 2),
                         Text(
                           goalSub,
                           style: t.bodyMedium
@@ -400,19 +400,23 @@ class _TodayCardState extends State<_TodayCard> {
                     ),
                   ),
                   const SizedBox(height: 22),
-                  _BankBlock(c: c, verdict: verdict, fg: fg, muted: muted),
-                  const SizedBox(height: 18),
-                  _Tally(
+                  _Stats(
                     c: c,
+                    locked: locked,
                     fg: fg,
                     muted: muted,
                     onOpenActivity: widget.onOpenActivity,
                   ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _statusLine(c, verdict),
+                    style: t.bodyMedium?.copyWith(color: muted, height: 1.45),
+                  ),
                   if (owed || pass) ...[
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     _PassButton(c: c, fg: fg, muted: muted),
                   ],
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 4),
                   TextButton.icon(
                     style: TextButton.styleFrom(
                       foregroundColor: fg,
@@ -442,155 +446,78 @@ String _countdown(DoomWalkController c) {
   return '${s ~/ 60}:${(s % 60).toString().padLeft(2, '0')}';
 }
 
-class _BankBlock extends StatelessWidget {
-  const _BankBlock({
-    required this.c,
-    required this.verdict,
-    required this.fg,
-    required this.muted,
-  });
+String _statusLine(DoomWalkController c, _Verdict verdict) {
+  final stride = c.config.strideM;
+  final unlockM = c.unlockChunkM;
+  final unlockWalk = c.walkToUnlock(unlockM);
+  return switch (verdict) {
+    _Verdict.walk =>
+      c.status.serviceConnected
+          ? 'Apps are locked. ${stepsText(unlockWalk, stride)} '
+                '(${walkMinutes(unlockWalk)}) unlock ${formatRound(unlockM)}.'
+          : '${stepsText(unlockWalk, stride)} unlock ${formatRound(unlockM)}. '
+                'Locking is paused while scroll measuring is off.',
+    _Verdict.unfrozen =>
+      'Unlocked for ${_countdown(c)}. Scrolling during the pass is free.',
+    _Verdict.empty =>
+      'Scrolling now locks your apps. ${stepsText(unlockWalk, stride)} (${walkMinutes(unlockWalk)}) put ${formatRound(unlockM)} in.',
+    _Verdict.full => 'Bank full. Walking adds nothing until you scroll some.',
+    _Verdict.low || _Verdict.ok =>
+      '${stepsText(c.walkToUnlock(c.bankCapM), stride)} fill the bank.',
+  };
+}
+
+class _PriceChip extends StatelessWidget {
+  const _PriceChip({required this.c, required this.locked, required this.fg});
   final DoomWalkController c;
-  final _Verdict verdict;
+  final bool locked;
   final Color fg;
-  final Color muted;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final col = context.colors;
-    final owed = verdict == _Verdict.walk;
-    final locked = owed || verdict == _Verdict.empty;
-    final bank = c.bankM;
-    final cap = c.bankCapM;
-    final stride = c.config.strideM;
     final price = c.priceNow;
-    final unlockM = c.unlockChunkM;
-    final unlockWalk = c.walkToUnlock(unlockM);
-    final line = switch (verdict) {
-      _Verdict.walk =>
-        c.status.serviceConnected
-            ? 'All apps that count are locked. ${stepsText(unlockWalk, stride)} '
-                  '(${walkMinutes(unlockWalk)}) unlock ${formatRound(unlockM)}.'
-            : '${stepsText(unlockWalk, stride)} unlock ${formatRound(unlockM)}. '
-                  'Locking is paused while scroll measuring is off.',
-      _Verdict.unfrozen =>
-        'Unlocked for ${_countdown(c)}. Scrolling during the pass is free.',
-      _Verdict.empty =>
-        'Bank empty. Scrolling now locks your apps. ${stepsText(unlockWalk, stride)} (${walkMinutes(unlockWalk)}) put ${formatRound(unlockM)} in.',
-      _Verdict.full => 'Bank full. Walking adds nothing until you scroll some.',
-      _Verdict.low || _Verdict.ok =>
-        'You can scroll ${formatRound(bank)}. ${stepsText(c.walkToUnlock(cap), stride)} fill it up.',
-    };
     final dear = price > c.config.startPrice;
     final chipFg = locked ? fg : (dear ? col.onAccent : col.onAccentContainer);
     final chipBg = locked
         ? fg.withValues(alpha: 0.14)
         : (dear ? col.accent : col.accentContainer);
     final per = formatMetres(1 / price, decimals: price == 1 ? 0 : 2);
-    return Semantics(
-      label:
-          'In the bank: ${formatRound(bank)} of ${formatRound(cap)}. Walking costs ${formatTimes(price)}. $line',
-      excludeSemantics: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text('In the bank', style: t.titleSmall?.copyWith(color: fg)),
-              const Spacer(),
-              Tooltip(
-                triggerMode: TooltipTriggerMode.tap,
-                showDuration: const Duration(seconds: 5),
-                message:
-                    'Right now 1 m walked adds $per of scrolling. '
-                    'Every ${formatRound(c.config.priceStepM)} you scroll today it goes up a tier: '
-                    '${tiersText(c.config.priceTiers)}.',
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: chipBg,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Ph.footprints, size: 14, color: chipFg),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${formatTimes(price)} walk',
-                        style: t.labelMedium
-                            ?.merge(numeric)
-                            .copyWith(
-                              color: chipFg,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: TweenAnimationBuilder<double>(
-              tween: Tween(end: cap <= 0 ? 0.0 : (bank / cap).clamp(0.0, 1.0)),
-              duration: const Duration(milliseconds: 700),
-              curve: Curves.easeOutCubic,
-              builder: (_, v, _) => LinearProgressIndicator(
-                value: v,
-                minHeight: 10,
-                color: locked ? fg : col.accent,
-                backgroundColor: locked
-                    ? fg.withValues(alpha: 0.14)
-                    : col.raised2,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                formatRound(bank),
-                style: t.titleLarge?.merge(numeric).copyWith(color: fg),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'of ${formatRound(cap)}',
-                style: t.bodyMedium?.merge(numeric).copyWith(color: muted),
-              ),
-              if (owed) ...[
-                const Spacer(),
-                Text(
-                  '${formatRound(c.overdraftM)} owed',
-                  style: t.bodyMedium?.merge(numeric).copyWith(color: fg),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 6),
-          Text(line, style: t.bodyLarge?.copyWith(color: muted, height: 1.45)),
-        ],
+    return Tooltip(
+      triggerMode: TooltipTriggerMode.tap,
+      showDuration: const Duration(seconds: 5),
+      message:
+          '1m walked adds $per of scrolling. '
+          'For every ${formatRound(c.config.priceStepM)} you scroll today it goes up a tier.',
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: chipBg,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: Text(
+          '${formatTimes(price)} walk',
+          semanticsLabel: 'Walking costs ${formatTimes(price)}',
+          style: t.labelMedium
+              ?.merge(numeric)
+              .copyWith(color: chipFg, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
 }
 
-class _Tally extends StatelessWidget {
-  const _Tally({
+class _Stats extends StatelessWidget {
+  const _Stats({
     required this.c,
+    required this.locked,
     required this.fg,
     required this.muted,
     required this.onOpenActivity,
   });
   final DoomWalkController c;
+  final bool locked;
   final Color fg;
   final Color muted;
   final VoidCallback onOpenActivity;
@@ -598,33 +525,50 @@ class _Tally extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
-    final s = c.state;
-    final line = fg.withValues(alpha: 0.10);
-    Widget stat(
-      String label,
-      String value,
-      String sub, {
+    final col = context.colors;
+    final scrolled = c.state.scrolledTodayM;
+    final bank = c.bankM;
+    final cap = c.bankCapM;
+    final owed = c.overdraftM >= 0.05;
+    // Same ladder and wording as Today's climb below
+    final p = progressToward(scrolled, ladder: climb);
+    final next = p.next;
+    final climbed = scrolled >= next.heightM
+        ? next.count(scrolled)
+        : '${(p.fraction * 100).floor()}% ${next.upright ? 'up' : 'along'} '
+              '${next.refer}';
+    final valueStyle = t.headlineSmall?.merge(numeric).copyWith(color: fg);
+    final subStyle = t.bodySmall?.merge(numeric).copyWith(color: muted);
+    Widget cell({
+      required String label,
+      required String semantics,
+      required Widget value,
+      required Widget foot,
       VoidCallback? onTap,
-      bool first = false,
     }) => Expanded(
-      child: MergeSemantics(
+      child: Semantics(
+        label: semantics,
+        button: onTap != null,
+        excludeSemantics: true,
         child: InkWell(
           onTap: onTap,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(first ? 0 : 16, 14, 8, 14),
+          borderRadius: BorderRadius.circular(Radii.surface),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            decoration: BoxDecoration(
+              color: fg.withValues(alpha: 0.06),
+              borderRadius: BorderRadius.circular(Radii.surface),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(label, style: t.bodySmall?.copyWith(color: muted)),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: t.titleLarge?.merge(numeric).copyWith(color: fg),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  sub,
-                  style: t.bodySmall?.merge(numeric).copyWith(color: muted),
+                const SizedBox(height: 6),
+                value,
+                const SizedBox(height: 8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 16),
+                  child: Align(alignment: Alignment.centerLeft, child: foot),
                 ),
               ],
             ),
@@ -632,29 +576,67 @@ class _Tally extends StatelessWidget {
         ),
       ),
     );
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        border: Border.symmetric(horizontal: BorderSide(color: line)),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            stat(
-              'All-time steps',
-              formatCount(c.stepsLifetime),
-              formatMetres(s.lifetimeWalkedM),
-              onTap: onOpenActivity,
-              first: true,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          cell(
+            label: 'Scrolled today',
+            semantics: 'Scrolled today: ${formatMetres(scrolled)}, $climbed',
+            value: Text(formatMetres(scrolled), style: valueStyle),
+            foot: Text(
+              climbed,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: subStyle,
             ),
-            VerticalDivider(width: 1, thickness: 1, color: line),
-            stat(
-              'Scrolled today',
-              formatMetres(s.scrolledTodayM),
-              nearestText(s.scrolledTodayM),
+            onTap: onOpenActivity,
+          ),
+          const SizedBox(width: 10),
+          cell(
+            label: 'In the bank',
+            semantics: owed
+                ? 'In the bank: ${formatRound(bank)} of ${formatRound(cap)}, ${formatRound(c.overdraftM)} owed'
+                : 'In the bank: ${formatRound(bank)} of ${formatRound(cap)}',
+            value: Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: formatRound(bank)),
+                  TextSpan(
+                    text: ' / ${formatRound(cap)}',
+                    style: t.bodyMedium?.merge(numeric).copyWith(color: muted),
+                  ),
+                ],
+              ),
+              maxLines: 1,
+              style: valueStyle,
             ),
-          ],
-        ),
+            foot: owed
+                ? Text(
+                    '${formatRound(c.overdraftM)} owed',
+                    style: subStyle?.copyWith(
+                      color: fg,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  )
+                : ClipRRect(
+                    borderRadius: BorderRadius.circular(3),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(
+                        end: cap <= 0 ? 0.0 : (bank / cap).clamp(0.0, 1.0),
+                      ),
+                      duration: const Duration(milliseconds: 700),
+                      curve: Curves.easeOutCubic,
+                      builder: (_, v, _) => LinearProgressIndicator(
+                        value: v,
+                        minHeight: 6,
+                        color: locked ? fg : col.accent,
+                        backgroundColor: fg.withValues(alpha: 0.12),
+                      ),
+                    ),
+                  ),
+          ),
+        ],
       ),
     );
   }
@@ -668,7 +650,6 @@ class _PassButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context).textTheme;
     if (c.overrideActive) {
       return SizedBox(
         width: double.infinity,
@@ -683,30 +664,24 @@ class _PassButton extends StatelessWidget {
       );
     }
     final left = c.overridesLeft;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        FilledButton.tonalIcon(
-          style: FilledButton.styleFrom(
-            backgroundColor: fg.withValues(alpha: 0.10),
-            foregroundColor: fg,
-            disabledBackgroundColor: fg.withValues(alpha: 0.05),
-            disabledForegroundColor: muted,
-            side: BorderSide(color: fg.withValues(alpha: 0.08)),
-          ),
-          onPressed: left > 0 ? c.startOverride : null,
-          icon: const Icon(Ph.lifebuoy, size: 20),
-          label: Text('Unlock for ${c.config.overrideMinutes} min'),
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.tonalIcon(
+        style: FilledButton.styleFrom(
+          backgroundColor: fg.withValues(alpha: 0.10),
+          foregroundColor: fg,
+          disabledBackgroundColor: fg.withValues(alpha: 0.05),
+          disabledForegroundColor: muted,
+          side: BorderSide(color: fg.withValues(alpha: 0.08)),
         ),
-        const SizedBox(height: 8),
-        Text(
+        onPressed: left > 0 ? c.startOverride : null,
+        icon: const Icon(Ph.lifebuoy, size: 20),
+        label: Text(
           left > 0
-              ? 'You have $left ${left == 1 ? 'pass' : 'passes'} left for emergency dopamine hits.'
-              : 'No passes left today.',
-          textAlign: TextAlign.start,
-          style: t.bodySmall?.merge(numeric).copyWith(color: muted),
+              ? 'Unlock for ${c.config.overrideMinutes} min · $left left'
+              : 'No passes left today',
         ),
-      ],
+      ),
     );
   }
 }
@@ -1228,10 +1203,7 @@ class _Climb extends StatelessWidget {
                   children: [
                     Text('$pct%', style: t.headlineMedium?.merge(numeric)),
                     const SizedBox(height: 2),
-                    Text(
-                      'of the way $way ${next.refer}\u00A0${next.emoji}',
-                      style: t.bodyLarge,
-                    ),
+                    Text('of the way $way ${next.refer}', style: t.bodyLarge),
                     const SizedBox(height: 8),
                     Text(
                       metres < 0.05
@@ -1267,10 +1239,9 @@ class _Climb extends StatelessWidget {
             ),
           if (p.passed.isNotEmpty) ...[
             const SizedBox(height: 14),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [for (final l in p.passed) _Passed(l)],
+            Text(
+              'You\'ve scrolled more than ${_listed([for (final l in p.passed) l.refer])}.',
+              style: t.bodyMedium?.copyWith(color: col.muted, height: 1.45),
             ),
           ],
           const SizedBox(height: 14),
@@ -1287,25 +1258,6 @@ class _Climb extends StatelessWidget {
   }
 }
 
-class _Passed extends StatelessWidget {
-  const _Passed(this.l);
-  final Landmark l;
-
-  @override
-  Widget build(BuildContext context) {
-    final col = context.colors;
-    final name = l.name[0].toUpperCase() + l.name.substring(1);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: col.accentContainer,
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        '${l.emoji} $name',
-        style: Theme.of(context).textTheme.labelMedium
-            ?.copyWith(color: col.onAccentContainer),
-      ),
-    );
-  }
-}
+String _listed(List<String> items) => items.length < 2
+    ? items.join()
+    : '${items.sublist(0, items.length - 1).join(', ')} and ${items.last}';

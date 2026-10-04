@@ -18,7 +18,6 @@ class Landmark {
     this.plural,
     this.heightM, {
     required this.refer,
-    required this.emoji,
     required this.shape,
     this.upright = true,
   });
@@ -27,7 +26,6 @@ class Landmark {
   final double heightM;
 
   final String refer;
-  final String emoji;
   final LandmarkShape shape;
 
   final bool upright;
@@ -44,7 +42,6 @@ const giraffe = Landmark(
   'giraffes',
   5.5,
   refer: 'a giraffe',
-  emoji: '🦒',
   shape: LandmarkShape.giraffe,
 );
 const bus = Landmark(
@@ -52,7 +49,6 @@ const bus = Landmark(
   'double-decker buses',
   11.2,
   refer: 'a double-decker bus',
-  emoji: '🚌',
   shape: LandmarkShape.bus,
   upright: false,
 );
@@ -61,7 +57,6 @@ const whale = Landmark(
   'blue whales',
   30,
   refer: 'a blue whale',
-  emoji: '🐋',
   shape: LandmarkShape.whale,
   upright: false,
 );
@@ -70,7 +65,6 @@ const liberty = Landmark(
   'Statues of Liberty',
   93,
   refer: 'the Statue of Liberty',
-  emoji: '🗽',
   shape: LandmarkShape.statue,
 );
 const eiffel = Landmark(
@@ -78,7 +72,6 @@ const eiffel = Landmark(
   'Eiffel Towers',
   330,
   refer: 'the Eiffel Tower',
-  emoji: '🗼',
   shape: LandmarkShape.tower,
 );
 const burj = Landmark(
@@ -86,7 +79,6 @@ const burj = Landmark(
   'Burj Khalifas',
   828,
   refer: 'the Burj Khalifa',
-  emoji: '🏙️',
   shape: LandmarkShape.skyscraper,
 );
 const triglav = Landmark(
@@ -94,7 +86,6 @@ const triglav = Landmark(
   'Triglavs',
   2864,
   refer: 'Triglav',
-  emoji: '⛰️',
   shape: LandmarkShape.triglav,
 );
 const everest = Landmark(
@@ -102,7 +93,6 @@ const everest = Landmark(
   'Everests',
   8849,
   refer: 'Everest',
-  emoji: '🏔️',
   shape: LandmarkShape.mountain,
 );
 const karman = Landmark(
@@ -110,7 +100,6 @@ const karman = Landmark(
   'Kármán lines',
   100000,
   refer: 'the Kármán line',
-  emoji: '🚀',
   shape: LandmarkShape.rocket,
 );
 
