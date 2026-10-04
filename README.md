@@ -28,15 +28,15 @@ you've walked. Run out, and all addicting apps are blocked until you get up and 
 
 1. **Walking fills your bank.** Every day starts with 0m in it, and it can hold up to 50m of scrolling. Walking while it's full adds nothing, so walk when you want to scroll.
 2. **Scrolling empties your bank.** Apps like Instagram, TikTok, YouTube, Reddit empty your scoll usage, but apps like Calls, maps, banking, messages and emergency apps do not.
-3. **Scrolling gets more expensive.** Every metre of scrolling costs you 4m of walking to start with, and it goes up a tier for every 50m you scroll in a day:
+3. **Scrolling gets more expensive.** Every metre of scrolling costs you 5m of walking to start with, and it goes up a tier for every 50m you scroll in a day:
 
    | Scrolled today | Walking per metre | Filling the 50m bank |
    |---|---|---|
-   | 0–49m | 4× | 267 steps |
-   | 50–99m | 6× | 400 steps |
-   | 100–149m | 9× | 600 steps |
-   | 150–199m | 12× | 800 steps |
-   | 200m and more | 18× (max) | 1,200 steps |
+   | 0–49m | 5× | 334 steps |
+   | 50–99m | 12× | 800 steps |
+   | 100–149m | 20× | 1,334 steps |
+   | 150–199m | 32× | 2,134 steps |
+   | 200m and more | 48× (max) | 3,200 steps |
 
 4. **Bank empty? Apps are blocked, time to touch grass.** It fades behind a blur with a card that says how many steps get you going again. Taps still work, it's just no fun.
 5. **Need a dopaime hit badly?** Three emergency passes a day unlock everything for five minutes.

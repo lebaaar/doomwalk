@@ -26,7 +26,7 @@ class WalletConfig {
   // The first tier applies at the start of the day, the last is the most it can cost
   final List<double> priceTiers;
 
-  static const defaultPriceTiers = <double>[4, 6, 9, 12, 18];
+  static const defaultPriceTiers = <double>[5, 12, 20, 32, 48];
 
   final double priceStepM;
 

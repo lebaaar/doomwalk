@@ -13,16 +13,16 @@ void main() {
 
   group('defaults', () {
     test(
-      'a 50 m bank; walking at 4x, then 6x, 9x, 12x and 18x, a tier per 50 m',
+      'a 50 m bank; walking at 5x, then 12x, 20x, 32x and 48x, a tier per 50 m',
       () {
         const c = WalletConfig();
         expect(c.bankCapM, 50);
         expect(
           <double>[0, 49.9, 50, 100, 150, 200, 1000].map((m) => priceAt(m, c)),
-          [4, 4, 6, 9, 12, 18, 18],
+          [5, 5, 12, 20, 32, 48, 48],
         );
         final w = fresh(c);
-        expect(w.applyWalk(60, t0), closeTo(15, 1e-9)); // 60 m walked at 4x
+        expect(w.applyWalk(60, t0), closeTo(12, 1e-9)); // 60 m walked at 5x
         w.applyWalk(1000, t0);
         expect(w.bankM, 50);
       },

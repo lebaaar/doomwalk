@@ -49,7 +49,7 @@ void main() {
         config: const WalletConfig(),
         state: WalletState.fresh(start),
       );
-      w.applyWalk(60, start); // 15 m in the bank at the default 4x
+      w.applyWalk(60, start); // 12 m in the bank at the default 5x
       final g = TamperGap(
         start: start,
         end: start.add(const Duration(hours: 2)),
@@ -57,7 +57,7 @@ void main() {
       );
       w.chargeGap(p.costFor(g, 20), start);
       expect(w.bankM, 0);
-      expect(w.overdraftM, closeTo(25, 1e-9));
+      expect(w.overdraftM, closeTo(28, 1e-9));
       expect(w.state.tamperChargedTodayM, closeTo(40, 1e-9));
     });
   });

@@ -10,7 +10,6 @@ import 'package:permission_handler/permission_handler.dart';
 import '../core/app_catalog.dart';
 import '../core/health.dart';
 import '../core/landmarks.dart';
-import '../core/presets.dart';
 import '../core/scroll_interpreter.dart';
 import '../core/scroll_wallet.dart';
 import '../core/tamper.dart';
@@ -112,7 +111,7 @@ class DoomWalkController extends ChangeNotifier {
     final store = await Store.open();
     final kv = await store.readKv();
     final now = DateTime.now();
-    // Models 4 and 5 keep everything except that a config on a preset moves to its current tiers; anything older keeps only personal settings
+    // An older model keeps only personal settings
     final savedConfig = kv['config'] == null
         ? null
         : jsonDecode(kv['config']!) as Map<String, Object?>;
@@ -120,8 +119,6 @@ class DoomWalkController extends ChangeNotifier {
         ? const WalletConfig()
         : kv['model'] == modelVersion
         ? WalletConfig.fromJson(savedConfig)
-        : kv['model'] == '4' || kv['model'] == '5'
-        ? Strictness.upgrade(WalletConfig.fromJson(savedConfig))
         : WalletConfig.fromLegacyJson(savedConfig);
     final state = kv['state'] != null
         ? WalletState.fromJson(jsonDecode(kv['state']!) as Map<String, Object?>)

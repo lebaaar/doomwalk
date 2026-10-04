@@ -11,11 +11,11 @@ void main() {
   group('price table', () {
     test('Balanced: a tier per 50 m, steps to fill a 50 m bank', () {
       final rows = priceRows(const WalletConfig());
-      expect(rows.map((r) => r.price), [4, 6, 9, 12, 18]);
+      expect(rows.map((r) => r.price), [5, 12, 20, 32, 48]);
       expect(rows.map((r) => r.fromM), [0, 50, 100, 150, 200]);
       expect(rows.last.toM, isNull); // 200 m and up
-      // 50 m at 4x = 200 m walked = 267 steps at 0.75 m.
-      expect(rows.map((r) => r.stepsToFill), [267, 400, 600, 800, 1200]);
+      // 50 m at 5x = 250 m walked = 334 steps at 0.75 m.
+      expect(rows.map((r) => r.stepsToFill), [334, 800, 1334, 2134, 3200]);
     });
 
     test('follows the preset, the bank size and the stride', () {
@@ -24,12 +24,12 @@ void main() {
           const WalletConfig(strideM: 0.8, bankCapM: 100),
         ),
       );
-      expect(gentle.map((r) => r.price), [3, 4, 6, 9, 12]);
+      expect(gentle.map((r) => r.price), [4, 9, 14, 22, 32]);
       expect(gentle.map((r) => r.fromM), [0, 50, 100, 150, 200]);
       expect(
         gentle.first.stepsToFill,
-        375,
-      ); // 100 m at 3x = 300 m at 0.8 m a step
+        500,
+      ); // 100 m at 4x = 400 m at 0.8 m a step
     });
   });
 

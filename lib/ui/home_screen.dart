@@ -311,21 +311,22 @@ class _TodayCardState extends State<_TodayCard> {
         ? _Verdict.full
         : (c.bankM / c.bankCapM <= 0.25 ? _Verdict.low : _Verdict.ok);
 
-    final fg = owed ? col.onHero : col.text;
-    final muted = owed ? col.onHeroMuted : col.muted;
+    final locked = verdict == _Verdict.walk || verdict == _Verdict.empty;
+    final fg = locked ? col.onLock : col.text;
+    final muted = locked ? col.onLockMuted : col.muted;
     final steps = c.stepsToday;
     final goalSub = c.walkError != null
         ? 'Steps aren\'t counted yet'
         : '${(c.goalProgress * 100).round()}% of ${formatCount(c.stepGoal)} goal · ${formatMetres(c.state.walkedTodayM)}';
 
-    final glow = owed ? col.heroTo : col.calmTo;
+    final glow = locked ? col.lockTo : col.calmTo;
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(Radii.surface + 4),
-        color: owed ? col.heroFrom : col.calmFrom,
+        color: locked ? col.lockFrom : col.calmFrom,
         border: Border.all(
-          color: owed ? col.heroTo.withValues(alpha: 0.22) : col.hairline,
+          color: locked ? col.lockTo.withValues(alpha: 0.35) : col.hairline,
         ),
       ),
       child: Material(
@@ -337,7 +338,7 @@ class _TodayCardState extends State<_TodayCard> {
               center: const Alignment(1.0, -1.1),
               radius: 1.25,
               colors: [
-                glow.withValues(alpha: owed ? 0.34 : 0.10),
+                glow.withValues(alpha: locked ? 0.34 : 0.10),
                 glow.withValues(alpha: 0),
               ],
             ),
@@ -361,13 +362,13 @@ class _TodayCardState extends State<_TodayCard> {
                             Icon(
                               Ph.footprints,
                               size: 18,
-                              color: owed ? fg : col.accent,
+                              color: locked ? fg : col.accent,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Steps today',
                               style: t.labelLarge?.copyWith(
-                                color: owed ? fg : col.accent,
+                                color: locked ? fg : col.accent,
                                 fontSize: 14,
                               ),
                             ),
@@ -458,6 +459,7 @@ class _BankBlock extends StatelessWidget {
     final t = Theme.of(context).textTheme;
     final col = context.colors;
     final owed = verdict == _Verdict.walk;
+    final locked = owed || verdict == _Verdict.empty;
     final bank = c.bankM;
     final cap = c.bankCapM;
     final stride = c.config.strideM;
@@ -474,14 +476,14 @@ class _BankBlock extends StatelessWidget {
       _Verdict.unfrozen =>
         'Unlocked for ${_countdown(c)}. Scrolling during the pass is free.',
       _Verdict.empty =>
-        'Take a walk: ${stepsText(unlockWalk, stride)} (${walkMinutes(unlockWalk)}) put ${formatRound(unlockM)} in.',
+        'Bank empty. Scrolling now locks your apps. ${stepsText(unlockWalk, stride)} (${walkMinutes(unlockWalk)}) put ${formatRound(unlockM)} in.',
       _Verdict.full => 'Bank full. Walking adds nothing until you scroll some.',
       _Verdict.low || _Verdict.ok =>
         'You can scroll ${formatRound(bank)}. ${stepsText(c.walkToUnlock(cap), stride)} fill it up.',
     };
     final dear = price > c.config.startPrice;
-    final chipFg = owed ? fg : (dear ? col.onAccent : col.onAccentContainer);
-    final chipBg = owed
+    final chipFg = locked ? fg : (dear ? col.onAccent : col.onAccentContainer);
+    final chipBg = locked
         ? fg.withValues(alpha: 0.14)
         : (dear ? col.accent : col.accentContainer);
     final per = formatMetres(1 / price, decimals: price == 1 ? 0 : 2);
@@ -543,8 +545,8 @@ class _BankBlock extends StatelessWidget {
               builder: (_, v, _) => LinearProgressIndicator(
                 value: v,
                 minHeight: 10,
-                color: owed ? fg : col.accent,
-                backgroundColor: owed
+                color: locked ? fg : col.accent,
+                backgroundColor: locked
                     ? fg.withValues(alpha: 0.14)
                     : col.raised2,
               ),
@@ -1233,7 +1235,7 @@ class _Climb extends StatelessWidget {
                     const SizedBox(height: 8),
                     Text(
                       metres < 0.05
-                          ? 'It\'s ${formatRound(next.heightM)} $size. Nothing scrolled yet today, so you haven\'t started.'
+                          ? 'It\'s ${formatRound(next.heightM)} $size. You haven\'t scrolled yet today.'
                           : beyond
                           ? 'You\'ve scrolled ${next.count(metres)} today. Please go outside.'
                           : '${formatMetres(next.heightM - metres)} to go. You\'ve scrolled ${formatMetres(metres)} today.',

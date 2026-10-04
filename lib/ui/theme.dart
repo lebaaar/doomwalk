@@ -22,6 +22,10 @@ class Palette extends ThemeExtension<Palette> {
     required this.onHeroMuted,
     required this.calmFrom,
     required this.calmTo,
+    required this.lockFrom,
+    required this.lockTo,
+    required this.onLock,
+    required this.onLockMuted,
   });
 
   final Color ink;
@@ -49,6 +53,12 @@ class Palette extends ThemeExtension<Palette> {
   final Color calmFrom;
   final Color calmTo;
 
+  /// The home card when the bank is empty or in debt
+  final Color lockFrom;
+  final Color lockTo;
+  final Color onLock;
+  final Color onLockMuted;
+
   static const dark = Palette(
     ink: Color(0xFF0A0C0F),
     raised: Color(0xFF12151A),
@@ -68,6 +78,10 @@ class Palette extends ThemeExtension<Palette> {
     onHeroMuted: Color(0xFF93A9BA),
     calmFrom: Color(0xFF12151A),
     calmTo: Color(0xFFA9D3EC),
+    lockFrom: Color(0xFF2A1013),
+    lockTo: Color(0xFFFF6B6B),
+    onLock: Color(0xFFFFEDEC),
+    onLockMuted: Color(0xFFD9A3A1),
   );
 
   static const light = Palette(
@@ -89,6 +103,10 @@ class Palette extends ThemeExtension<Palette> {
     onHeroMuted: Color(0xFFA3B9CA),
     calmFrom: Color(0xFFFFFFFF),
     calmTo: Color(0xFF5B9BC7),
+    lockFrom: Color(0xFF4A0F14),
+    lockTo: Color(0xFFE5484D),
+    onLock: Color(0xFFFFF4F3),
+    onLockMuted: Color(0xFFEBB5B2),
   );
 
   @override
@@ -117,6 +135,10 @@ class Palette extends ThemeExtension<Palette> {
       onHeroMuted: l(onHeroMuted, other.onHeroMuted),
       calmFrom: l(calmFrom, other.calmFrom),
       calmTo: l(calmTo, other.calmTo),
+      lockFrom: l(lockFrom, other.lockFrom),
+      lockTo: l(lockTo, other.lockTo),
+      onLock: l(onLock, other.onLock),
+      onLockMuted: l(onLockMuted, other.onLockMuted),
     );
   }
 }
