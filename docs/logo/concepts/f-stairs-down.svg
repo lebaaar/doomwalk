@@ -1,5 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title">
-  <title id="title">Stairs down</title>
-  <path fill="#000" d="M32 64 H88 V112 H136 V160 H184 V208 H224 V232 H32 Z"/>
-  <circle cx="60" cy="36" r="20" fill="#000"/>
-</svg>
