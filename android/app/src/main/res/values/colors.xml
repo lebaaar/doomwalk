@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Frost, from the app icon (docs/logo/final). Dark values in values-night. -->
+<!-- Frost, from the app icon (docs/logo). Dark values in values-night. -->
 <resources>
     <color name="splash_background">#FFF7FBFE</color>
     <color name="widget_bg_top">#FFFFFFFF</color>

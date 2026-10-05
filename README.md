@@ -2,7 +2,7 @@
   <img src="docs/graphics/feature-graphic-2x.png" alt="DoomWalk: want to scroll? Take a walk first.">
 </p>
 
-<h1><img src="docs/logo/final/png/icon-rounded-512.png" width="36" align="absmiddle" alt="">&nbsp;&nbsp;DoomWalk</h1>
+<h1><img src="docs/logo/png/icon-rounded-512.png" width="36" align="absmiddle" alt="">&nbsp;&nbsp;DoomWalk</h1>
 
 A step counter for Android that fights back.
 <br>

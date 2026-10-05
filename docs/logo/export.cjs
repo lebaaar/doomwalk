@@ -10,7 +10,7 @@ for (const s of [64, 128, 256, 512, 1024]) {
   jobs.push(['symbol-white.svg', `png/symbol-white-${s}.png`, s, 0]);
 }
 jobs.push(['icon.svg', 'png/play-store-512.png', 512, 0]);
-const res = '../../../android/app/src/main/res';
+const res = '../../android/app/src/main/res';
 for (const [d, s] of [['mdpi', 48], ['hdpi', 72], ['xhdpi', 96], ['xxhdpi', 144], ['xxxhdpi', 192]])
   jobs.push(['icon.svg', `${res}/mipmap-${d}/ic_launcher.png`, s, 0.18]);
 (async () => {
@@ -36,6 +36,6 @@ for (const [d, s] of [['mdpi', 48], ['hdpi', 72], ['xhdpi', 96], ['xxhdpi', 144]
    <span style="margin-left:20px">Status bar:</span><img src="${uri(t + 'stat.svg')}" style="width:48px;height:48px"><img src="${uri(t + 'stat.svg')}" style="width:24px;height:24px">
    <span style="margin-left:20px">Symbol:</span><img src="${uri('symbol.svg')}" style="height:60px"><img src="${uri('symbol-small.svg')}" style="height:24px">
    </div>`);
-  await p.screenshot({ path: '../final-icon.png' });
+  await p.screenshot({ path: 'preview.png' });
   await b.close();
 })();

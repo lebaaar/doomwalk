@@ -2,9 +2,9 @@
 
 The mark is a stack of **depth ticks**: six rounded bars that get wider, thicker and more solid as they go down, so the feed seems to come towards you out of the depth.
 
-![Final icon](final-icon.png)
+![Icon preview](preview.png)
 
-## Files (`final/`)
+## Files
 
 | File | Use |
 |---|---|
@@ -15,11 +15,11 @@ The mark is a stack of **depth ticks**: six rounded bars that get wider, thicker
 | `symbol-small.svg` | Four fatter ticks, for 16 to 24 px (tab bar, notification icon) |
 | `png/` | `icon-16` to `icon-1024`, `play-store-512`, `icon-dark-512/1024`, `symbol(-white)-64` to `-1024` |
 
-`final/build.py` writes the SVGs and the Android resources (adaptive icon
+`build.py` writes the SVGs and the Android resources (adaptive icon
 foreground, background and monochrome layers, the `ic_stat_ticks` notification
 icon). It asserts that the adaptive mark stays inside the 66 dp safe circle.
-`final/export.cjs` renders every PNG, the legacy `mipmap-*/ic_launcher.png` and
-`final-icon.png` with Chromium. Flutter draws the same geometry in
+`export.cjs` renders every PNG, the legacy `mipmap-*/ic_launcher.png` and
+`preview.png` with Chromium. Flutter draws the same geometry in
 `lib/ui/logo.dart` (`DepthTicks`).
 
 ## Colours

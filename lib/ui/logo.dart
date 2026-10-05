@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-// Same geometry as docs/logo/final/symbol.svg; [small] uses four fatter ticks to stay legible at icon size
+// Same geometry as docs/logo/symbol.svg; [small] uses four fatter ticks to stay legible at icon size
 class DepthTicks extends StatelessWidget {
   const DepthTicks({super.key, this.size, this.color, this.small = false});
 
