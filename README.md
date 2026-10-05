@@ -51,6 +51,8 @@ Prefer it gentler or stricter? You can pick between *Gentle*, *Balanced* or *Str
 DoomWalk has no internet permission and collects 0 personal data. Nothing ever leaves your phone.
 It needs Android's accessibility access to notice scrolling, but it can only see how far you scroll and which app is open, not the actual content of the screen.
 
+Privacy policy: [doomwalk.lan.si/privacy](https://doomwalk.lan.si/privacy)
+
 ## Getting it
 
 Currently only available on Android 13+ because of the accessibility requirements.

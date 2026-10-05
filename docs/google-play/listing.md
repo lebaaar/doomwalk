@@ -40,7 +40,7 @@ Core functionality: DoomWalk measures vertical scroll distance in other apps and
 - `RECEIVE_BOOT_COMPLETED`: restart tracking after a reboot.
 
 ## Data safety form
-Collects no data. Shares no data. Data is not transmitted off the device. Privacy policy URL: https://github.com/lebaaar/doomwalk/blob/main/PRIVACY.md
+Collects no data. Shares no data. Data is not transmitted off the device. Privacy policy URL: [doomwalk.lan.si/privacy](https://doomwalk.lan.si/privacy)
 
 ## Category / content rating
 Health & Fitness. Everyone.
