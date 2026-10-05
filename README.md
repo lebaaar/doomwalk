@@ -6,7 +6,7 @@
 
 A step counter for Android that fights back.
 <br>
-<sub>Winning project at <a href="https://hackchalmers.se/">Hack Chalmers</a>. Built in under 24h.</sub>
+<sub>Winning project at <a href="https://hackchalmers.se/">Hack Chalmers</a> hackathon.</sub>
 
 DoomWalk makes you walk before you can doomscroll. It measures how far you scroll in
 your social and video apps, in actual metres, and only lets you scroll as far as
