@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="title">
-  <title id="title">Depth ticks, Ink on paper</title>
-  <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#EFEFEF"/></linearGradient><filter id="shadow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur in="SourceAlpha" stdDeviation="4"/><feOffset dy="4"/><feComponentTransfer><feFuncA type="linear" slope="0.22"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
-  <rect width="256" height="256" fill="url(#bg)"/>
-  <g filter="url(#shadow)"><rect x="100.0" y="40.0" width="56" height="12" rx="6.0" fill="#141414" opacity="0.32"/><rect x="86.0" y="57.0" width="84" height="16" rx="8.0" fill="#141414" opacity="0.46"/><rect x="72.0" y="80.0" width="112" height="20" rx="10.0" fill="#141414" opacity="0.59"/><rect x="58.0" y="109.0" width="140" height="24" rx="12.0" fill="#141414" opacity="0.73"/><rect x="44.0" y="144.0" width="168" height="28" rx="14.0" fill="#141414" opacity="0.86"/><rect x="30.0" y="185.0" width="196" height="32" rx="16.0" fill="#141414" opacity="1.00"/></g>
-</svg>

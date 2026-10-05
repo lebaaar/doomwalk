@@ -1,9 +1,6 @@
 # DoomWalk logo
 
-The mark is a stack of **depth ticks**: six rounded bars that get wider, thicker
-and more solid as they go down, so the feed seems to come towards you out of the
-depth. It was picked from six rounds of concepts (`concepts-round*.png`); the
-final one is round 6, option 3, "Frost".
+The mark is a stack of **depth ticks**: six rounded bars that get wider, thicker and more solid as they go down, so the feed seems to come towards you out of the depth.
 
 ![Final icon](final-icon.png)
 
@@ -35,14 +32,10 @@ icon). It asserts that the adaptive mark stays inside the 66 dp safe circle.
 | Deep navy | `#07131F` | Dark mode background |
 | Frost blue | `#A9D3EC` | Dark mode accent and ticks |
 
-Two colours only: the lighter ticks are the same navy at lower opacity
-(32 % to 100 %), never a third colour.
+Two colours only: the lighter ticks are the same navy at lower opacity (32 % to 100 %), never a third colour.
 
 ## Rules
 
 * **Clear space:** at least the height of the bottom tick on every side.
-* **Minimum size:** the six-tick mark down to 32 px; below that use
-  `symbol-small.svg`.
-* **Don't** recolour individual ticks, add an accent tick, outline the ticks,
-  stretch the stack, or put the navy mark on a dark background (use the dark
-  variant instead).
+* **Minimum size:** the six-tick mark down to 32 px; below that use `symbol-small.svg`.
+* **Don't** recolour individual ticks, add an accent tick, outline the ticks, stretch the stack, or put the navy mark on a dark background (use the dark variant instead).
