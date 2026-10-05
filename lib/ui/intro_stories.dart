@@ -235,9 +235,7 @@ List<_Slide> _buildSlides(WalletConfig c) {
     ),
     const _Slide(
       title: 'Your scrolling, in metres',
-      body:
-          'Every swipe on Instagram, TikTok or any other app is measured in real metres. '
-          'A long evening on the feed easily passes a few hundred.',
+      body: 'Every swipe on Instagram, TikTok or any other app is measured in real metres. ',
       visual: _CountUp(
         to: 100,
         caption: 'scrolled today',
@@ -249,7 +247,7 @@ List<_Slide> _buildSlides(WalletConfig c) {
       body:
           'It starts empty every day and holds up to $cap of scrolling, at $start from the first step: '
           '${formatRound(c.startPrice).replaceAll(' ', '\u00A0')} walked per metre. Once it\'s full, walking '
-          'adds nothing, so a long commute can\'t buy a day of scrolling.',
+          'adds nothing.',
       visual: _BankVisual(
         cap: c.bankCapM,
         caption: '${formatCount(fillSteps)} steps fill it',
