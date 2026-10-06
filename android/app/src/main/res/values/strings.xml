@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="accessibility_summary">Measures how far you scroll and blurs apps until you take a walk.</string>
-    <string name="accessibility_description">DoomWalk measures the vertical distance you scroll in other apps (in metres) and blurs them once the scrolling you earned by walking is used up.\n\nIt only receives scroll and app-switch events. It cannot read what is on your screen, and nothing leaves your phone: the app has no internet permission.</string>
+    <string name="accessibility_description">DoomWalk measures the vertical distance you scroll in other apps (in metres) and blurs them once the scrolling you earned by walking is used up.\n\nIt only receives scroll and app-switch events. It cannot read what is on your screen, and your scrolling and walking data never leaves your phone.</string>
     <string name="widget_small_description">Scrolling left at a glance</string>
     <string name="widget_large_description">Scrolling left, today\'s walk, distance scrolled today and the nearest landmark</string>
 </resources>

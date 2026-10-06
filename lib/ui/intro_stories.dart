@@ -287,9 +287,9 @@ List<_Slide> _buildSlides(WalletConfig c) {
       ),
     ),
     const _Slide(
-      title: 'Nothing leaves your phone',
+      title: 'Your data stays on your phone',
       body:
-          'No internet permission, no accounts, no analytics. DoomWalk measures how far you scroll, '
+          'No ads, no accounts, no analytics. DoomWalk measures how far you scroll, '
           'never what\'s on screen.',
       visual: _PrivacyVisual(),
     ),
@@ -428,7 +428,7 @@ class _PrivacyVisual extends StatelessWidget {
             runSpacing: 8,
             alignment: WrapAlignment.center,
             children: [
-              pill('No internet'),
+              pill('No ads'),
               pill('No accounts'),
               pill('No analytics'),
             ],

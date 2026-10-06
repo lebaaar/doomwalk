@@ -174,7 +174,7 @@ class SettingsScreen extends ConsumerWidget {
             const _NavTile(
               icon: Ph.shieldCheck,
               title: 'Privacy and data',
-              subtitle: 'Everything stays on this phone',
+              subtitle: 'Your data stays on this phone',
               page: _PrivacyPage(),
             ),
             const _NavTile(
