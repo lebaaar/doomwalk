@@ -10,10 +10,20 @@ Please ensure you have Flutter 3.13+ (with Dart 3.1+) installed and working.
 
 ```bash
 flutter pub get
-flutter build apk --debug && adb install -r build/app/outputs/flutter-apk/app-debug.apk
+cp .env.example .env   # optional: Discord webhooks for Contact developer / Report a bug
+flutter build apk --debug --dart-define-from-file=.env && adb install -r build/app/outputs/flutter-apk/app-debug.apk
 # or simply:
-flutter run
+flutter run --dart-define-from-file=.env
 ```
+
+### Contact and bug reports (Discord webhooks)
+
+*Settings → App info* has *Contact developer* and *Report a bug* forms that post to Discord webhooks.
+The URLs live in `.env` (git-ignored, see `.env.example`) and are compiled in with `--dart-define-from-file=.env`, read via `String.fromEnvironment` in `lib/services/feedback.dart`.
+A build without them still works; the forms just say they can't send.
+Anyone can extract a URL from the APK, so treat the webhooks as public: use dedicated channels and replace the webhook (Discord → channel → Integrations) if it gets spammed.
+
+App info also asks Google Play for a newer version (`in_app_update`) every time it opens. Play only answers for installs that came from Play, so sideloaded and debug builds always show *View on Google Play*.
 
 ## Tests
 
@@ -60,7 +70,7 @@ It reads scroll geometry and the package name, never screen content.
 ```bash
 ./tool/device_test.sh          # SCROLL_APP=com.instagram.android SWIPES=120 to change target
 ```
-It installs, grants everything, enables the service, swipes, screenshots the frost, tests tap-through, exempt apps, swipe-from-recents survival, walk-off (debug hook) and persistence, and checks the release APK for INTERNET (so it needs `android/key.properties`). The results go to `docs/device/`.
+It installs, grants everything, enables the service, swipes, screenshots the frost, tests tap-through, exempt apps, swipe-from-recents survival, walk-off (debug hook) and persistence, and checks the release APK's permissions (so it needs `android/key.properties`). The results go to `docs/device/`.
 
 Debug-only adb hooks (absent from release builds):
 ```bash
@@ -83,7 +93,7 @@ Release build fails without `android/key.properties`, so that debug-signed APK c
    ```
 2. Copy `android/example-key.properties` to `android/key.properties` and fill it in. It is git-ignored; never commit it or the `.jks`.
 3. In Play Console, create the app (package `com.lebaaar.doomwalk`) and keep *Play App Signing* on. Play re-signs with its own key, your upload key only proves the upload is yours.
-4. Fill in the store pages with both short and full description, the accessibility API declaration, the foreground service declarations, the data safety form (no data collected) and the privacy policy URL ([doomwalk.lan.si/privacy](https://doomwalk.lan.si/privacy) on GitHub). Add an icon (512 px: `docs/logo/png/icon-rounded-512.png`), a feature graphic (`docs/graphics/feature-graphic.png`, 1024 x 500) and phone screenshots (`docs/graphics/screenshot-*.png`, 2160 x 3840). Both are rendered from `docs/graphics/src/graphics.html` with `node docs/graphics/src/render.cjs` (point its `require` at your Playwright install).
+4. Fill in the store pages with both short and full description, the accessibility API declaration, the foreground service declarations, the data safety form (only messages and bug reports the user chooses to send, plus app and Android version) and the privacy policy URL ([doomwalk.lan.si/privacy](https://doomwalk.lan.si/privacy) on GitHub). Add an icon (512 px: `docs/logo/png/icon-rounded-512.png`), a feature graphic (`docs/graphics/feature-graphic.png`, 1024 x 500) and phone screenshots (`docs/graphics/screenshot-*.png`, 2160 x 3840). Both are rendered from `docs/graphics/src/graphics.html` with `node docs/graphics/src/render.cjs` (point its `require` at your Playwright install).
 5. Google reviews apps that use the accessibility API; expect a few days and a possible request for a short demo video of the service doing what the declaration says.
 
 ### Every release
@@ -92,10 +102,10 @@ Release build fails without `android/key.properties`, so that debug-signed APK c
 2. Raise `version:` in `pubspec.yaml` (example: `1.0.1+2`).
 3. Build:
    ```bash
-   flutter build appbundle --release    # build/app/outputs/bundle/release/app-release.aab, for Play
-   flutter build apk --release          # build/app/outputs/flutter-apk/app-release.apk, for GitHub / sideloading
+   flutter build appbundle --release --dart-define-from-file=.env    # build/app/outputs/bundle/release/app-release.aab, for Play
+   flutter build apk --release --dart-define-from-file=.env          # build/app/outputs/flutter-apk/app-release.apk, for GitHub / sideloading
    ```
-4. Check the APK has no `INTERNET` permission (`tool/device_test.sh` does this too):
+4. Check the APK's permissions (`INTERNET` is expected, for App info messages; `tool/device_test.sh` does this too):
    ```bash
    "$ANDROID_HOME"/build-tools/*/aapt2 dump permissions build/app/outputs/flutter-apk/app-release.apk
    ```
@@ -115,7 +125,7 @@ A sideloaded APK needs *Allow restricted settings* (App info → ⋮) before And
 ### Releasing on Google Play (.aab)
 1. Build the app bundle:
    ```bash
-   flutter build appbundle --release
+   flutter build appbundle --release --dart-define-from-file=.env
    ```
    Output lands in `build/app/outputs/bundle/release/app-release.aab`. This is the only file Play accepts for the app itself. Upload it in Play Console → Testing → Closed testing → Create release.
 
@@ -124,7 +134,7 @@ A sideloaded APK needs *Allow restricted settings* (App info → ⋮) before And
 
 1. Build the APK:
    ```bash
-   flutter build apk --release
+   flutter build apk --release --dart-define-from-file=.env
    ```
    Output lands in `build/app/outputs/flutter-apk/app-release.apk`.
 2. Commit the version bump and push:

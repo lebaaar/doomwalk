@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:package_info_plus/package_info_plus.dart';
 
 import '../core/app_catalog.dart';
 import '../core/scroll_wallet.dart';
@@ -8,6 +7,7 @@ import '../core/presets.dart';
 import '../core/units.dart';
 import '../services/controller.dart';
 import '../services/native_bridge.dart';
+import 'app_info_screen.dart';
 import 'icons.dart';
 import 'intro_stories.dart';
 import 'permissions_screen.dart';
@@ -177,6 +177,12 @@ class SettingsScreen extends ConsumerWidget {
               subtitle: 'Everything stays on this phone',
               page: _PrivacyPage(),
             ),
+            const _NavTile(
+              icon: Ph.info,
+              title: 'App info',
+              subtitle: 'Version, updates, contact and source code',
+              page: AppInfoScreen(),
+            ),
           ],
         ),
         if (c.developerAvailable) ...[
@@ -195,33 +201,9 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
         ],
-        const _VersionLabel(),
       ],
     );
   }
-}
-
-class _VersionLabel extends StatelessWidget {
-  const _VersionLabel();
-
-  static final Future<PackageInfo> _info = PackageInfo.fromPlatform();
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 24),
-    child: FutureBuilder<PackageInfo>(
-      future: _info,
-      builder: (context, snap) {
-        final i = snap.data;
-        return Text(
-          i == null ? '' : 'Version ${i.version}+${i.buildNumber}',
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium
-              ?.copyWith(color: context.colors.muted),
-        );
-      },
-    ),
-  );
 }
 
 String _themeLabel(String mode) => switch (mode) {
@@ -514,8 +496,9 @@ class _PrivacyPage extends ConsumerWidget {
       title: 'Privacy and data',
       children: [
         const _Help(
-          'DoomWalk has no internet permission and no analytics. It sees how far you scroll and '
-          'which app is open, never what is on the screen. All data stays on this phone.',
+          'DoomWalk has no analytics and no account. It sees how far you scroll and which app '
+          'is open, never what is on the screen. All data stays on this phone. It only goes '
+          'online when you send a message or bug report from App info.',
         ),
         const SizedBox(height: 8),
         TileGroup(

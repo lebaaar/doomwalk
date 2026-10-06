@@ -1,8 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Fully on-device: strip INTERNET even if a library adds it (the debug manifest re-adds it for the Flutter tool) -->
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <!-- Only used to send a message or bug report from App info; tracking stays fully on-device -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <uses-permission android:name="android.permission.ACTIVITY_RECOGNITION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -99,6 +99,11 @@
         </intent>
         <intent>
             <action android:name="android.view.InputMethod" />
+        </intent>
+        <!-- App info opens Google Play and GitHub links -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
         </intent>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
