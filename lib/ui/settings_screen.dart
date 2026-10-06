@@ -180,7 +180,7 @@ class SettingsScreen extends ConsumerWidget {
             const _NavTile(
               icon: Ph.info,
               title: 'App info',
-              subtitle: 'Version, updates, contact and source code',
+              subtitle: 'About, version, updates and contact',
               page: AppInfoScreen(),
             ),
           ],

@@ -13,6 +13,7 @@ import 'theme.dart';
 const playStoreUrl =
     'https://play.google.com/store/apps/details?id=com.lebaaar.doomwalk';
 const sourceCodeUrl = 'https://github.com/lebaaar/doomwalk';
+const kofiUrl = 'https://ko-fi.com/lebaaar';
 
 enum UpdateStatus { checking, available, none }
 
@@ -160,10 +161,18 @@ class _AppInfoScreenState extends State<AppInfoScreen> {
           ),
           const _Heading('Development'),
           _LinkCard(
-            icon: Ph.githubLogo,
+            icon: Ph.code,
             title: 'View source code',
             subtitle: 'Open GitHub',
             onTap: () => openExternal(context, sourceCodeUrl),
+          ),
+          const SizedBox(height: Gaps.card),
+          _LinkCard(
+            icon: PhFill.heart,
+            title: 'Buy me a Ko-fi ☕',
+            subtitle: 'Support the development',
+            highlight: true,
+            onTap: () => openExternal(context, kofiUrl),
           ),
         ],
       ),
@@ -306,12 +315,16 @@ class _LinkCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.onTap,
+    this.highlight = false,
   });
 
   final IconData icon;
   final String title;
   final String subtitle;
   final VoidCallback onTap;
+
+  /// Accent title, icon and arrow, for the Ko-fi card
+  final bool highlight;
 
   @override
   Widget build(BuildContext context) {
@@ -322,10 +335,21 @@ class _LinkCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: ListTile(
           contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          leading: IconBadge(icon: icon, size: 40),
-          title: Text(title),
+          leading: IconBadge(
+            icon: icon,
+            size: 40,
+            foreground: highlight ? col.accent : null,
+          ),
+          title: Text(
+            title,
+            style: highlight ? TextStyle(color: col.accent) : null,
+          ),
           subtitle: Text(subtitle),
-          trailing: Icon(Ph.arrowRight, size: 20, color: col.muted),
+          trailing: Icon(
+            Ph.arrowRight,
+            size: 20,
+            color: highlight ? col.accent : col.muted,
+          ),
           onTap: onTap,
         ),
       ),
@@ -409,7 +433,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           Text(
             _bug
                 ? 'What happened, and what did you expect instead? Steps to make it happen again help a lot.'
-                : 'Questions, ideas or anything else. Leave a way to reach you if you want an answer.',
+                : 'Questions, ideas or anything else. Leave your email if you want an answer.',
             style: t.bodyMedium?.copyWith(color: col.muted),
           ),
           const SizedBox(height: 16),
@@ -432,7 +456,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             maxLength: 200,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(
-              hintText: 'Email or Discord username (optional)',
+              hintText: 'Email (optional)',
               contentPadding: EdgeInsets.all(14),
               counterText: '',
             ),

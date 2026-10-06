@@ -112,7 +112,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Checking for updates'), findsNothing);
       expect(find.text('View on Google Play'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('View source code'), 200);
+      await tester.scrollUntilVisible(find.text('Buy me a Ko-fi ☕'), 200);
       expect(find.text('Contact developer'), findsOneWidget);
       expect(find.text('Report a bug'), findsOneWidget);
       expect(find.text('View source code'), findsOneWidget);
