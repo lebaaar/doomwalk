@@ -86,8 +86,10 @@ adb shell am broadcast -n $PKG/.DebugReceiver -a $PKG.DEBUG_DUMP >/dev/null; sle
 adb logcat -d -s flutter | grep 'SD dump' | tail -1 > "$OUT/dump_after.txt"
 diff <(cut -c1-200 "$OUT/dump_before.txt") <(cut -c1-200 "$OUT/dump_after.txt") && echo "  state survived restart" || true
 
-log "release manifest has no INTERNET"
-flutter build apk --release
+log "release permissions (INTERNET is only for App info messages)"
+flutter build apk --release $([ -f .env ] && echo --dart-define-from-file=.env)
 "${ANDROID_HOME:-$HOME/Android/Sdk}"/build-tools/*/aapt2 dump permissions build/app/outputs/flutter-apk/app-release.apk 2>/dev/null \
-  | tee "$OUT/release_permissions.txt" | grep -q INTERNET && echo "  FAIL: INTERNET present" || echo "  ok: no INTERNET"
+  > "$OUT/release_permissions.txt"
+grep -qE 'LOCATION|CONTACTS|READ_PHONE|CAMERA|RECORD_AUDIO' "$OUT/release_permissions.txt" \
+  && echo "  FAIL: unexpected permission" || echo "  ok: no unexpected permissions"
 echo; echo "Done. Evidence in $OUT/"

@@ -106,9 +106,9 @@ void main() {
         await tester.tapAt(const Offset(700, 400));
         await tester.pump(const Duration(milliseconds: 400));
       }
-      expect(find.text('Nothing leaves your phone'), findsOneWidget);
+      expect(find.text('Your data stays on your phone'), findsOneWidget);
       await tester.pump(const Duration(seconds: 10)); // doesn't close by itself
-      expect(find.text('Nothing leaves your phone'), findsOneWidget);
+      expect(find.text('Your data stays on your phone'), findsOneWidget);
       await tester.tap(find.text('Set it up'));
       expect(done, 2);
     });

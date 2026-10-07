@@ -34,6 +34,12 @@ abstract final class Ph {
   static const sliders = IconData(0xe432, fontFamily: _f);
   static const ticket = IconData(0xe490, fontFamily: _f);
   static const arrowCounterClockwise = IconData(0xe038, fontFamily: _f);
+  static const info = IconData(0xe2ce, fontFamily: _f);
+  static const envelopeSimple = IconData(0xe218, fontFamily: _f);
+  static const bug = IconData(0xe5f4, fontFamily: _f);
+  static const arrowRight = IconData(0xe06c, fontFamily: _f);
+  static const downloadSimple = IconData(0xe20c, fontFamily: _f);
+  static const paperPlaneTilt = IconData(0xe398, fontFamily: _f);
 }
 
 abstract final class PhFill {
@@ -43,4 +49,5 @@ abstract final class PhFill {
   static const squaresFour = IconData(0xe464, fontFamily: _f);
   static const gear = IconData(0xe272, fontFamily: _f);
   static const chartBar = IconData(0xe150, fontFamily: _f);
+  static const heart = IconData(0xe2a8, fontFamily: _f);
 }
