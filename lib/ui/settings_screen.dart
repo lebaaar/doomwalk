@@ -6,6 +6,7 @@ import '../core/scroll_wallet.dart';
 import '../core/presets.dart';
 import '../core/units.dart';
 import '../services/controller.dart';
+import '../services/feedback.dart';
 import '../services/native_bridge.dart';
 import 'app_info_screen.dart';
 import 'icons.dart';
@@ -177,11 +178,11 @@ class SettingsScreen extends ConsumerWidget {
               subtitle: 'Your data stays on this phone',
               page: _PrivacyPage(),
             ),
-            const _NavTile(
+            _NavTile(
               icon: Ph.info,
               title: 'App info',
               subtitle: 'About, version, updates and contact',
-              page: AppInfoScreen(),
+              page: AppInfoScreen(diagnostics: () async => appDiagnostics(c)),
             ),
           ],
         ),

@@ -14,6 +14,7 @@ const playStoreUrl =
     'https://play.google.com/store/apps/details?id=com.lebaaar.doomwalk';
 const sourceCodeUrl = 'https://github.com/lebaaar/doomwalk';
 const kofiUrl = 'https://ko-fi.com/lebaaar';
+const contactEmail = 'doomwalk@lan.si';
 
 enum UpdateStatus { checking, available, none }
 
@@ -48,12 +49,16 @@ class AppInfoScreen extends StatefulWidget {
     super.key,
     this.checkForUpdate = playUpdateCheck,
     this.minimumCheck = const Duration(seconds: 1),
+    this.diagnostics,
   });
 
   final UpdateCheck checkForUpdate;
 
   /// The spinner stays at least this long, so a fast answer doesn't flash past
   final Duration minimumCheck;
+
+  /// App state attached to bug reports, read when the report is sent
+  final Future<Map<String, String>> Function()? diagnostics;
 
   @override
   State<AppInfoScreen> createState() => _AppInfoScreenState();
@@ -100,7 +105,10 @@ class _AppInfoScreenState extends State<AppInfoScreen> {
     return Scaffold(
       appBar: AppBar(),
       body: ListView(
-        padding: const EdgeInsets.only(bottom: 32),
+        // Clears the system navigation bar; settings gets this from the tab bar
+        padding: EdgeInsets.only(
+          bottom: 24 + MediaQuery.paddingOf(context).bottom,
+        ),
         children: [
           const SizedBox(height: 8),
           Center(
@@ -135,44 +143,52 @@ class _AppInfoScreenState extends State<AppInfoScreen> {
             },
           ),
           const SizedBox(height: 12),
-          const _Heading('About'),
+          const SectionTitle('About'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: Gaps.margin + 4),
             child: Text(
               'DoomWalk makes you walk before you can doomscroll. It measures how far you '
               'scroll in social and video apps, in actual metres, and only lets you scroll as '
-              'far as you have walked. No ads, no account, no hidden subscriptions.',
+              'far as you have walked. It never collects any personal data about you and contains no ads.',
               style: t.bodyLarge?.copyWith(height: 1.45),
             ),
           ),
-          const _Heading('Support'),
-          _LinkCard(
-            icon: Ph.envelopeSimple,
-            title: 'Contact developer',
-            subtitle: 'Have questions or suggestions?',
-            onTap: () => _openForm(context, FeedbackKind.contact),
+          const SectionTitle('Support'),
+          TileGroup(
+            dividerIndent: 64,
+            children: [
+              _LinkRow(
+                icon: Ph.envelopeSimple,
+                title: 'Contact developer',
+                subtitle: 'Have questions or suggestions?',
+                onTap: () => _openForm(context, FeedbackKind.contact),
+              ),
+              _LinkRow(
+                icon: Ph.bug,
+                title: 'Report a bug',
+                subtitle: 'Help improve the app',
+                onTap: () => _openForm(context, FeedbackKind.bug),
+              ),
+            ],
           ),
-          const SizedBox(height: Gaps.card),
-          _LinkCard(
-            icon: Ph.bug,
-            title: 'Report a bug',
-            subtitle: 'Help improve the app',
-            onTap: () => _openForm(context, FeedbackKind.bug),
-          ),
-          const _Heading('Development'),
-          _LinkCard(
-            icon: Ph.code,
-            title: 'View source code',
-            subtitle: 'Open GitHub',
-            onTap: () => openExternal(context, sourceCodeUrl),
-          ),
-          const SizedBox(height: Gaps.card),
-          _LinkCard(
-            icon: PhFill.heart,
-            title: 'Buy me a Ko-fi ☕',
-            subtitle: 'Support the development',
-            highlight: true,
-            onTap: () => openExternal(context, kofiUrl),
+          const SectionTitle('Development'),
+          TileGroup(
+            dividerIndent: 64,
+            children: [
+              _LinkRow(
+                icon: Ph.code,
+                title: 'View source code',
+                subtitle: 'Open GitHub',
+                onTap: () => openExternal(context, sourceCodeUrl),
+              ),
+              _LinkRow(
+                icon: PhFill.heart,
+                title: 'Buy me a Ko-fi ☕',
+                subtitle: 'Support the development',
+                highlight: true,
+                onTap: () => openExternal(context, kofiUrl),
+              ),
+            ],
           ),
         ],
       ),
@@ -180,9 +196,12 @@ class _AppInfoScreenState extends State<AppInfoScreen> {
   }
 
   void _openForm(BuildContext context, FeedbackKind kind) {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => FeedbackScreen(kind: kind)));
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) =>
+            FeedbackScreen(kind: kind, diagnostics: widget.diagnostics),
+      ),
+    );
   }
 }
 
@@ -295,22 +314,8 @@ class _InlineLink extends StatelessWidget {
   );
 }
 
-class _Heading extends StatelessWidget {
-  const _Heading(this.text);
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(Gaps.margin + 4, 28, Gaps.margin, 12),
-    child: Semantics(
-      header: true,
-      child: Text(text, style: Theme.of(context).textTheme.titleLarge),
-    ),
-  );
-}
-
-class _LinkCard extends StatelessWidget {
-  const _LinkCard({
+class _LinkRow extends StatelessWidget {
+  const _LinkRow({
     required this.icon,
     required this.title,
     required this.subtitle,
@@ -323,44 +328,39 @@ class _LinkCard extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
 
-  /// Accent title, icon and arrow, for the Ko-fi card
+  /// Accent title, icon and arrow, for the Ko-fi row
   final bool highlight;
 
   @override
   Widget build(BuildContext context) {
     final col = context.colors;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: Gaps.margin),
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        child: ListTile(
-          contentPadding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          leading: IconBadge(
-            icon: icon,
-            size: 40,
-            foreground: highlight ? col.accent : null,
-          ),
-          title: Text(
-            title,
-            style: highlight ? TextStyle(color: col.accent) : null,
-          ),
-          subtitle: Text(subtitle),
-          trailing: Icon(
-            Ph.arrowRight,
-            size: 20,
-            color: highlight ? col.accent : col.muted,
-          ),
-          onTap: onTap,
-        ),
+    return ListTile(
+      leading: IconBadge(icon: icon, foreground: highlight ? col.accent : null),
+      title: Text(
+        title,
+        style: highlight ? TextStyle(color: col.accent) : null,
       ),
+      subtitle: Text(subtitle),
+      trailing: Icon(
+        Ph.caretRight,
+        size: 18,
+        color: highlight ? col.accent : col.muted,
+      ),
+      onTap: onTap,
     );
   }
 }
 
 class FeedbackScreen extends StatefulWidget {
-  const FeedbackScreen({super.key, required this.kind, this.sender});
+  const FeedbackScreen({
+    super.key,
+    required this.kind,
+    this.sender,
+    this.diagnostics,
+  });
 
   final FeedbackKind kind;
+  final Future<Map<String, String>> Function()? diagnostics;
   final FeedbackSender? sender;
 
   @override
@@ -398,6 +398,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         message: _message.text,
         replyTo: _reply.text,
         appVersion: '${i.version}+${i.buildNumber}',
+        diagnostics: _bug
+            ? {
+                if (i.installerStore != null)
+                  'Installed from': i.installerStore!,
+                ...?await widget.diagnostics?.call(),
+              }
+            : const {},
       );
       if (!mounted) return;
       Navigator.of(context).pop();
@@ -432,8 +439,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         children: [
           Text(
             _bug
-                ? 'What happened, and what did you expect instead? Steps to make it happen again help a lot.'
-                : 'Questions, ideas or anything else. Leave your email if you want an answer.',
+                ? 'Please describe the bug: What happened and what did you expect to happen instead instead? Steps to reproduce the bug help a lot.'
+                : 'Submit questions, ideas or anything else to help improve DoomWalk. Leave your email if you want an answer.',
             style: t.bodyMedium?.copyWith(color: col.muted),
           ),
           const SizedBox(height: 16),
@@ -476,13 +483,29 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             label: Text(_sending ? 'Sending' : 'Send'),
           ),
           const SizedBox(height: 12),
-          Text(
-            configured
-                ? 'Sent to the developer along with the app and Android version. Nothing else '
-                      'from this phone is included.'
-                : 'This build of DoomWalk can\'t send messages.',
-            style: t.bodySmall,
-          ),
+          if (configured)
+            Text(
+              _bug
+                  ? 'Sent to the developer along with the app version, phone model, Android version and whether DoomWalk\'s permissions and background service are working. No personal information is included.'
+                  : 'Sent to the developer along with the app and Android version. No personal information is included.',
+              style: t.bodySmall,
+            )
+          else
+            Wrap(
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  'Can\'t send messages right now. Please write an email to ',
+                  style: t.bodySmall,
+                ),
+                _InlineLink(
+                  label: contactEmail,
+                  color: col.accent,
+                  style: t.bodySmall,
+                  onTap: () => openExternal(context, 'mailto:$contactEmail'),
+                ),
+              ],
+            ),
         ],
       ),
     );

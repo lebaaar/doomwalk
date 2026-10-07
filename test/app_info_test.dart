@@ -44,6 +44,27 @@ void main() {
       },
     );
 
+    test('puts diagnostics in their own field', () {
+      final p = feedbackPayload(
+        kind: FeedbackKind.bug,
+        message: 'it stopped',
+        replyTo: '',
+        appVersion: '0.1.2+3',
+        osVersion: 'Android 14 (SDK 34)',
+        diagnostics: {
+          'Phone': 'samsung SM-S911B',
+          'Battery unrestricted': 'no',
+        },
+      );
+      final embed = (p['embeds']! as List).single as Map;
+      final fields = (embed['fields']! as List).cast<Map>();
+      expect(fields.map((f) => f['name']), ['App', 'Android', 'Diagnostics']);
+      expect(
+        fields.last['value'],
+        'Phone: samsung SM-S911B\nBattery unrestricted: no',
+      );
+    });
+
     test('leaves out an empty reply address and caps long messages', () {
       final p = feedbackPayload(
         kind: FeedbackKind.contact,
@@ -151,9 +172,10 @@ void main() {
       await tester.enterText(find.byType(TextField).first, 'It crashed');
       await tester.pump();
       expect(
-        find.text('This build of DoomWalk can\'t send messages.'),
+        find.text('Can\'t send messages right now. Please write an email to '),
         findsOneWidget,
       );
+      expect(find.text(contactEmail), findsOneWidget);
       final send = tester.widget<ButtonStyleButton>(
         find.ancestor(
           of: find.text('Send'),
