@@ -133,7 +133,7 @@ class SettingsScreen extends ConsumerWidget {
             const _NavTile(
               icon: Ph.sliders,
               title: 'Custom rules',
-              subtitle: 'How fast walking gets harder, locking',
+              subtitle: 'How fast walking gets harder and when apps get locked',
               page: _CustomRulesPage(),
             ),
           ],
@@ -194,7 +194,7 @@ class SettingsScreen extends ConsumerWidget {
               SwitchListTile(
                 secondary: const IconBadge(icon: Ph.code),
                 title: const Text('Developer options'),
-                subtitle: const Text('Testing tools: add steps or scrolling'),
+                subtitle: const Text('Manually add steps or scrolling'),
                 value: c.developerOptions,
                 onChanged: c.setDeveloperOptions,
               ),
