@@ -40,6 +40,7 @@ abstract final class Ph {
   static const arrowRight = IconData(0xe06c, fontFamily: _f);
   static const downloadSimple = IconData(0xe20c, fontFamily: _f);
   static const paperPlaneTilt = IconData(0xe398, fontFamily: _f);
+  static const star = IconData(0xe46a, fontFamily: _f);
 }
 
 abstract final class PhFill {

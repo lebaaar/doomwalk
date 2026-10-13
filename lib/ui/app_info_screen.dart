@@ -169,6 +169,12 @@ class _AppInfoScreenState extends State<AppInfoScreen> {
                 subtitle: 'Help improve the app',
                 onTap: () => _openForm(context, FeedbackKind.bug),
               ),
+              _LinkRow(
+                icon: Ph.star,
+                title: 'Rate DoomWalk',
+                subtitle: 'Leave a review on Google Play',
+                onTap: () => openExternal(context, playStoreUrl),
+              ),
             ],
           ),
           const SectionTitle('Development'),

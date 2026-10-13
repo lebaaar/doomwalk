@@ -136,6 +136,7 @@ void main() {
       await tester.scrollUntilVisible(find.text('Buy me a Ko-fi ☕'), 200);
       expect(find.text('Contact developer'), findsOneWidget);
       expect(find.text('Report a bug'), findsOneWidget);
+      expect(find.text('Rate DoomWalk'), findsOneWidget);
       expect(find.text('View source code'), findsOneWidget);
     });
 
