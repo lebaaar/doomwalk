@@ -10,7 +10,7 @@ String dayKeyOf(DateTime t) {
 
 class WalletConfig {
   const WalletConfig({
-    this.bankCapM = 50,
+    this.bankCapM = 30,
     this.priceTiers = defaultPriceTiers,
     this.priceStepM = defaultPriceStepM,
     this.frostAtM = 20,
@@ -26,7 +26,7 @@ class WalletConfig {
   // The first tier applies at the start of the day, the last is the most it can cost
   final List<double> priceTiers;
 
-  static const defaultPriceTiers = <double>[5, 12, 20, 32, 48];
+  static const defaultPriceTiers = <double>[8, 18, 30, 45, 70];
 
   final double priceStepM;
 

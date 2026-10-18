@@ -1,13 +1,13 @@
 import 'scroll_wallet.dart';
 
 enum Strictness {
-  gentle('Gentle', priceTiers: [4, 9, 14, 22, 32], priceStepM: 50),
+  gentle('Gentle', priceTiers: [5, 12, 20, 32, 48], priceStepM: 50),
   balanced(
     'Balanced',
     priceTiers: WalletConfig.defaultPriceTiers,
     priceStepM: WalletConfig.defaultPriceStepM,
   ),
-  strict('Strict', priceTiers: [8, 18, 30, 46, 70], priceStepM: 25);
+  strict('Strict', priceTiers: [12, 27, 45, 70, 100], priceStepM: 25);
 
   const Strictness(
     this.label, {

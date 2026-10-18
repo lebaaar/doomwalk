@@ -268,8 +268,8 @@ void main() {
     await tester.runAsync(() async {
       await c.setDeveloperOptions(true);
       await c.devResetTracking();
-      c.devAddSteps(200); // 150 m walked at 3x fills the 50 m bank
-      c.devAddScroll('com.instagram.android', 50);
+      c.devAddSteps(320); // 240 m walked at 8x fills the 30 m bank
+      c.devAddScroll('com.instagram.android', 30);
       await c.setDeveloperOptions(false);
     });
     await tab('Today');

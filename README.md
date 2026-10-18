@@ -22,17 +22,17 @@ you've walked. Run out, and all addicting apps are blocked until you get up and 
 
 ## How it works
 
-1. **Walking earns you scrolling.** Every day starts with 0m, and you can save up to 50m of scrolling at a time. Walking while your balance is full does nothing, so walk when you want to scroll.
+1. **Walking earns you scrolling.** Every day starts with 0m, and you can save up to 30m of scrolling at a time. Walking while your balance is full does nothing, so walk when you want to scroll.
 2. **Scrolling drains you balance.** Apps like Instagram, TikTok, YouTube and Reddit use it up, but apps like calls, maps, banking, messages and emergency apps do not.
-3. **Scrolling gets more expensive.** Every metre of scrolling costs you 5m of walking to start with, and it goes up a tier for every 50m you scroll in a day:
+3. **Scrolling gets more expensive.** Every metre of scrolling costs you 8m of walking to start with, and it goes up a tier for every 50m you scroll in a day:
 
-   | Scrolled today | Walking per metre | Earning the full 50m |
+   | Scrolled today | Walking per metre | Earning the full 30m |
    |---|---|---|
-   | 0–49m | 5× | 334 steps |
-   | 50–99m | 12× | 800 steps |
-   | 100–149m | 20× | 1,334 steps |
-   | 150–199m | 32× | 2,134 steps |
-   | 200m and more | 48× (max) | 3,200 steps |
+   | 0–49m | 8× | 320 steps |
+   | 50–99m | 18× | 720 steps |
+   | 100–149m | 30× | 1,200 steps |
+   | 150–199m | 45× | 1,800 steps |
+   | 200m and more | 70× (max) | 2,800 steps |
 
 4. **Out of scrolling? Apps are blocked, time to touch grass.** It fades behind a blur with a card that says how many steps get you going again. Taps still work, it's just no fun.
 5. **Need a dopaime hit badly?** Three emergency passes a day unlock everything for five minutes.
