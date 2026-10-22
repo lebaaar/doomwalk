@@ -139,9 +139,9 @@ A sideloaded APK needs *Allow restricted settings* (App info → ⋮) before And
    Output lands in `build/app/outputs/flutter-apk/app-release.apk`.
 2. Commit the version bump and push:
    ```bash
-   git tag v0.4.0 && git push origin main v0.4.0
+   git tag v1.0.0 && git push origin main v1.0.0
    ```
 3. Publish the APK to GitHub releases:
    ```bash
-   gh release create v0.4.0 build/app/outputs/flutter-apk/app-release.apk --title "DoomWalk 0.4.0" --generate-notes
+   gh release create v1.0.0 build/app/outputs/flutter-apk/app-release.apk --title "DoomWalk 1.0.0" --generate-notes
    ```
