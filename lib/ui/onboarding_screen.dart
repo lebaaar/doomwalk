@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../core/units.dart';
 import '../services/controller.dart';
+import 'accessibility_disclosure.dart';
 import 'icons.dart';
 import 'logo.dart';
 import 'providers.dart';
@@ -146,7 +147,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen>
       case _StepId.restricted:
         await n.openAppDetails();
       case _StepId.accessibility:
-        await n.openAccessibilitySettings();
+        if (await confirmAccessibilityDisclosure(context)) {
+          await n.openAccessibilitySettings();
+        }
       case _StepId.activity:
         final r = await Permission.activityRecognition.request();
         if (r.isPermanentlyDenied) await openAppSettings();

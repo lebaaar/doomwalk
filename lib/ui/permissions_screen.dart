@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 
 import '../services/controller.dart';
 import '../services/native_bridge.dart';
+import 'accessibility_disclosure.dart';
 import 'icons.dart';
 import 'providers.dart';
 import 'theme.dart';
@@ -72,6 +73,12 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
     final ok = await _c.restartScrollMeasuring();
     if (!ok) {
       setState(() => _restarting = false);
+      await _openAccessibility();
+    }
+  }
+
+  Future<void> _openAccessibility() async {
+    if (await confirmAccessibilityDisclosure(context)) {
       await _c.native.openAccessibilitySettings();
     }
   }
@@ -118,7 +125,7 @@ class _PermissionsScreenState extends ConsumerState<PermissionsScreen>
                     ? 'On, but not running'
                     : 'Off. Nothing is measured or locked.',
                 action: 'Accessibility',
-                onTap: c.native.openAccessibilitySettings,
+                onTap: _openAccessibility,
               ),
               if (restricted)
                 _Row(
