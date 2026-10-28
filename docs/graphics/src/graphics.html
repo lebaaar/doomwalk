@@ -25,14 +25,16 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
 
 /* ---------- canvas ---------- */
 .shot {
-  width: 1080px; height: 1920px; position: relative; overflow: hidden; margin-bottom: 40px;
+  width: 1080px; height: 1920px; position: relative; overflow: hidden; isolation: isolate; margin-bottom: 40px;
   background:
     radial-gradient(1100px 900px at 92% -6%, rgba(169,211,236,.30), rgba(169,211,236,0) 62%),
+    radial-gradient(900px 700px at -10% 104%, rgba(169,211,236,.10), rgba(169,211,236,0) 60%),
     linear-gradient(180deg, #14232f 0%, #0d1620 48%, #0A0C0F 100%);
 }
 .head { position: absolute; left: 88px; right: 88px; top: 132px; }
 .head h1 { margin: 0; font-size: 94px; line-height: 1.02; letter-spacing: -3px; font-weight: 700; color: var(--text); }
-.head p { margin: 30px 0 0; font-size: 40px; line-height: 1.32; color: var(--onHeroMuted); letter-spacing: -.2px; }
+.head h1 em, .feature h1 em { font-style: normal; color: var(--accent); }
+.head p { text-wrap: balance; margin: 30px 0 0; font-size: 40px; line-height: 1.32; color: var(--onHeroMuted); letter-spacing: -.2px; }
 
 /* ---------- phone: thin metal rail, slim black bezel, side keys ---------- */
 .phone {
@@ -41,6 +43,8 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
   background: linear-gradient(150deg, #7a8089 0%, #2b2f35 14%, #474c53 46%, #1c1f23 78%, #686e76 100%);
   box-shadow: 0 90px 160px -40px rgba(0,0,0,.8), 0 30px 70px rgba(0,0,0,.35);
 }
+.phone::before { content: ""; position: absolute; inset: -60px -80px 30%; z-index: -1; border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(169,211,236,.16), rgba(169,211,236,0)); }
 .phone .key { position: absolute; right: -6px; width: 7px; border-radius: 0 5px 5px 0;
   background: linear-gradient(90deg, #25292e, #7a8089 70%, #3a3f45); }
 .phone .key.p { top: 330px; height: 120px; }
@@ -91,7 +95,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
 .climb { padding: 22px; }
 .climb .pct { font-size: 32px; font-weight: 600; letter-spacing: -1px; }
 .climb .of { font-size: 16.5px; line-height: 1.35; margin-top: 2px; }
-.climb .rest { font-size: 14px; color: var(--muted); margin-top: 8px; line-height: 1.45; }
+.climb .rest { text-wrap: pretty; font-size: 14px; color: var(--muted); margin-top: 8px; line-height: 1.45; }
 .climb hr { border: 0; border-top: 1px solid var(--hairline); margin: 14px 0; }
 
 /* instagram-style feed */
@@ -151,7 +155,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
 .chart { position: relative; height: 150px; display: flex; align-items: flex-end; gap: 16px; padding: 0 6px; margin-top: 18px; }
 .chart .b { flex: 1; border-radius: 8px; background: var(--accent); }
 .chart .b.lo { background: #1b1f25; }
-.chart .b.cur { background: #8D96A1; }
+.chart .b.cur { background: rgba(169,211,236,.42); }
 .chart .goal { position: absolute; left: 0; right: 0; border-top: 2px dashed #3a414a; }
 .chart .goal span { position: absolute; right: 0; top: -22px; font-size: 13px; color: var(--muted); }
 .days { display: flex; gap: 16px; padding: 8px 6px 0; }
@@ -184,6 +188,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
 .feature { width: 1024px; height: 500px; position: relative; overflow: hidden;
   background:
     radial-gradient(700px 520px at 88% -10%, rgba(169,211,236,.34), rgba(169,211,236,0) 62%),
+    radial-gradient(360px 300px at 78% 62%, rgba(169,211,236,.12), rgba(169,211,236,0) 70%),
     linear-gradient(160deg, #15252f 0%, #0d1620 55%, #0A0C0F 100%); }
 .feature .txt { position: absolute; left: 72px; top: 0; bottom: 0; width: 560px; display: flex; flex-direction: column; justify-content: center; }
 .feature .brand { display: flex; align-items: center; gap: 16px; font-size: 34px; font-weight: 600; letter-spacing: -.6px; }
@@ -240,7 +245,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
 <!-- 1. Today -->
 <section class="shot" id="s1">
   <div class="head">
-    <h1>Want to scroll?<br>Walk first.</h1>
+    <h1>Want to scroll?<br><em>Walk first.</em></h1>
     <p>Every step you take earns you metres of scrolling.</p>
   </div>
   <div class="phone" data-phone><div class="bezel"><div class="screen"><div class="app">
@@ -252,7 +257,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
       <div class="card climb">
         <div class="pct num">66%</div>
         <div class="of">of the way along a blue whale</div>
-        <div class="rest num">10.0 m to go. You've scrolled 20.0 m today.</div>
+        <div class="rest num">10.0&nbsp;m to go. You've scrolled 20.0&nbsp;m today.</div>
         <div style="display:flex;justify-content:center;margin-top:16px" data-whale></div>
       </div>
     </div>
@@ -262,7 +267,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
 <!-- 2. Blocked -->
 <section class="shot" id="s2">
   <div class="head">
-    <h1>Out of scrolling?<br>Go for a walk.</h1>
+    <h1>Out of scrolling?<br><em>Go for a walk.</em></h1>
     <p>Your addicting apps lock up until you take a walk. Calls, maps and messages always work.</p>
   </div>
   <div class="phone" data-phone><div class="bezel"><div class="screen"><div class="app">
@@ -313,7 +318,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
 <!-- 4. Price ladder -->
 <section class="shot" id="s4">
   <div class="head">
-    <h1>The more you scroll,<br>the more you walk.</h1>
+    <h1>The more you scroll,<br><em>the more you walk.</em></h1>
     <p>Every 50m you scroll today makes the next walk longer.</p>
   </div>
   <div class="phone" data-phone><div class="bezel"><div class="screen"><div class="app">
@@ -331,7 +336,8 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
           <div class="r"><span class="a">200m+</span><span class="b">70× (max)</span><span class="c">2,800 steps</span></div>
         </div>
         <div class="note"><i class="ph">&#xe490;</i><span>Three emergency passes a day unlock everything for five minutes.</span></div>
-        <div class="note"><i class="ph">&#xe432;</i><span>Gentle, Balanced or Strict. Bank size from 20 to 100m.</span></div>
+        <div class="note"><i class="ph">&#xe432;</i><span>Pick how strict it is. Bank size from 20&nbsp;to&nbsp;100m.</span></div>
+        <div class="seg" style="margin:16px 6px 0;background:var(--ink)"><div>Gentle</div><div class="on" style="background:var(--accentC);color:var(--onAccentC);border-color:transparent">Balanced</div><div>Strict</div></div>
       </div>
     </div>
   </div></div></div></div>
@@ -340,7 +346,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
 <!-- 5. Activity -->
 <section class="shot" id="s5">
   <div class="head">
-    <h1>See where your<br>scroll goes.</h1>
+    <h1>See where your<br><em>scroll goes.</em></h1>
     <p>Your weekly steps and scrolls. See what eats up your time.</p>
   </div>
   <div class="phone" data-phone><div class="bezel"><div class="screen"><div class="app">
@@ -361,7 +367,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
           <div class="b" style="height:110px"></div>
           <div class="b cur" style="height:72px"></div>
         </div>
-        <div class="days"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+        <div class="days"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span style="color:var(--text);font-weight:600">S</span></div>
         <div class="stats">
           <div><b class="num">201 kcal</b><small>burned walking</small></div>
           <div><b class="num">4 days</b><small>goal streak</small></div>
@@ -380,7 +386,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
 <!-- 6. Landmarks -->
 <section class="shot" id="s6">
   <div class="head">
-    <h1>Scroll in giraffes<br>and Eiffel Towers.</h1>
+    <h1>Scroll in giraffes<br><em>and Eiffel Towers.</em></h1>
     <p>See how far your thumb really travels, then share the damage.</p>
   </div>
   <div class="phone" data-phone><div class="bezel"><div class="screen"><div class="app">
@@ -392,7 +398,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
           <div style="flex:1;min-width:0">
             <div class="pct num">66%</div>
             <div class="of">of the way up the Eiffel Tower</div>
-            <div class="rest num">110.0 m to go. You've scrolled 220.0 m today.</div>
+            <div class="rest num">110.0&nbsp;m to go. You've scrolled 220.0&nbsp;m today.</div>
           </div>
           <svg width="79" height="132" viewBox="0 0 60 100" style="flex:none;overflow:visible">
             <defs>
@@ -437,7 +443,7 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
 <section class="feature" id="feature">
   <div class="txt">
     <div class="brand"><span data-logo data-size="44" style="display:flex;color:#fff"></span>DoomWalk</div>
-    <h1>Want to scroll?<br>Take a walk first.</h1>
+    <h1>Want to scroll?<br><em>Take a walk first.</em></h1>
     <p>Your steps earn you scrolling.<br>Out of steps? Go touch grass.</p>
   </div>
   <div class="mini"><div class="bezel"><div class="screen"><div class="app">
@@ -446,7 +452,11 @@ body { margin: 0; background: #333; font-family: Geist, sans-serif; color: var(-
       <div class="title">Today</div>
       <div data-today></div>
       <div class="section">Today's climb</div>
-      <div class="card" style="height:300px"></div>
+      <div class="card climb" style="height:300px">
+        <div class="pct num">66%</div>
+        <div class="of">of the way along a blue whale</div>
+        <div style="display:flex;justify-content:center;margin-top:16px" data-whale></div>
+      </div>
     </div>
   </div></div></div></div>
 </section>
