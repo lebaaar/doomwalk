@@ -127,7 +127,7 @@ A sideloaded APK needs *Allow restricted settings* (App info → ⋮) before And
    ```bash
    flutter build appbundle --release --dart-define-from-file=.env
    ```
-   Output lands in `build/app/outputs/bundle/release/app-release.aab`. This is the only file Play accepts for the app itself. Upload it in Play Console → Testing → Closed testing → Create release.
+   Output lands in `build/app/outputs/bundle/release/app-release.aab`. This is the only file Play accepts for the app itself. App is live on [Google Play](https://play.google.com/store/apps/details?id=com.lebaaar.doomwalk); upload new versions in Play Console → Production → Create new release.
 
 
 ### Releasing on GitHub (.apk)

@@ -13,6 +13,12 @@ your social and video apps, in actual metres, and only lets you scroll as far as
 you've walked. Run out, and all addicting apps are blocked until you get up and touch some grass.
 
 <p align="center">
+  <a href="https://play.google.com/store/apps/details?id=com.lebaaar.doomwalk" target="_blank">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/78/Google_Play_Store_badge_EN.svg/960px-Google_Play_Store_badge_EN.svg.png" width="200" alt="Get it on Google Play">
+  </a>
+</p>
+
+<p align="center">
   <img src="docs/graphics/screenshot-1-today.png" width="160" alt="Want to scroll? Walk first. Today: steps, and the scrolling they earned">
   <img src="docs/graphics/screenshot-2-blocked.png" width="160" alt="Out of scroll? Go for a walk. A blocked app behind the blur">
   <img src="docs/graphics/screenshot-3-tiers.png" width="160" alt="The more you scroll, the more you walk. Walking cost tiers">
@@ -54,10 +60,6 @@ It needs Android's accessibility access to notice scrolling, but it can only see
 
 Privacy policy: [doomwalk.lan.si/privacy](https://doomwalk.lan.si/privacy)
 
-## Getting it
+## Contributing
 
-Currently only available on Android 13+ because of the accessibility requirements.
-<br>
-Soon available for download from the Google Play Store, until then you can download the APK from the [latest release](https://github.com/lebaaar/doomwalk/releases/latest).
-
-To build it yourself, see [CONTRIBUTING.md](CONTRIBUTING.md).
+If you want to contribute, see [CONTRIBUTING.md](CONTRIBUTING.md) on how to get started.
